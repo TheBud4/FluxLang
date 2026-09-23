@@ -1,0 +1,396 @@
+;; ===================================================================
+;; BNF COMPLETA - FLUXLANG (v1) - GRAMÁTICA LL(1)
+;; ===================================================================
+;;
+;; Convenções:
+;;   <nao-terminal>   símbolo não-terminal
+;;   MAIUSCULO        token produzido pelo analisador léxico
+;;   ε                produção vazia
+;;
+;; A gramática não possui recursão à esquerda e está fatorada à
+;; esquerda: para cada não-terminal, os conjuntos FIRST das alternativas
+;; são disjuntos e, quando há alternativa ε, também disjuntos do FOLLOW.
+
+
+;; ===================================================================
+;; 0. TOKENS
+;; ===================================================================
+;;
+;; Palavras reservadas:
+;;   VAR var          CONST const        FUNC func
+;;   WORKFLOW workflow  CALL call        RETURN return
+;;   IF if            ELSE else          WHILE while
+;;   FOR for          IN in              BREAK break
+;;   CONTINUE continue  STOP stop        ABORT abort
+;;   RUN run          TRUE true          FALSE false
+;;   NULL_LITERAL null
+;;   TYPE_INT int     TYPE_FLOAT float   TYPE_STRING string
+;;   TYPE_BOOL bool   TYPE_OBJECT object TYPE_LIST list
+;;
+;; Operadores e pontuação:
+;;   ASSIGN =    EQ ==     NEQ !=    LT <     GT >     LTE <=   GTE >=
+;;   PLUS +      MINUS -   MUL *     DIV /    MOD %
+;;   AND &&      OR ||     NOT !
+;;   LPAREN (    RPAREN )  LBRACE {  RBRACE }  LBRACKET [  RBRACKET ]
+;;   COMMA ,     COLON :   SEMICOLON ;   DOT .
+;;
+;; Literais e identificadores:
+;;   IDENTIFIER      [A-Za-z_][A-Za-z0-9_]*   (exceto palavras reservadas)
+;;   INT_LITERAL     [0-9]+
+;;   FLOAT_LITERAL   [0-9]+ "." [0-9]+
+;;   STRING_LITERAL  '"' ( [^"\\\n] | \n | \t | \" | \\ )* '"'
+;;                   (qualquer caractere exceto aspas, barra invertida e
+;;                   quebra de linha, ou um dos quatro escapes)
+;;
+;; Ignorados: espaços, tabulações, quebras de linha,
+;;            comentários // até o fim da linha e /* ... */ (sem aninhamento).
+;; A linguagem é case-sensitive.
+;;
+;; Erros léxicos (catálogo completo em ERROS.md):
+;;   - caractere não reconhecido (ex.: @ # $ ' e & ou | sozinhos);
+;;   - string não terminada (quebra de linha ou fim do arquivo antes de ");
+;;   - sequência de escape inválida (ex.: "\q");
+;;   - comentário de bloco não terminado;
+;;   - número malformado: [0-9]+ "." sem dígitos depois (ex.: 5.) ou
+;;     número seguido de letra/_ (ex.: 1e10, 0xFF, 2itens).
+;;
+;; Atenção (maior casamento): em "list<int>= [1]" o lexer lê ">=" como GTE
+;; e a declaração falha; deve-se escrever "list<int> = [1]". Já ">>" não
+;; é operador, então "list<list<int>>" funciona.
+;;
+;; EOF representa o fim da entrada: não é um token próprio, o lexer
+;; retorna 0 (padrão do Bison, onde aparece como $end).
+;;
+;; Palavras de biblioteca como terminal, log, info, warn, error, input,
+;; push, remove, length, toString, toInt, toFloat, toBool, command,
+;; flags e workingDir NÃO são reservadas: são IDENTIFIER.
+
+
+;; ===================================================================
+;; 1. ESTRUTURA GERAL DO PROGRAMA
+;; ===================================================================
+
+<programa> ::= <globais> EOF
+
+;; A exigência de exatamente uma "func main ()" (sem parâmetros e sem
+;; retorno) não é expressável na gramática: é verificada após o parse.
+
+<globais> ::= <elemento-global> <globais>
+            | ε
+
+<elemento-global> ::= <declaracao-var>
+                    | <declaracao-const>
+                    | <funcao>
+                    | <workflow>
+
+<bloco> ::= LBRACE <comandos> RBRACE
+
+<comandos> ::= <comando> <comandos>
+             | ε
+
+
+;; ===================================================================
+;; 2. TIPOS DE DADOS
+;; ===================================================================
+
+<tipo> ::= TYPE_INT
+         | TYPE_FLOAT
+         | TYPE_STRING
+         | TYPE_BOOL
+         | TYPE_OBJECT
+         | TYPE_LIST LT <tipo> GT
+
+
+;; ===================================================================
+;; 3. DECLARAÇÃO DE VARIÁVEIS E CONSTANTES
+;; ===================================================================
+
+<declaracao-var> ::= VAR <lista-identificadores> <declaracao-var-resto> SEMICOLON
+
+;; Com ":tipo", a inicialização é opcional. Sem ":tipo", ela é
+;; obrigatória e o tipo de cada variável é inferido do valor
+;; correspondente (ex.: "var saida, err = run {...};"). Assim,
+;; "var x;" já é rejeitado pela gramática.
+
+<declaracao-var-resto> ::= COLON <tipo> <inicializacao-opcional>
+                         | ASSIGN <lista-expressoes>
+
+<inicializacao-opcional> ::= ASSIGN <lista-expressoes>
+                           | ε
+
+<declaracao-const> ::= CONST <lista-identificadores> COLON <tipo>
+                       ASSIGN <lista-expressoes> SEMICOLON
+
+<lista-identificadores> ::= IDENTIFIER <lista-identificadores-resto>
+
+<lista-identificadores-resto> ::= COMMA IDENTIFIER <lista-identificadores-resto>
+                                | ε
+
+<lista-expressoes> ::= <expressao> <lista-expressoes-resto>
+
+<lista-expressoes-resto> ::= COMMA <expressao> <lista-expressoes-resto>
+                           | ε
+
+
+;; ===================================================================
+;; 4. FUNÇÕES
+;; ===================================================================
+
+<funcao> ::= FUNC IDENTIFIER
+             LPAREN <parametros-opcionais> RPAREN
+             <tipo-retorno>
+             <bloco>
+
+;; Em func, sem ":tipo" a função não retorna valor (como main): só
+;; "return;" é permitido e a chamada não pode ser usada como valor.
+
+<tipo-retorno> ::= COLON <tipo>
+                 | ε
+
+<parametros-opcionais> ::= <parametro> <parametros-resto>
+                         | ε
+
+<parametros-resto> ::= COMMA <parametro> <parametros-resto>
+                     | ε
+
+<parametro> ::= IDENTIFIER COLON <tipo>
+
+
+;; ===================================================================
+;; 5. WORKFLOWS
+;; ===================================================================
+
+<workflow> ::= WORKFLOW IDENTIFIER
+               LPAREN <parametros-opcionais> RPAREN
+               <tipo-retorno>
+               <bloco>
+
+;; Todo workflow devolve o par (resultado, erro). O ":tipo" opcional é
+;; o tipo do resultado; sem ele, o resultado é sempre null.
+
+<chamada-workflow> ::= CALL IDENTIFIER
+                       LPAREN <argumentos-opcionais> RPAREN
+
+<argumentos-opcionais> ::= <lista-expressoes>
+                         | ε
+
+
+;; ===================================================================
+;; 6. COMANDOS
+;; ===================================================================
+
+<comando> ::= <declaracao-var>
+            | <declaracao-const>
+            | <comando-if>
+            | <comando-while>
+            | <comando-for>
+            | <comando-return>
+            | <comando-break>
+            | <comando-continue>
+            | <comando-erro>
+            | <comando-expressao>
+
+
+;; ===================================================================
+;; 7. COMANDOS DE EXPRESSÃO E ATRIBUIÇÃO
+;; ===================================================================
+;;
+;; Atribuição e expressão-comando começam ambas por uma expressão
+;; (ex.: "a.b[i] = x;" e "a.b(i);"). Para manter LL(1), a expressão é
+;; lida primeiro e o token seguinte decide:
+;;   ";"        -> expressão-comando
+;;   "," ou "=" -> atribuição
+;; Na atribuição, o parser verifica (na ação da regra, ainda durante o
+;; parse) que cada alvo é atribuível: IDENTIFIER seguido apenas de
+;; ".campo" ou "[indice]", sem chamadas nem operadores. Caso contrário,
+;; reporta erro sintático no "=" (ex.: "soma(1, 2) = 3;").
+
+<comando-expressao> ::= <expressao> <resto-comando-expressao>
+
+<resto-comando-expressao> ::= SEMICOLON
+                            | <alvos-resto> ASSIGN <lista-expressoes> SEMICOLON
+
+<alvos-resto> ::= COMMA <expressao> <alvos-resto>
+                | ε
+
+
+;; ===================================================================
+;; 8. ESTRUTURAS DE CONTROLE
+;; ===================================================================
+;;
+;; Não existe "else if": ELSE é seguido obrigatoriamente de um bloco.
+
+<comando-if> ::= IF LPAREN <expressao> RPAREN
+                 <bloco>
+                 <else-opcional>
+
+<else-opcional> ::= ELSE <bloco>
+                  | ε
+
+<comando-while> ::= WHILE LPAREN <expressao> RPAREN
+                    <bloco>
+
+<comando-for> ::= FOR IDENTIFIER IN <expressao>
+                  <bloco>
+
+<comando-return> ::= RETURN <valor-retorno> SEMICOLON
+
+<valor-retorno> ::= <lista-expressoes>
+                  | ε
+
+<comando-break> ::= BREAK SEMICOLON
+
+
+;; ===================================================================
+;; 9. CONTINUE E TRATAMENTO DE ERROS
+;; ===================================================================
+;;
+;; "continue;" e "continue if erro;" compartilham o prefixo CONTINUE,
+;; por isso ficam no mesmo não-terminal. Apesar do prefixo, os dois são
+;; independentes: "continue if erro;" apenas marca o erro como tratado e
+;; segue para a próxima instrução, sem pular a iteração de um laço.
+
+<comando-continue> ::= CONTINUE <continue-resto>
+
+<continue-resto> ::= SEMICOLON
+                   | IF IDENTIFIER SEMICOLON
+
+<comando-erro> ::= STOP IF IDENTIFIER SEMICOLON
+                 | ABORT IF IDENTIFIER SEMICOLON
+
+
+;; ===================================================================
+;; 10. EXPRESSÕES E PRECEDÊNCIA
+;; ===================================================================
+;;
+;; Da menor para a maior precedência: || , && , == != , < > <= >= ,
+;; + - , * / % , unários ! - , pós-fixos . [] ().
+;; Os não-terminais "-resto" substituem a recursão à esquerda; ao
+;; montar a árvore, os operadores devem ser associados à esquerda.
+
+<expressao> ::= <expressao-and> <expressao-or-resto>
+
+<expressao-or-resto> ::= OR <expressao-and> <expressao-or-resto>
+                       | ε
+
+<expressao-and> ::= <expressao-igualdade> <expressao-and-resto>
+
+<expressao-and-resto> ::= AND <expressao-igualdade> <expressao-and-resto>
+                        | ε
+
+<expressao-igualdade> ::= <expressao-relacional> <expressao-igualdade-resto>
+
+<expressao-igualdade-resto> ::= <operador-igualdade> <expressao-relacional>
+                                <expressao-igualdade-resto>
+                              | ε
+
+<operador-igualdade> ::= EQ
+                       | NEQ
+
+<expressao-relacional> ::= <expressao-aditiva> <expressao-relacional-resto>
+
+<expressao-relacional-resto> ::= <operador-relacional> <expressao-aditiva>
+                                 <expressao-relacional-resto>
+                               | ε
+
+<operador-relacional> ::= GT
+                        | LT
+                        | GTE
+                        | LTE
+
+<expressao-aditiva> ::= <expressao-multiplicativa> <expressao-aditiva-resto>
+
+<expressao-aditiva-resto> ::= <operador-aditivo> <expressao-multiplicativa>
+                              <expressao-aditiva-resto>
+                            | ε
+
+<operador-aditivo> ::= PLUS
+                     | MINUS
+
+<expressao-multiplicativa> ::= <expressao-unaria> <expressao-multiplicativa-resto>
+
+<expressao-multiplicativa-resto> ::= <operador-multiplicativo> <expressao-unaria>
+                                     <expressao-multiplicativa-resto>
+                                   | ε
+
+<operador-multiplicativo> ::= MUL
+                            | DIV
+                            | MOD
+
+<expressao-unaria> ::= NOT <expressao-unaria>
+                     | MINUS <expressao-unaria>
+                     | <expressao-posfixa>
+
+
+;; ===================================================================
+;; 11. EXPRESSÕES PÓS-FIXAS
+;; ===================================================================
+
+<expressao-posfixa> ::= <primaria> <sufixos>
+
+<sufixos> ::= <sufixo> <sufixos>
+            | ε
+
+<sufixo> ::= DOT IDENTIFIER
+           | LBRACKET <expressao> RBRACKET
+           | LPAREN <argumentos-opcionais> RPAREN
+
+
+;; ===================================================================
+;; 12. EXPRESSÕES PRIMÁRIAS
+;; ===================================================================
+
+<primaria> ::= INT_LITERAL
+             | FLOAT_LITERAL
+             | STRING_LITERAL
+             | TRUE
+             | FALSE
+             | NULL_LITERAL
+             | IDENTIFIER
+             | <lista>
+             | <literal-object>
+             | <run>
+             | <chamada-workflow>
+             | LPAREN <expressao> RPAREN
+
+
+;; ===================================================================
+;; 13. LISTAS (vírgula final opcional)
+;; ===================================================================
+
+<lista> ::= LBRACKET <elementos-lista> RBRACKET
+
+<elementos-lista> ::= <expressao> <elementos-lista-resto>
+                    | ε
+
+<elementos-lista-resto> ::= COMMA <elementos-lista>
+                          | ε
+
+
+;; ===================================================================
+;; 14. OBJETOS (vírgula final opcional)
+;; ===================================================================
+
+<literal-object> ::= LBRACE <campos-object> RBRACE
+
+<campos-object> ::= <campo-object> <campos-object-resto>
+                  | ε
+
+<campos-object-resto> ::= COMMA <campos-object>
+                        | ε
+
+<campo-object> ::= IDENTIFIER COLON <expressao>
+
+
+;; ===================================================================
+;; 15. BLOCO RUN
+;; ===================================================================
+
+<run> ::= RUN <literal-object>
+
+;; Os campos seguem a sintaxe de objeto (qualquer ordem, vírgula final
+;; opcional). As regras abaixo são verificadas após o parse:
+;;   - command    obrigatório, string
+;;   - flags      opcional, list<string>
+;;   - workingDir opcional, string
+;;   - nenhum campo repetido ou desconhecido

@@ -1,0 +1,4 @@
+Erro sintático [linha 1, coluna 8]:
+Token encontrado: '='
+Esperado: tipo
+Programa rejeitado.

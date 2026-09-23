@@ -1,0 +1,20 @@
+LINHA:COL  TOKEN            LEXEMA
+1:1        VAR              var
+1:5        IDENTIFIER       x
+1:6        COLON            :
+1:7        TYPE_INT         int
+1:11       ASSIGN           =
+1:13       INT_LITERAL      10
+Erro léxico [linha 1, coluna 16]:
+Caractere não reconhecido: '@'
+1:18       INT_LITERAL      2
+1:19       SEMICOLON        ;
+2:1        VAR              var
+2:5        IDENTIFIER       nome
+2:9        COLON            :
+2:10       TYPE_STRING      string
+2:17       ASSIGN           =
+2:19       STRING_LITERAL   "Olá\n"
+2:26       SEMICOLON        ;
+
+15 token(s) reconhecido(s), 1 erro(s) léxico(s).

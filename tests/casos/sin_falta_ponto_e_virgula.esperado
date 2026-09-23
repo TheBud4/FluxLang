@@ -1,0 +1,4 @@
+Erro sintático [linha 4, coluna 5]:
+Token encontrado: identificador 'x'
+Esperado: ';'
+Programa rejeitado.
