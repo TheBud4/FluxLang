@@ -8,16 +8,14 @@ explícito de erros.
 
 A FluxLang não pretende substituir linguagens de propósito geral como
 Python ou JavaScript: é uma linguagem pequena e especializada, projetada
-junto com o seu compilador.
-
+junto com o seu compilador. A gramática é **LL(1)** desde a primeira
+versão (ver [`BNF.txt`](BNF.txt)).
 
 | | |
 |---|---|
 | **Propósito** | Automatizar tarefas e organizar fluxos de execução |
 | **Estrutura** | `main` + funções comuns + workflows |
 | **Foco da v1** | Execução de comandos; HTTP e recursos avançados ficam para versões futuras |
-
-
 
 ## 1. Estrutura do programa
 
@@ -43,7 +41,7 @@ func main () {
     abort if err;
 }
 ```
-# Todo Rever esta parte 2
+
 ## 2. Tipos, variáveis e estruturas de dados
 
 - Tipos: `string`, `int`, `float`, `bool`, `object` e `list<tipo>`.
@@ -100,7 +98,8 @@ Em listas e objetos, a vírgula após o último elemento é opcional.
   sempre seguido de um bloco — **não existe `else if`**; para mais de um
   caso, aninhe um `if` dentro do bloco do `else`.
 - Repetição: `while (...) { ... }` e `for item in lista { ... }`.
-- Laços suportam `break;` e `continue;`.
+- Laços suportam `break;` e `continue;`. O `continue if erro;` é outro
+  comando, de tratamento de erro (seção 5), e não pula a iteração.
 - Operadores, da menor para a maior precedência:
 
 | Precedência | Operadores |
@@ -138,7 +137,7 @@ var nome:string = terminal.input("Nome: ");
 var idade:int = toInt(terminal.input("Idade: "));
 terminal.log("Olá " + nome);
 ```
-# TODO revisar esta parte
+
 ## 5. Workflows e tratamento de erros
 
 - Workflows podem receber parâmetros e chamar outros workflows com `call`.
@@ -152,8 +151,9 @@ terminal.log("Olá " + nome);
   - `stop if erro;` encerra o workflow atual devolvendo `(null, erro)`.
     Só pode ser usado dentro de workflow.
   - `abort if erro;` encerra a execução global.
-  - `proceed if erro;` marca o erro como tratado e segue para a próxima
-    instrução.
+  - `continue if erro;` marca o erro como tratado e segue para a próxima
+    instrução. Dentro de um laço, ele **não** pula a iteração; para isso,
+    use `if (erro != null) { continue; }`.
 
 ```flux
 workflow build(project:string):string {
@@ -361,6 +361,58 @@ conflitos). Algumas regras não são expressáveis na gramática:
 - existe exatamente uma `func main ()`: análise semântica;
 - os campos de `run` (`command` obrigatório, tipos dos campos, sem
   repetição ou campo desconhecido): análise semântica.
+
+### Transformações para LL(1)
+
+A BNF já está escrita na forma LL(1). Para a apresentação do Trabalho 2,
+estas são as transformações aplicadas, partindo da forma natural de cada
+regra:
+
+```text
+1. Recursão à esquerda nos operadores binários (6 níveis: || && == < + *)
+   antes:  <expressao> ::= <expressao> OR <expressao-and> | <expressao-and>
+   depois: <expressao> ::= <expressao-and> <expressao-or-resto>
+           <expressao-or-resto> ::= OR <expressao-and> <expressao-or-resto> | ε
+   (a AST reassocia os operadores à esquerda)
+
+2. Recursão à esquerda nos pós-fixos (.campo, [índice], (argumentos))
+   antes:  <posfixa> ::= <posfixa> DOT IDENTIFIER | <posfixa> LBRACKET ...
+                       | <posfixa> LPAREN ... | <primaria>
+   depois: <expressao-posfixa> ::= <primaria> <sufixos>
+           <sufixos> ::= <sufixo> <sufixos> | ε
+
+3. Recursão à esquerda nas listas separadas por vírgula
+   antes:  <lista-identificadores> ::= <lista-identificadores> COMMA IDENTIFIER
+                                     | IDENTIFIER
+   depois: <lista-identificadores> ::= IDENTIFIER <lista-identificadores-resto>
+   (idem para expressões, parâmetros e argumentos)
+
+4. Fatoração à esquerda de partes opcionais
+   antes:  <comando-if> ::= IF ( <expressao> ) <bloco>
+                          | IF ( <expressao> ) <bloco> ELSE <bloco>
+   depois: <comando-if> ::= IF ( <expressao> ) <bloco> <else-opcional>
+   (idem para inicialização, tipo de retorno e argumentos)
+
+5. Fatoração à esquerda de prefixo comum
+   antes:  <continue> ::= CONTINUE SEMICOLON | CONTINUE IF IDENTIFIER SEMICOLON
+   depois: <comando-continue> ::= CONTINUE <continue-resto>
+   (idem para var com tipo / var sem tipo: <declaracao-var-resto>)
+
+6. Vírgula final opcional em listas e objetos
+   antes:  <elementos> ::= <expressao> | <expressao> COMMA
+                         | <expressao> COMMA <elementos>
+   depois: <elementos-lista> ::= <expressao> <elementos-lista-resto> | ε
+           <elementos-lista-resto> ::= COMMA <elementos-lista> | ε
+
+7. Atribuição x comando de expressão
+   antes:  <atribuicao> ::= <alvos> ASSIGN <lista-expressoes> SEMICOLON
+           <comando-expressao> ::= <expressao> SEMICOLON
+   Os dois começam com IDENTIFIER e o alvo pode ter qualquer tamanho
+   (a.b[i].c), então nenhum lookahead fixo decide.
+   depois: <comando-expressao> ::= <expressao> <resto-comando-expressao>
+   A expressão é lida primeiro e o token seguinte decide (";" ou ","/"=").
+   O alvo é validado na ação da regra (erro S3).
+```
 
 ## Escopo da v1
 
