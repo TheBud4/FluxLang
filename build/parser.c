@@ -74,11 +74,14 @@
 
 #include "fluxc.h"
 
+/* A BNF LL(1) é recursiva à direita (comandos, globais, -resto): no
+   LALR, a pilha cresce com o número de comandos de um bloco. O padrão
+   do Bison (10000) limitaria um bloco a uns 10 mil comandos. */
 #define YYMAXDEPTH 100000
 
 void yyerror(const char *msg);
 
-#line 82 "build/parser.c"
+#line 85 "build/parser.c"
 
 # ifndef YY_CAST
 #  ifdef __cplusplus
@@ -237,11 +240,11 @@ typedef enum yysymbol_kind_t yysymbol_kind_t;
 
 
 /* Unqualified %code blocks.  */
-#line 28 "src/parser.y"
+#line 31 "src/parser.y"
 
 static void erro_atribuicao(const YYLTYPE *loc);
 
-#line 245 "build/parser.c"
+#line 248 "build/parser.c"
 
 #ifdef short
 # undef short
@@ -631,20 +634,20 @@ static const yytype_int8 yytranslate[] =
 /* YYRLINE[YYN] -- Source line where rule number YYN was defined.  */
 static const yytype_int16 yyrline[] =
 {
-       0,    80,    80,    84,    85,    89,    90,    91,    92,    96,
-     100,   101,   107,   108,   109,   110,   111,   112,   118,   122,
-     123,   127,   128,   132,   136,   140,   141,   145,   149,   150,
-     156,   160,   161,   165,   166,   170,   171,   175,   181,   185,
-     189,   190,   196,   197,   198,   199,   200,   201,   202,   203,
-     204,   205,   211,   217,   219,   218,   229,   230,   236,   240,
-     241,   245,   249,   253,   257,   258,   262,   268,   272,   273,
-     277,   278,   284,   288,   289,   293,   297,   298,   302,   306,
-     307,   311,   312,   316,   320,   321,   325,   326,   327,   328,
-     332,   336,   337,   341,   342,   346,   350,   351,   355,   356,
-     357,   361,   362,   363,   369,   373,   374,   378,   379,   380,
-     386,   387,   388,   389,   390,   391,   392,   393,   394,   395,
-     396,   397,   403,   407,   408,   412,   413,   419,   423,   424,
-     428,   429,   433,   439
+       0,    83,    83,    87,    88,    92,    93,    94,    95,    99,
+     103,   104,   110,   111,   112,   113,   114,   115,   121,   125,
+     126,   130,   131,   135,   139,   143,   144,   148,   152,   153,
+     159,   163,   164,   168,   169,   173,   174,   178,   184,   188,
+     192,   193,   199,   200,   201,   202,   203,   204,   205,   206,
+     207,   208,   214,   220,   222,   221,   232,   233,   239,   243,
+     244,   248,   252,   256,   260,   261,   265,   271,   275,   276,
+     280,   281,   287,   291,   292,   296,   300,   301,   305,   309,
+     310,   314,   315,   319,   323,   324,   328,   329,   330,   331,
+     335,   339,   340,   344,   345,   349,   353,   354,   358,   359,
+     360,   364,   365,   366,   372,   376,   377,   381,   382,   383,
+     389,   390,   391,   392,   393,   394,   395,   396,   397,   398,
+     399,   400,   406,   410,   411,   415,   416,   422,   426,   427,
+     431,   432,   436,   442
 };
 #endif
 
@@ -1555,264 +1558,264 @@ yyreduce:
   switch (yyn)
     {
   case 54: /* $@1: %empty  */
-#line 219 "src/parser.y"
+#line 222 "src/parser.y"
       {
         if (!(yyvsp[-2].flag) || !(yyvsp[-1].flag)) {
             erro_atribuicao(&(yylsp[0]));
             YYABORT;
         }
       }
-#line 1566 "build/parser.c"
+#line 1569 "build/parser.c"
     break;
 
   case 56: /* alvos_resto: COMMA expressao alvos_resto  */
-#line 229 "src/parser.y"
+#line 232 "src/parser.y"
                                   { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1572 "build/parser.c"
+#line 1575 "build/parser.c"
     break;
 
   case 57: /* alvos_resto: %empty  */
-#line 230 "src/parser.y"
+#line 233 "src/parser.y"
                                   { (yyval.flag) = 1; }
-#line 1578 "build/parser.c"
+#line 1581 "build/parser.c"
     break;
 
   case 72: /* expressao: expressao_and expressao_or_resto  */
-#line 284 "src/parser.y"
+#line 287 "src/parser.y"
                                        { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1584 "build/parser.c"
+#line 1587 "build/parser.c"
     break;
 
   case 73: /* expressao_or_resto: OR expressao_and expressao_or_resto  */
-#line 288 "src/parser.y"
+#line 291 "src/parser.y"
                                           { (yyval.flag) = 0; }
-#line 1590 "build/parser.c"
+#line 1593 "build/parser.c"
     break;
 
   case 74: /* expressao_or_resto: %empty  */
-#line 289 "src/parser.y"
+#line 292 "src/parser.y"
                                           { (yyval.flag) = 1; }
-#line 1596 "build/parser.c"
+#line 1599 "build/parser.c"
     break;
 
   case 75: /* expressao_and: expressao_igualdade expressao_and_resto  */
-#line 293 "src/parser.y"
+#line 296 "src/parser.y"
                                               { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1602 "build/parser.c"
+#line 1605 "build/parser.c"
     break;
 
   case 76: /* expressao_and_resto: AND expressao_igualdade expressao_and_resto  */
-#line 297 "src/parser.y"
+#line 300 "src/parser.y"
                                                   { (yyval.flag) = 0; }
-#line 1608 "build/parser.c"
+#line 1611 "build/parser.c"
     break;
 
   case 77: /* expressao_and_resto: %empty  */
-#line 298 "src/parser.y"
+#line 301 "src/parser.y"
                                                   { (yyval.flag) = 1; }
-#line 1614 "build/parser.c"
+#line 1617 "build/parser.c"
     break;
 
   case 78: /* expressao_igualdade: expressao_relacional expressao_igualdade_resto  */
-#line 302 "src/parser.y"
+#line 305 "src/parser.y"
                                                      { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1620 "build/parser.c"
+#line 1623 "build/parser.c"
     break;
 
   case 79: /* expressao_igualdade_resto: operador_igualdade expressao_relacional expressao_igualdade_resto  */
-#line 306 "src/parser.y"
+#line 309 "src/parser.y"
                                                                         { (yyval.flag) = 0; }
-#line 1626 "build/parser.c"
+#line 1629 "build/parser.c"
     break;
 
   case 80: /* expressao_igualdade_resto: %empty  */
-#line 307 "src/parser.y"
+#line 310 "src/parser.y"
                                                                         { (yyval.flag) = 1; }
-#line 1632 "build/parser.c"
+#line 1635 "build/parser.c"
     break;
 
   case 83: /* expressao_relacional: expressao_aditiva expressao_relacional_resto  */
-#line 316 "src/parser.y"
+#line 319 "src/parser.y"
                                                    { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1638 "build/parser.c"
+#line 1641 "build/parser.c"
     break;
 
   case 84: /* expressao_relacional_resto: operador_relacional expressao_aditiva expressao_relacional_resto  */
-#line 320 "src/parser.y"
+#line 323 "src/parser.y"
                                                                        { (yyval.flag) = 0; }
-#line 1644 "build/parser.c"
+#line 1647 "build/parser.c"
     break;
 
   case 85: /* expressao_relacional_resto: %empty  */
-#line 321 "src/parser.y"
+#line 324 "src/parser.y"
                                                                        { (yyval.flag) = 1; }
-#line 1650 "build/parser.c"
+#line 1653 "build/parser.c"
     break;
 
   case 90: /* expressao_aditiva: expressao_multiplicativa expressao_aditiva_resto  */
-#line 332 "src/parser.y"
+#line 335 "src/parser.y"
                                                        { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1656 "build/parser.c"
+#line 1659 "build/parser.c"
     break;
 
   case 91: /* expressao_aditiva_resto: operador_aditivo expressao_multiplicativa expressao_aditiva_resto  */
-#line 336 "src/parser.y"
+#line 339 "src/parser.y"
                                                                         { (yyval.flag) = 0; }
-#line 1662 "build/parser.c"
+#line 1665 "build/parser.c"
     break;
 
   case 92: /* expressao_aditiva_resto: %empty  */
-#line 337 "src/parser.y"
+#line 340 "src/parser.y"
                                                                         { (yyval.flag) = 1; }
-#line 1668 "build/parser.c"
+#line 1671 "build/parser.c"
     break;
 
   case 95: /* expressao_multiplicativa: expressao_unaria expressao_multiplicativa_resto  */
-#line 346 "src/parser.y"
+#line 349 "src/parser.y"
                                                       { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1674 "build/parser.c"
+#line 1677 "build/parser.c"
     break;
 
   case 96: /* expressao_multiplicativa_resto: operador_multiplicativo expressao_unaria expressao_multiplicativa_resto  */
-#line 350 "src/parser.y"
+#line 353 "src/parser.y"
                                                                               { (yyval.flag) = 0; }
-#line 1680 "build/parser.c"
+#line 1683 "build/parser.c"
     break;
 
   case 97: /* expressao_multiplicativa_resto: %empty  */
-#line 351 "src/parser.y"
+#line 354 "src/parser.y"
                                                                               { (yyval.flag) = 1; }
-#line 1686 "build/parser.c"
+#line 1689 "build/parser.c"
     break;
 
   case 101: /* expressao_unaria: NOT expressao_unaria  */
-#line 361 "src/parser.y"
+#line 364 "src/parser.y"
                              { (yyval.flag) = 0; }
-#line 1692 "build/parser.c"
+#line 1695 "build/parser.c"
     break;
 
   case 102: /* expressao_unaria: MINUS expressao_unaria  */
-#line 362 "src/parser.y"
+#line 365 "src/parser.y"
                              { (yyval.flag) = 0; }
-#line 1698 "build/parser.c"
+#line 1701 "build/parser.c"
     break;
 
   case 103: /* expressao_unaria: expressao_posfixa  */
-#line 363 "src/parser.y"
+#line 366 "src/parser.y"
                              { (yyval.flag) = (yyvsp[0].flag); }
-#line 1704 "build/parser.c"
+#line 1707 "build/parser.c"
     break;
 
   case 104: /* expressao_posfixa: primaria sufixos  */
-#line 369 "src/parser.y"
+#line 372 "src/parser.y"
                        { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1710 "build/parser.c"
+#line 1713 "build/parser.c"
     break;
 
   case 105: /* sufixos: sufixo sufixos  */
-#line 373 "src/parser.y"
+#line 376 "src/parser.y"
                      { (yyval.flag) = (yyvsp[-1].flag) && (yyvsp[0].flag); }
-#line 1716 "build/parser.c"
+#line 1719 "build/parser.c"
     break;
 
   case 106: /* sufixos: %empty  */
-#line 374 "src/parser.y"
+#line 377 "src/parser.y"
                      { (yyval.flag) = 1; }
-#line 1722 "build/parser.c"
+#line 1725 "build/parser.c"
     break;
 
   case 107: /* sufixo: DOT IDENTIFIER  */
-#line 378 "src/parser.y"
+#line 381 "src/parser.y"
                                                 { (yyval.flag) = 1; }
-#line 1728 "build/parser.c"
+#line 1731 "build/parser.c"
     break;
 
   case 108: /* sufixo: LBRACKET expressao RBRACKET  */
-#line 379 "src/parser.y"
+#line 382 "src/parser.y"
                                                 { (yyval.flag) = 1; }
-#line 1734 "build/parser.c"
+#line 1737 "build/parser.c"
     break;
 
   case 109: /* sufixo: LPAREN argumentos_opcionais RPAREN  */
-#line 380 "src/parser.y"
+#line 383 "src/parser.y"
                                                 { (yyval.flag) = 0; }
-#line 1740 "build/parser.c"
+#line 1743 "build/parser.c"
     break;
 
   case 110: /* primaria: INT_LITERAL  */
-#line 386 "src/parser.y"
+#line 389 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1746 "build/parser.c"
+#line 1749 "build/parser.c"
     break;
 
   case 111: /* primaria: FLOAT_LITERAL  */
-#line 387 "src/parser.y"
+#line 390 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1752 "build/parser.c"
+#line 1755 "build/parser.c"
     break;
 
   case 112: /* primaria: STRING_LITERAL  */
-#line 388 "src/parser.y"
+#line 391 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1758 "build/parser.c"
+#line 1761 "build/parser.c"
     break;
 
   case 113: /* primaria: TRUE  */
-#line 389 "src/parser.y"
+#line 392 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1764 "build/parser.c"
+#line 1767 "build/parser.c"
     break;
 
   case 114: /* primaria: FALSE  */
-#line 390 "src/parser.y"
+#line 393 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1770 "build/parser.c"
+#line 1773 "build/parser.c"
     break;
 
   case 115: /* primaria: NULL_LITERAL  */
-#line 391 "src/parser.y"
+#line 394 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1776 "build/parser.c"
+#line 1779 "build/parser.c"
     break;
 
   case 116: /* primaria: IDENTIFIER  */
-#line 392 "src/parser.y"
+#line 395 "src/parser.y"
                                { (yyval.flag) = 1; }
-#line 1782 "build/parser.c"
+#line 1785 "build/parser.c"
     break;
 
   case 117: /* primaria: lista  */
-#line 393 "src/parser.y"
+#line 396 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1788 "build/parser.c"
+#line 1791 "build/parser.c"
     break;
 
   case 118: /* primaria: literal_object  */
-#line 394 "src/parser.y"
+#line 397 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1794 "build/parser.c"
+#line 1797 "build/parser.c"
     break;
 
   case 119: /* primaria: run  */
-#line 395 "src/parser.y"
+#line 398 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1800 "build/parser.c"
+#line 1803 "build/parser.c"
     break;
 
   case 120: /* primaria: chamada_workflow  */
-#line 396 "src/parser.y"
+#line 399 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1806 "build/parser.c"
+#line 1809 "build/parser.c"
     break;
 
   case 121: /* primaria: LPAREN expressao RPAREN  */
-#line 397 "src/parser.y"
+#line 400 "src/parser.y"
                                { (yyval.flag) = 0; }
-#line 1812 "build/parser.c"
+#line 1815 "build/parser.c"
     break;
 
 
-#line 1816 "build/parser.c"
+#line 1819 "build/parser.c"
 
       default: break;
     }
@@ -2015,7 +2018,7 @@ yyreturnlab:
   return yyresult;
 }
 
-#line 442 "src/parser.y"
+#line 445 "src/parser.y"
 
 
 /* ---- Mensagens de erro em português (formato em ERROS.md) ---- */

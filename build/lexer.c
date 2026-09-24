@@ -595,12 +595,33 @@ static void guardar_lexema(void)
         memcpy(flux_lexema, yytext, yyleng);
         flux_lexema[yyleng] = '\0';
     } else {
-        memcpy(flux_lexema, yytext, TAM_LEXEMA);
-        strcpy(flux_lexema + TAM_LEXEMA, "...");
+        int n = TAM_LEXEMA;
+        while (n > 0 && ((unsigned char) yytext[n] & 0xC0) == 0x80)
+            n--;   /* não corta um caractere UTF-8 ao meio */
+        memcpy(flux_lexema, yytext, n);
+        strcpy(flux_lexema + n, "...");
     }
 }
 
 #define TOKEN(t) do { guardar_lexema(); return (t); } while (0)
+
+/* Erros fatais do próprio Flex (ex.: ler um diretório) em português. */
+static _Noreturn void erro_fatal(const char *msg)
+{
+    int e = errno;
+    if (strcmp(msg, "input in flex scanner failed") == 0) {
+        fprintf(stderr, "Erro: falha ao ler a entrada: %s\n", strerror(e));
+    } else if (strncmp(msg, "out of dynamic memory", 21) == 0) {
+        fputs("Erro: memória esgotada\n", stderr);
+    } else {
+        /* Falha interna do Flex: yy_fatal_error completa com o original. */
+        fputs("Erro interno do analisador léxico: ", stderr);
+        yy_fatal_error(msg);
+    }
+    exit(2);
+}
+
+#define YY_FATAL_ERROR(msg) erro_fatal(msg)
 
 static int erro_lexico(int lin, int col, const char *formato, ...)
 {
@@ -658,16 +679,17 @@ static int erro_escape(void)
 static int erro_caractere(void)
 {
     unsigned char c = (unsigned char) yytext[0];
-    if (c < 32 || c == 127)
+    /* Byte isolado >= 128 não é UTF-8 válido (ex.: arquivo em Latin-1). */
+    if (c < 32 || c == 127 || (c >= 128 && yyleng == 1))
         return erro_lexico(yylloc.first_line, yylloc.first_column,
                            "Caractere não reconhecido: código %d", c);
     return erro_lexico(yylloc.first_line, yylloc.first_column,
                        "Caractere não reconhecido: '%s'", yytext);
 }
-#line 667 "build/lexer.c"
+#line 689 "build/lexer.c"
 #define YY_NO_INPUT 1
 
-#line 670 "build/lexer.c"
+#line 692 "build/lexer.c"
 
 #define INITIAL 0
 #define COMENTARIO 1
@@ -883,10 +905,10 @@ YY_DECL
 		}
 
 	{
-#line 129 "src/lexer.l"
+#line 151 "src/lexer.l"
 
 
-#line 889 "build/lexer.c"
+#line 911 "build/lexer.c"
 
 	while ( /*CONSTCOND*/1 )		/* loops until end-of-file is reached */
 		{
@@ -946,37 +968,37 @@ do_action:	/* This label is used only to access EOF actions. */
 case 1:
 /* rule 1 can match eol */
 YY_RULE_SETUP
-#line 131 "src/lexer.l"
+#line 153 "src/lexer.l"
 ;
 	YY_BREAK
 case 2:
 YY_RULE_SETUP
-#line 132 "src/lexer.l"
+#line 154 "src/lexer.l"
 ;
 	YY_BREAK
 case 3:
 YY_RULE_SETUP
-#line 134 "src/lexer.l"
+#line 156 "src/lexer.l"
 { inicio_comentario = yylloc; BEGIN(COMENTARIO); }
 	YY_BREAK
 case 4:
 YY_RULE_SETUP
-#line 135 "src/lexer.l"
+#line 157 "src/lexer.l"
 { BEGIN(INITIAL); }
 	YY_BREAK
 case 5:
 /* rule 5 can match eol */
 YY_RULE_SETUP
-#line 136 "src/lexer.l"
+#line 158 "src/lexer.l"
 ;
 	YY_BREAK
 case 6:
 YY_RULE_SETUP
-#line 137 "src/lexer.l"
+#line 159 "src/lexer.l"
 ;
 	YY_BREAK
 case YY_STATE_EOF(COMENTARIO):
-#line 138 "src/lexer.l"
+#line 160 "src/lexer.l"
 {
                                 BEGIN(INITIAL);
                                 return erro_lexico(inicio_comentario.first_line,
@@ -987,138 +1009,138 @@ case YY_STATE_EOF(COMENTARIO):
 /* ---- Palavras reservadas ---- */
 case 7:
 YY_RULE_SETUP
-#line 146 "src/lexer.l"
+#line 168 "src/lexer.l"
 TOKEN(VAR);
 	YY_BREAK
 case 8:
 YY_RULE_SETUP
-#line 147 "src/lexer.l"
+#line 169 "src/lexer.l"
 TOKEN(CONST);
 	YY_BREAK
 case 9:
 YY_RULE_SETUP
-#line 148 "src/lexer.l"
+#line 170 "src/lexer.l"
 TOKEN(FUNC);
 	YY_BREAK
 case 10:
 YY_RULE_SETUP
-#line 149 "src/lexer.l"
+#line 171 "src/lexer.l"
 TOKEN(WORKFLOW);
 	YY_BREAK
 case 11:
 YY_RULE_SETUP
-#line 150 "src/lexer.l"
+#line 172 "src/lexer.l"
 TOKEN(CALL);
 	YY_BREAK
 case 12:
 YY_RULE_SETUP
-#line 151 "src/lexer.l"
+#line 173 "src/lexer.l"
 TOKEN(RETURN);
 	YY_BREAK
 case 13:
 YY_RULE_SETUP
-#line 152 "src/lexer.l"
+#line 174 "src/lexer.l"
 TOKEN(IF);
 	YY_BREAK
 case 14:
 YY_RULE_SETUP
-#line 153 "src/lexer.l"
+#line 175 "src/lexer.l"
 TOKEN(ELSE);
 	YY_BREAK
 case 15:
 YY_RULE_SETUP
-#line 154 "src/lexer.l"
+#line 176 "src/lexer.l"
 TOKEN(WHILE);
 	YY_BREAK
 case 16:
 YY_RULE_SETUP
-#line 155 "src/lexer.l"
+#line 177 "src/lexer.l"
 TOKEN(FOR);
 	YY_BREAK
 case 17:
 YY_RULE_SETUP
-#line 156 "src/lexer.l"
+#line 178 "src/lexer.l"
 TOKEN(IN);
 	YY_BREAK
 case 18:
 YY_RULE_SETUP
-#line 157 "src/lexer.l"
+#line 179 "src/lexer.l"
 TOKEN(BREAK);
 	YY_BREAK
 case 19:
 YY_RULE_SETUP
-#line 158 "src/lexer.l"
+#line 180 "src/lexer.l"
 TOKEN(CONTINUE);
 	YY_BREAK
 case 20:
 YY_RULE_SETUP
-#line 159 "src/lexer.l"
+#line 181 "src/lexer.l"
 TOKEN(STOP);
 	YY_BREAK
 case 21:
 YY_RULE_SETUP
-#line 160 "src/lexer.l"
+#line 182 "src/lexer.l"
 TOKEN(ABORT);
 	YY_BREAK
 case 22:
 YY_RULE_SETUP
-#line 161 "src/lexer.l"
+#line 183 "src/lexer.l"
 TOKEN(RUN);
 	YY_BREAK
 case 23:
 YY_RULE_SETUP
-#line 162 "src/lexer.l"
+#line 184 "src/lexer.l"
 TOKEN(TRUE);
 	YY_BREAK
 case 24:
 YY_RULE_SETUP
-#line 163 "src/lexer.l"
+#line 185 "src/lexer.l"
 TOKEN(FALSE);
 	YY_BREAK
 case 25:
 YY_RULE_SETUP
-#line 164 "src/lexer.l"
+#line 186 "src/lexer.l"
 TOKEN(NULL_LITERAL);
 	YY_BREAK
 case 26:
 YY_RULE_SETUP
-#line 165 "src/lexer.l"
+#line 187 "src/lexer.l"
 TOKEN(TYPE_INT);
 	YY_BREAK
 case 27:
 YY_RULE_SETUP
-#line 166 "src/lexer.l"
+#line 188 "src/lexer.l"
 TOKEN(TYPE_FLOAT);
 	YY_BREAK
 case 28:
 YY_RULE_SETUP
-#line 167 "src/lexer.l"
+#line 189 "src/lexer.l"
 TOKEN(TYPE_STRING);
 	YY_BREAK
 case 29:
 YY_RULE_SETUP
-#line 168 "src/lexer.l"
+#line 190 "src/lexer.l"
 TOKEN(TYPE_BOOL);
 	YY_BREAK
 case 30:
 YY_RULE_SETUP
-#line 169 "src/lexer.l"
+#line 191 "src/lexer.l"
 TOKEN(TYPE_OBJECT);
 	YY_BREAK
 case 31:
 YY_RULE_SETUP
-#line 170 "src/lexer.l"
+#line 192 "src/lexer.l"
 TOKEN(TYPE_LIST);
 	YY_BREAK
 /* ---- Literais e identificadores ---- */
 case 32:
 YY_RULE_SETUP
-#line 173 "src/lexer.l"
+#line 195 "src/lexer.l"
 { yylval.fval = strtod(yytext, NULL); TOKEN(FLOAT_LITERAL); }
 	YY_BREAK
 case 33:
 YY_RULE_SETUP
-#line 174 "src/lexer.l"
+#line 196 "src/lexer.l"
 {
                                 errno = 0;
                                 long v = strtol(yytext, NULL, 10);
@@ -1130,10 +1152,10 @@ YY_RULE_SETUP
                             }
 	YY_BREAK
 case 34:
-#line 184 "src/lexer.l"
+#line 206 "src/lexer.l"
 case 35:
 YY_RULE_SETUP
-#line 184 "src/lexer.l"
+#line 206 "src/lexer.l"
 {
                                 return erro_lexico(yylloc.first_line, yylloc.first_column,
                                                    "Número malformado: '%s'", yytext);
@@ -1141,22 +1163,22 @@ YY_RULE_SETUP
 	YY_BREAK
 case 36:
 YY_RULE_SETUP
-#line 188 "src/lexer.l"
+#line 210 "src/lexer.l"
 { yylval.sval = flux_strdup(yytext, yyleng); TOKEN(IDENTIFIER); }
 	YY_BREAK
 case 37:
 YY_RULE_SETUP
-#line 190 "src/lexer.l"
+#line 212 "src/lexer.l"
 { yylval.sval = desescapar(yytext, yyleng); TOKEN(STRING_LITERAL); }
 	YY_BREAK
 case 38:
 YY_RULE_SETUP
-#line 191 "src/lexer.l"
+#line 213 "src/lexer.l"
 { return erro_escape(); }
 	YY_BREAK
 case 39:
 YY_RULE_SETUP
-#line 192 "src/lexer.l"
+#line 214 "src/lexer.l"
 {
                                 return erro_lexico(yylloc.first_line, yylloc.first_column,
                                                    "String não terminada");
@@ -1165,142 +1187,142 @@ YY_RULE_SETUP
 /* ---- Operadores e pontuação ---- */
 case 40:
 YY_RULE_SETUP
-#line 198 "src/lexer.l"
+#line 220 "src/lexer.l"
 TOKEN(EQ);
 	YY_BREAK
 case 41:
 YY_RULE_SETUP
-#line 199 "src/lexer.l"
+#line 221 "src/lexer.l"
 TOKEN(NEQ);
 	YY_BREAK
 case 42:
 YY_RULE_SETUP
-#line 200 "src/lexer.l"
+#line 222 "src/lexer.l"
 TOKEN(LTE);
 	YY_BREAK
 case 43:
 YY_RULE_SETUP
-#line 201 "src/lexer.l"
+#line 223 "src/lexer.l"
 TOKEN(GTE);
 	YY_BREAK
 case 44:
 YY_RULE_SETUP
-#line 202 "src/lexer.l"
+#line 224 "src/lexer.l"
 TOKEN(AND);
 	YY_BREAK
 case 45:
 YY_RULE_SETUP
-#line 203 "src/lexer.l"
+#line 225 "src/lexer.l"
 TOKEN(OR);
 	YY_BREAK
 case 46:
 YY_RULE_SETUP
-#line 204 "src/lexer.l"
+#line 226 "src/lexer.l"
 TOKEN(ASSIGN);
 	YY_BREAK
 case 47:
 YY_RULE_SETUP
-#line 205 "src/lexer.l"
+#line 227 "src/lexer.l"
 TOKEN(LT);
 	YY_BREAK
 case 48:
 YY_RULE_SETUP
-#line 206 "src/lexer.l"
+#line 228 "src/lexer.l"
 TOKEN(GT);
 	YY_BREAK
 case 49:
 YY_RULE_SETUP
-#line 207 "src/lexer.l"
+#line 229 "src/lexer.l"
 TOKEN(PLUS);
 	YY_BREAK
 case 50:
 YY_RULE_SETUP
-#line 208 "src/lexer.l"
+#line 230 "src/lexer.l"
 TOKEN(MINUS);
 	YY_BREAK
 case 51:
 YY_RULE_SETUP
-#line 209 "src/lexer.l"
+#line 231 "src/lexer.l"
 TOKEN(MUL);
 	YY_BREAK
 case 52:
 YY_RULE_SETUP
-#line 210 "src/lexer.l"
+#line 232 "src/lexer.l"
 TOKEN(DIV);
 	YY_BREAK
 case 53:
 YY_RULE_SETUP
-#line 211 "src/lexer.l"
+#line 233 "src/lexer.l"
 TOKEN(MOD);
 	YY_BREAK
 case 54:
 YY_RULE_SETUP
-#line 212 "src/lexer.l"
+#line 234 "src/lexer.l"
 TOKEN(NOT);
 	YY_BREAK
 case 55:
 YY_RULE_SETUP
-#line 213 "src/lexer.l"
+#line 235 "src/lexer.l"
 TOKEN(LPAREN);
 	YY_BREAK
 case 56:
 YY_RULE_SETUP
-#line 214 "src/lexer.l"
+#line 236 "src/lexer.l"
 TOKEN(RPAREN);
 	YY_BREAK
 case 57:
 YY_RULE_SETUP
-#line 215 "src/lexer.l"
+#line 237 "src/lexer.l"
 TOKEN(LBRACE);
 	YY_BREAK
 case 58:
 YY_RULE_SETUP
-#line 216 "src/lexer.l"
+#line 238 "src/lexer.l"
 TOKEN(RBRACE);
 	YY_BREAK
 case 59:
 YY_RULE_SETUP
-#line 217 "src/lexer.l"
+#line 239 "src/lexer.l"
 TOKEN(LBRACKET);
 	YY_BREAK
 case 60:
 YY_RULE_SETUP
-#line 218 "src/lexer.l"
+#line 240 "src/lexer.l"
 TOKEN(RBRACKET);
 	YY_BREAK
 case 61:
 YY_RULE_SETUP
-#line 219 "src/lexer.l"
+#line 241 "src/lexer.l"
 TOKEN(COMMA);
 	YY_BREAK
 case 62:
 YY_RULE_SETUP
-#line 220 "src/lexer.l"
+#line 242 "src/lexer.l"
 TOKEN(COLON);
 	YY_BREAK
 case 63:
 YY_RULE_SETUP
-#line 221 "src/lexer.l"
+#line 243 "src/lexer.l"
 TOKEN(SEMICOLON);
 	YY_BREAK
 case 64:
 YY_RULE_SETUP
-#line 222 "src/lexer.l"
+#line 244 "src/lexer.l"
 TOKEN(DOT);
 	YY_BREAK
 /* ---- Erros ---- */
 case 65:
 YY_RULE_SETUP
-#line 225 "src/lexer.l"
+#line 247 "src/lexer.l"
 { return erro_caractere(); }
 	YY_BREAK
 case 66:
 YY_RULE_SETUP
-#line 226 "src/lexer.l"
+#line 248 "src/lexer.l"
 { return erro_caractere(); }
 	YY_BREAK
 case YY_STATE_EOF(INITIAL):
-#line 228 "src/lexer.l"
+#line 250 "src/lexer.l"
 {
                                 yylloc.first_line = yylloc.last_line = linha;
                                 yylloc.first_column = yylloc.last_column = coluna;
@@ -1310,10 +1332,10 @@ case YY_STATE_EOF(INITIAL):
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 235 "src/lexer.l"
+#line 257 "src/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1316 "build/lexer.c"
+#line 1338 "build/lexer.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2279,7 +2301,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 235 "src/lexer.l"
+#line 257 "src/lexer.l"
 
 
 static char **strings;

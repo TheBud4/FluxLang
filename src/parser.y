@@ -9,7 +9,7 @@
  * atributo inteiro (<flag>) usado na verificação do alvo de atribuição
  * (erro S3 em ERROS.md):
  *   - na cadeia de expressões, 1 = a expressão é atribuível
- *     (IDENTIFIER seguido só de .campo ou [indice]);
+ *     (IDENTIFIER seguido só de .campo ou [índice]);
  *   - nos não-terminais "-resto", 1 = derivou ε;
  *   - em sufixo/sufixos, 1 = não há chamada.
  */
@@ -20,6 +20,9 @@
 
 #include "fluxc.h"
 
+/* A BNF LL(1) é recursiva à direita (comandos, globais, -resto): no
+   LALR, a pilha cresce com o número de comandos de um bloco. O padrão
+   do Bison (10000) limitaria um bloco a uns 10 mil comandos. */
 #define YYMAXDEPTH 100000
 
 void yyerror(const char *msg);

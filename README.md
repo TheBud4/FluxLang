@@ -78,7 +78,7 @@ for nome in nomes {
 }
 ```
 
-Objects agrupam dados por campos e usam acesso por ponto:
+Objetos (`object`) agrupam dados por campos e usam acesso por ponto:
 
 ```flux
 var user:object = {
@@ -111,7 +111,7 @@ Em listas e objetos, a vírgula após o último elemento é opcional.
 | 5 | `+` `-` (o `+` também concatena strings) |
 | 6 | `*` `/` `%` |
 | 7 | `!` `-` (unários) |
-| 8 | `.campo` `[indice]` `(argumentos)` |
+| 8 | `.campo` `[índice]` `(argumentos)` |
 
 ```flux
 if (idade >= 18) {
@@ -195,6 +195,7 @@ var result, err = run {
 - Strings usam apenas aspas duplas, ficam numa única linha e suportam os escapes `\n`, `\t`, `\"` e `\\`. Qualquer outro escape é erro léxico.
 - Números usam formato decimal simples; floats exigem dígitos dos dois lados do ponto.
   Um número seguido de letra (`2itens`, `1e10`, `0xFF`) ou `5.` é erro léxico.
+- Literais inteiros vão até 2147483647 (o `int` do C); acima disso, é erro léxico.
 - O sinal `-` é um token separado e também funciona como operador unário.
 - Comentários: `// linha` e `/* bloco */` (sem aninhamento).
 - Pelo maior casamento, `list<int>=` é lido como `list<int` seguido de `>=`:
@@ -221,8 +222,9 @@ mensagens, está em [`ERROS.md`](ERROS.md#4-erros-semânticos).
   valor correspondente. `null` e `[]` sozinhos não permitem inferir. Ao
   receber o resultado de um workflow sem `:tipo`, a variável só aceita `null`.
 - **Quantidade de valores:** em declarações e atribuições múltiplas, o
-  número de variáveis é igual ao de valores. `call` e `run` produzem dois
-  valores (resultado, erro) e precisam estar sozinhos do lado direito.
+  número de variáveis deve ser igual ao de valores. `call` e `run`
+  produzem dois valores (resultado, erro) e precisam estar sozinhos do
+  lado direito.
 - **`const` raso:** a variável não pode ser reatribuída, mas os campos de
   um `object` constante podem ser modificados.
 - **`null`** pode ser atribuído a variável de qualquer tipo; usos
@@ -230,7 +232,7 @@ mensagens, está em [`ERROS.md`](ERROS.md#4-erros-semânticos).
 - **Condições** de `if` e `while` devem ser `bool` (sem truthy/falsy).
 - **`for item in lista`:** a expressão deve ser uma lista, e o tipo de
   `item` é inferido dela.
-- **Objects:** campos existentes podem ser modificados; não é permitido
+- **Objetos:** campos existentes podem ser modificados; não é permitido
   adicionar campos após a criação.
 - **Funções:** com `:tipo`, retornam com `return valor;`. Sem `:tipo`, só
   `return;` é permitido e a chamada não pode ser usada como valor.
@@ -253,7 +255,7 @@ mensagens, está em [`ERROS.md`](ERROS.md#4-erros-semânticos).
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes).
 - Mapeamento de tipos: `int` → `int`, `float` → `double`,
-  `bool` → `1`/`0`, `string` → `char *`.
+  `bool` → `int` (`1`/`0`), `string` → `char *`.
 - Mensagens de erro em português, citando o token encontrado e o
   esperado. Formato, catálogo e modo pânico estão em [`ERROS.md`](ERROS.md).
 
@@ -271,23 +273,25 @@ Esperado: '='
 Requer `gcc` (ou `clang`), `flex`, `bison` 3.6+ e `make`.
 
 ```sh
-make                          # gera ./fluxc
-./fluxc < programa.flux       # lê da entrada padrão (Trabalho 1)
-./fluxc programa.flux         # lê de um arquivo
+make                            # gera ./fluxc
+./fluxc < programa.flux         # lê da entrada padrão (Trabalho 1)
+./fluxc programa.flux           # lê de um arquivo
 ./fluxc --tokens programa.flux  # lista os tokens reconhecidos
-make test                     # roda os casos de tests/
+./fluxc --ajuda                 # mostra as opções
+make test                       # roda os casos de tests/
 ```
 
 A saída termina com `Programa aceito.` (código de saída 0) ou
-`Programa rejeitado.` (código 1). No Trabalho 1, o compilador para no
-primeiro erro. O modo `--tokens` roda só o lexer e continua após erros
-léxicos.
+`Programa rejeitado.` (código 1); opção desconhecida ou arquivo que não
+pode ser lido dão código 2. No Trabalho 1, o compilador para no primeiro
+erro. O modo `--tokens` roda só o lexer e continua após erros léxicos.
 
 | Arquivo | Conteúdo |
 |---|---|
 | `src/lexer.l` | Analisador léxico (Flex) |
 | `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
 | `src/main.c` | Leitura da entrada, modo `--tokens` e resultado |
+| `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
 | `tests/` | Casos de teste com a saída esperada; `tests/run.sh` compara |
 
 `src/parser.y` tem as mesmas 131 regras de `BNF.txt` e o Bison o
@@ -351,9 +355,9 @@ tem recursão à esquerda, está fatorada à esquerda e não possui conflitos
 na tabela de análise preditiva (e também é aceita pelo Bison sem
 conflitos). Algumas regras não são expressáveis na gramática:
 
-- o lado esquerdo de uma atribuição é atribuível (variável, `.campo` ou
-  `[indice]`, sem chamadas): o parser verifica na ação da regra e reporta
-  erro sintático;
+- o lado esquerdo de uma atribuição deve ser atribuível (variável,
+  `.campo` ou `[índice]`, sem chamadas): o parser verifica na ação da
+  regra e reporta erro sintático;
 - existe exatamente uma `func main ()`: análise semântica;
 - os campos de `run` (`command` obrigatório, tipos dos campos, sem
   repetição ou campo desconhecido): análise semântica.
@@ -371,7 +375,7 @@ regra:
            <expressao-or-resto> ::= OR <expressao-and> <expressao-or-resto> | ε
    (a AST reassocia os operadores à esquerda)
 
-2. Recursão à esquerda nos pós-fixos (.campo, [indice], (argumentos))
+2. Recursão à esquerda nos pós-fixos (.campo, [índice], (argumentos))
    antes:  <posfixa> ::= <posfixa> DOT IDENTIFIER | <posfixa> LBRACKET ...
                        | <posfixa> LPAREN ... | <primaria>
    depois: <expressao-posfixa> ::= <primaria> <sufixos>

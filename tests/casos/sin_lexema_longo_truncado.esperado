@@ -1,0 +1,4 @@
+Erro sintático [linha 2, coluna 24]:
+Token encontrado: texto "ééééééééééééééééééééééééééééééé...
+Esperado: ';'
+Programa rejeitado.

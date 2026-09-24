@@ -44,7 +44,7 @@ aspas (`Esperado: 'if'`). Quando todos os tokens que iniciam uma
 expressão ou um tipo são aceitos, a lista vira uma palavra só:
 `Esperado: expressão` ou `Esperado: tipo`.
 
-Não-terminais anuláveis (os `-resto` e `-opcional` da BNF) seguem a
+Não-terminais anuláveis (como os `-resto` e `-opcional` da BNF) seguem a
 produção vazia por padrão, então o erro aparece no próximo terminal
 obrigatório. Por isso um `;` esquecido gera `Esperado: ';'` em vez de uma
 lista com todos os operadores possíveis.
@@ -67,9 +67,13 @@ declarações `%token`.
 | L6 | Inteiro fora do intervalo do `int` do C | `99999999999` | `Número inteiro fora do intervalo: '99999999999'` |
 
 `&` e `|` só existem como `&&` e `||`. Letras acentuadas fora de strings
-e comentários também caem em L1 (`var ação:int;` para no `ç`). Já `.5`
-não é erro léxico: vira `DOT INT_LITERAL` e é rejeitado pelo parser.
-Como o `-` é um operador separado, `-2147483648` também cai em L6.
+e comentários também caem em L1 (`var ação:int;` para no `ç`).
+Caracteres de controle e bytes que não formam UTF-8 válido (ex.: arquivo
+salvo em Latin-1) aparecem pelo código, como em
+`Caractere não reconhecido: código 231`.
+
+Já `.5` não é erro léxico: vira `DOT INT_LITERAL` e é rejeitado pelo
+parser. Como o `-` é um operador separado, `-2147483648` também cai em L6.
 
 ## 3. Erros sintáticos
 
@@ -154,13 +158,15 @@ mensagens abaixo foram conferidas com o `fluxc`, isolando um erro por vez
 | 7 | 34:16 | Sintático (S3) | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` | Chamada de função não pode receber atribuição |
 
 No Trabalho 1, o compilador reporta só o erro 1 (o primeiro da entrada).
-Com o modo pânico do Trabalho 2, ele reporta os sete, sem erros em cascata.
+Com o modo pânico do Trabalho 2, ele deverá reportar os sete, sem erros
+em cascata.
 
 ## 6. Recuperação de erros (modo pânico)
 
 Os tokens de sincronização vêm dos conjuntos FOLLOW da BNF: `;` e `}`
-fecham comandos e blocos, e as palavras reservadas abaixo só aparecem no
-início de um comando ou elemento global.
+fecham comandos e blocos, e as palavras reservadas abaixo iniciam um
+comando ou elemento global. A exceção é o `if` de `stop if`, `abort if` e
+`continue if`, que vem logo depois da palavra que abre o comando.
 
 **Erro léxico:** o lexer reporta o erro, descarta o caractere ou lexema
 inválido e entrega ao parser um token de erro. O parser entra em modo
@@ -184,9 +190,9 @@ sincronizar.
 `func`, `workflow`, `var`, `const` ou fim do arquivo. Se encontrar `;`,
 consome e continua.
 
-**Chaves balanceadas:** ao descartar tokens, pule blocos `{ ... }`
-inteiros, contando as chaves. Sem isso, em `if x > 5 { ... }` o `}` do
-`if` fecharia o bloco da função e geraria erros em cascata.
+**Chaves balanceadas:** ao descartar tokens, o parser pula blocos
+`{ ... }` inteiros, contando as chaves. Sem isso, em `if x > 5 { ... }`
+o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 
 **Fim do arquivo:** se ainda falta fechar um bloco, reporta
 `Token encontrado: fim do arquivo` / `Esperado: '}'` e encerra.

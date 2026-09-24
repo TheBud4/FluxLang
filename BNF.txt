@@ -38,21 +38,22 @@
 ;;   IDENTIFIER      [A-Za-z_][A-Za-z0-9_]*   (exceto palavras reservadas)
 ;;   INT_LITERAL     [0-9]+
 ;;   FLOAT_LITERAL   [0-9]+ "." [0-9]+
-;;   STRING_LITERAL  '"' ( [^"\\\n] | \n | \t | \" | \\ )* '"'
+;;   STRING_LITERAL  '"' ( [^"\\\n] | '\' [nt"\\] )* '"'
 ;;                   (qualquer caractere exceto aspas, barra invertida e
-;;                   quebra de linha, ou um dos quatro escapes)
+;;                   quebra de linha, ou um dos quatro escapes \n \t \" \\)
 ;;
 ;; Ignorados: espaços, tabulações, quebras de linha,
 ;;            comentários // até o fim da linha e /* ... */ (sem aninhamento).
 ;; A linguagem é case-sensitive.
 ;;
 ;; Erros léxicos (catálogo completo em ERROS.md):
-;;   - caractere não reconhecido (ex.: @ # $ ' e & ou | sozinhos);
+;;   - caractere não reconhecido (ex.: @, #, $, ' e também & ou | isolados);
 ;;   - string não terminada (quebra de linha ou fim do arquivo antes de ");
 ;;   - sequência de escape inválida (ex.: "\q");
 ;;   - comentário de bloco não terminado;
 ;;   - número malformado: [0-9]+ "." sem dígitos depois (ex.: 5.) ou
-;;     número seguido de letra/_ (ex.: 1e10, 0xFF, 2itens).
+;;     número seguido de letra/_ (ex.: 1e10, 0xFF, 2itens);
+;;   - inteiro fora do intervalo do int do C (acima de 2147483647).
 ;;
 ;; Atenção (maior casamento): em "list<int>= [1]" o lexer lê ">=" como GTE
 ;; e a declaração falha; deve-se escrever "list<int> = [1]". Já ">>" não
@@ -202,7 +203,7 @@
 ;;   "," ou "=" -> atribuição
 ;; Na atribuição, o parser verifica (na ação da regra, ainda durante o
 ;; parse) que cada alvo é atribuível: IDENTIFIER seguido apenas de
-;; ".campo" ou "[indice]", sem chamadas nem operadores. Caso contrário,
+;; ".campo" ou "[índice]", sem chamadas nem operadores. Caso contrário,
 ;; reporta erro sintático no "=" (ex.: "soma(1, 2) = 3;").
 
 <comando-expressao> ::= <expressao> <resto-comando-expressao>

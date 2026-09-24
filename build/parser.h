@@ -117,7 +117,7 @@ extern int yydebug;
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
 union YYSTYPE
 {
-#line 35 "src/parser.y"
+#line 38 "src/parser.y"
 
     int    ival;
     double fval;

@@ -36,18 +36,19 @@ workflow comTipo():object {
 func main () {
     var obj:object = { a: { b: [0, 1] } };
     var i:int = 0;
+    const passo:int = 10 / 2 - 1;
 
     obj.a.b[0] = 10;
     x, y, obj.a.b[i + 1] = 1.5, 2.0, 7;
     terminal.log(toString(obj.a.b[0]) + nomes[1]);
     vazio();
 
-    while (i < limite) {
+    while (i < limite && i <= passo) {
         i = i + 1;
         if (i == 2) {
             continue;
         } else {
-            if (calcula(i, x)) {
+            if (calcula(i, x) || i > passo) {
                 break;
             }
         }

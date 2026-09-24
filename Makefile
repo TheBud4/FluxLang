@@ -1,4 +1,3 @@
-CC     ?= gcc
 BISON  ?= bison
 FLEX   ?= flex
 CFLAGS ?= -std=c11 -D_POSIX_C_SOURCE=200809L -Wall -Wextra -O2 -g
@@ -10,7 +9,7 @@ fluxc: $(OBJS)
 	$(CC) $(CFLAGS) -o $@ $(OBJS)
 
 $(BUILD)/parser.c: src/parser.y | $(BUILD)
-	$(BISON) -Wall --header=$(BUILD)/parser.h -o $@ $<
+	$(BISON) -Wall -d -o $@ $<
 
 $(BUILD)/parser.h: $(BUILD)/parser.c
 

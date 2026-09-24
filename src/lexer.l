@@ -47,12 +47,33 @@ static void guardar_lexema(void)
         memcpy(flux_lexema, yytext, yyleng);
         flux_lexema[yyleng] = '\0';
     } else {
-        memcpy(flux_lexema, yytext, TAM_LEXEMA);
-        strcpy(flux_lexema + TAM_LEXEMA, "...");
+        int n = TAM_LEXEMA;
+        while (n > 0 && ((unsigned char) yytext[n] & 0xC0) == 0x80)
+            n--;   /* não corta um caractere UTF-8 ao meio */
+        memcpy(flux_lexema, yytext, n);
+        strcpy(flux_lexema + n, "...");
     }
 }
 
 #define TOKEN(t) do { guardar_lexema(); return (t); } while (0)
+
+/* Erros fatais do próprio Flex (ex.: ler um diretório) em português. */
+static _Noreturn void erro_fatal(const char *msg)
+{
+    int e = errno;
+    if (strcmp(msg, "input in flex scanner failed") == 0) {
+        fprintf(stderr, "Erro: falha ao ler a entrada: %s\n", strerror(e));
+    } else if (strncmp(msg, "out of dynamic memory", 21) == 0) {
+        fputs("Erro: memória esgotada\n", stderr);
+    } else {
+        /* Falha interna do Flex: yy_fatal_error completa com o original. */
+        fputs("Erro interno do analisador léxico: ", stderr);
+        yy_fatal_error(msg);
+    }
+    exit(2);
+}
+
+#define YY_FATAL_ERROR(msg) erro_fatal(msg)
 
 static int erro_lexico(int lin, int col, const char *formato, ...)
 {
@@ -110,7 +131,8 @@ static int erro_escape(void)
 static int erro_caractere(void)
 {
     unsigned char c = (unsigned char) yytext[0];
-    if (c < 32 || c == 127)
+    /* Byte isolado >= 128 não é UTF-8 válido (ex.: arquivo em Latin-1). */
+    if (c < 32 || c == 127 || (c >= 128 && yyleng == 1))
         return erro_lexico(yylloc.first_line, yylloc.first_column,
                            "Caractere não reconhecido: código %d", c);
     return erro_lexico(yylloc.first_line, yylloc.first_column,
