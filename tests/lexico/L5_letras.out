@@ -1,0 +1,7 @@
+1:1	VAR                  
+Erro léxico [linha 1, coluna 5]:
+Número malformado: '2itens'
+1:11	COLON                
+1:12	TYPE_INT             
+1:15	SEMICOLON            
+[código 1]

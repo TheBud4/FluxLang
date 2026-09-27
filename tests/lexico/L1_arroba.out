@@ -1,0 +1,8 @@
+1:1	IDENTIFIER           x
+1:3	ASSIGN               
+1:5	INT_LITERAL          10
+Erro léxico [linha 1, coluna 8]:
+Caractere não reconhecido: '@'
+1:10	INT_LITERAL          2
+1:11	SEMICOLON            
+[código 1]

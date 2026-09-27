@@ -1,0 +1,171 @@
+;; ===================================================================
+;; FLUXLANG (v1) - LL(1) GRAMMAR IN BNF
+;; ===================================================================
+;;
+;; Conventions:
+;;   <non_terminal>   non-terminal symbol
+;;   UPPERCASE        token produced by the lexer
+;;   ε                empty production
+;;
+;; The grammar has no left recursion and is left-factored: for each
+;; non-terminal, the FIRST sets of its alternatives are disjoint and,
+;; when there is an ε alternative, also disjoint from its FOLLOW set.
+
+;; ===================================================================
+;; 0. TOKENS
+;; ===================================================================
+;;
+;; Keywords:
+;;   VAR       var        CONST     const      FUNC      func
+;;   WORKFLOW  workflow   MAIN      main       RETURN    return
+;;   IF        if         ELSE      else       WHILE     while
+;;   FOR       for        IN        in         BREAK     break
+;;   CONTINUE  continue   CALL      call       RUN       run
+;;   STOP      stop       ABORT     abort      PROCEED   proceed
+;;
+;; Type keywords:
+;;   TYPE_INT     int      TYPE_FLOAT   float    TYPE_STRING  string
+;;   TYPE_BOOL    bool     TYPE_OBJECT  object   TYPE_LIST    list
+;;
+;; Literals:
+;;   TRUE            true
+;;   FALSE           false
+;;   NULL_LITERAL    null
+;;   INT_LITERAL     [0-9]+                       (up to 2147483647)
+;;   FLOAT_LITERAL   [0-9]+ "." [0-9]+
+;;   STRING_LITERAL  '"' ( [^"\\\n] | '\' [nt"\\] )* '"'
+;;                   (one line; only the escapes \n \t \" \\)
+;;
+;; Identifier:
+;;   IDENTIFIER      [A-Za-z_][A-Za-z0-9_]*       (except keywords)
+;;
+;; Operators:
+;;   ASSIGN        =     EQUAL               ==    NOT_EQUAL  !=
+;;   LOWER_THAN    <     LOWER_THAN_EQUAL    <=
+;;   GREATER_THAN  >     GREATER_THAN_EQUAL  >=
+;;   PLUS          +     MINUS               -     MUL        *
+;;   DIV           /     MOD                 %
+;;   AND           &&    OR                  ||    NOT        !
+;;
+;; Punctuation:
+;;   LPAREN    (    RPAREN    )    LBRACE    {    RBRACE    }
+;;   LBRACKET  [    RBRACKET  ]    COMMA     ,    COLON     :
+;;   SEMICOLON ;    DOT       .
+;;
+;; EOF is not a token: the lexer returns 0 (Bison's $end).
+;;
+;; Notes:
+;;   - Case-sensitive. Spaces, tabs, line breaks, // line comments and
+;;     /* block */ comments (no nesting) are ignored.
+;;   - Library names (terminal, log, info, warn, error, input, push,
+;;     remove, length, toString, toInt, toFloat, toBool, command, flags,
+;;     workingDir) are not reserved: they are IDENTIFIER.
+;;   - Longest match: "list<int>= [1]" reads ">=" as GREATER_THAN_EQUAL,
+;;     so write "list<int> = [1]". ">>" is not an operator, so
+;;     "list<list<int>>" works.
+;;
+;; Lexical errors (details in docs/ERROS.md, section 2):
+;;   L1  unrecognized character: @ # $ ' and a lone & or |
+;;   L2  unterminated string (line break or EOF before the closing ")
+;;   L3  invalid escape sequence, e.g. "\q"
+;;   L4  unterminated block comment
+;;   L5  malformed number: 5. / 1e10 / 0xFF / 2items / 3.14abc
+;;   L6  integer above 2147483647
+
+
+;; ===================================================================
+;; 1. General Program Structure
+;; ===================================================================
+
+
+<program> ::= <declaration_list> <main> <declaration_list> EOF
+;; [erro]: conflito LL(1). FIRST(<declaration>) contém FUNC (via <function>)
+;;         e FOLLOW(<declaration_list>) também contém FUNC (via <main>): ao
+;;         ver FUNC, o parser não sabe se escolhe <declaration> ou ε.
+;;         Fatore o FUNC em comum, por exemplo:
+;;           <program>     ::= <before_main> EOF
+;;           <before_main> ::= <global_no_func> <before_main>
+;;                           | FUNC <after_func>
+;;           <after_func>  ::= MAIN LPAREN RPAREN <block> <after_main>
+;;                           | IDENTIFIER <function_rest> <before_main>
+;;           <after_main>  ::= <global_no_func> <after_main>
+;;                           | FUNC IDENTIFIER <function_rest> <after_main>
+;;                           | ε
+;;           <global_no_func> ::= <variable_declaration> | <constant_declaration> | <workflow>
+
+<declaration_list> ::= <declaration> <declaration_list>
+                | ε
+
+<declaration> ::= <function>
+               | <variable>
+;; [erro]: <variable> não está definido (em <command> o nome é <variable_declaration>).
+;; [erro]: falta <constant_declaration>: o README permite const no nível global.
+               | <workflow>
+
+<main> ::= FUNC MAIN LPAREN RPAREN <block>
+
+<block> ::= LBRACE <commands> RBRACE
+
+<commands> ::= <command> <comands>
+;; [erro]: "<comands>" com um m só; o não-terminal é <commands>.
+            | ε
+
+<command> ::= <variable_declaration>
+            | <constant_declaration>
+            | <command_if>
+            | <command_for>
+            | <command_while>
+            | <command_return>
+            | <command_break>
+            | <command_continue>
+            | <command_error>
+            | <command_expression>
+;; [pendente]: nenhum dos não-terminais de <command> está definido ainda,
+;;             nem <workflow>, expressões, literais de lista/objeto, run e call.
+;; [pendente]: decidido: call/run não são expressões, só aparecem logo após o
+;;             = de var ou de atribuição. Ex.: <rhs> ::= CALL IDENTIFIER LPAREN
+;;             <args> RPAREN | RUN <object_literal> | <expression_list>
+;; [pendente]: decidido: const também pode omitir :tipo quando tem valor, então
+;;             var e const podem compartilhar o resto (COLON <type> ... | ASSIGN ...).
+;; [pendente]: decidido: chave de objeto pode ser identificador ou string (cabeçalhos
+;;             HTTP): <field_key> ::= IDENTIFIER | STRING_LITERAL
+
+;; ===================================================================
+;; 2. DATA TYPES
+;; ===================================================================
+
+<type> ::= TYPE_INT
+         | TYPE_STRING
+         | TYPE_FLOAT
+         | TYPE_BOOL
+         | TYPE_LIST
+;; [erro]: a linguagem tem list<tipo>, não list sozinho:
+;;         TYPE_LIST LOWER_THAN <type> GREATER_THAN
+         | TYPE_OBJECT
+
+;; ===================================================================
+;; 3. FUNCTIONS
+;; [erro]: a numeração pula da seção 2 para a 4.
+;; ===================================================================
+
+
+<function>::= FUNC IDENTIFIER LPAREN <parameter_list> RPAREN <return_type> <block> 
+
+<return_type> ::= COLON <type>
+                 | ε
+
+
+<parameter_list> ::= <parameters>
+                    | ε
+
+<parameters> ::= <parameter>
+               | <parameter> COMMA <parameters>
+;; [erro]: não está fatorada à esquerda: as duas alternativas começam com
+;;         <parameter>, então FIRST/FIRST se sobrepõem. Por exemplo:
+;;           <parameters>      ::= <parameter> <parameters_rest>
+;;           <parameters_rest> ::= COMMA <parameter> <parameters_rest> | ε
+
+<parameter> ::= IDENTIFIER COLON <type>
+
+
+

@@ -1,0 +1,6 @@
+1:1	IDENTIFIER           x
+1:3	ASSIGN               
+Erro léxico [linha 1, coluna 5]:
+Número malformado: '5.'
+1:7	SEMICOLON            
+[código 1]

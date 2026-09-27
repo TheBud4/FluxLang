@@ -1,0 +1,65 @@
+1:1	FUNC                 
+1:6	MAIN                 
+1:10	LPAREN               
+1:11	RPAREN               
+1:13	LBRACE               
+2:5	VAR                  
+2:9	IDENTIFIER           a
+2:10	COMMA                
+2:12	IDENTIFIER           b
+2:13	COLON                
+2:14	TYPE_INT             
+2:18	ASSIGN               
+2:20	INT_LITERAL          1
+2:21	COMMA                
+2:23	INT_LITERAL          2
+2:24	SEMICOLON            
+3:5	CONST                
+3:11	IDENTIFIER           nome
+3:16	ASSIGN               
+3:18	STRING_LITERAL       "flux"
+3:24	SEMICOLON            
+4:5	IF                   
+4:8	LPAREN               
+4:9	IDENTIFIER           a
+4:11	LOWER_THAN_EQUAL     
+4:14	IDENTIFIER           b
+4:16	AND                  
+4:19	NOT                  
+4:20	FALSE                
+4:25	RPAREN               
+4:27	LBRACE               
+5:9	IDENTIFIER           a
+5:11	ASSIGN               
+5:13	IDENTIFIER           a
+5:15	MUL                  
+5:17	INT_LITERAL          2
+5:19	MOD                  
+5:21	INT_LITERAL          3
+5:22	SEMICOLON            
+6:5	RBRACE               
+6:7	ELSE                 
+6:12	LBRACE               
+7:9	IDENTIFIER           b
+7:11	ASSIGN               
+7:13	IDENTIFIER           b
+7:15	DIV                  
+7:17	INT_LITERAL          2
+7:19	MINUS                
+7:21	INT_LITERAL          1
+7:22	SEMICOLON            
+8:5	RBRACE               
+9:5	FOR                  
+9:9	IDENTIFIER           item
+9:14	IN                   
+9:17	LBRACKET             
+9:18	INT_LITERAL          1
+9:19	COMMA                
+9:21	INT_LITERAL          2
+9:22	RBRACKET             
+9:24	LBRACE               
+10:9	CONTINUE             
+10:17	SEMICOLON            
+11:5	RBRACE               
+12:1	RBRACE               
+[código 0]
