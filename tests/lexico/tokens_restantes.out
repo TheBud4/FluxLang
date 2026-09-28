@@ -1,0 +1,107 @@
+1:1	WORKFLOW             
+1:10	IDENTIFIER           build
+1:15	LPAREN               
+1:16	IDENTIFIER           dir
+1:19	COLON                
+1:20	TYPE_STRING          
+1:26	RPAREN               
+1:27	COLON                
+1:28	TYPE_STRING          
+1:35	LBRACE               
+2:5	VAR                  
+2:9	IDENTIFIER           r
+2:10	COMMA                
+2:12	IDENTIFIER           e
+2:14	ASSIGN               
+2:16	RUN                  
+2:20	LBRACE               
+2:22	IDENTIFIER           command
+2:29	COLON                
+2:31	STRING_LITERAL       "make"
+2:37	COMMA                
+2:39	IDENTIFIER           workingDir
+2:49	COLON                
+2:51	IDENTIFIER           dir
+2:55	RBRACE               
+2:56	SEMICOLON            
+3:5	STOP                 
+3:10	IF                   
+3:13	IDENTIFIER           e
+3:14	SEMICOLON            
+4:5	RETURN               
+4:12	IDENTIFIER           r
+4:13	COMMA                
+4:15	NULL_LITERAL         
+4:19	SEMICOLON            
+5:1	RBRACE               
+7:1	FUNC                 
+7:6	MAIN                 
+7:10	LPAREN               
+7:11	RPAREN               
+7:13	LBRACE               
+8:5	VAR                  
+8:9	IDENTIFIER           ok
+8:11	COLON                
+8:12	TYPE_BOOL            
+8:17	ASSIGN               
+8:19	TRUE                 
+8:23	SEMICOLON            
+9:5	VAR                  
+9:9	IDENTIFIER           taxa
+9:13	COLON                
+9:14	TYPE_FLOAT           
+9:20	ASSIGN               
+9:22	FLOAT_LITERAL        0.5
+9:25	SEMICOLON            
+10:5	VAR                  
+10:9	IDENTIFIER           dados
+10:14	COLON                
+10:15	TYPE_OBJECT          
+10:22	ASSIGN               
+10:24	LBRACE               
+10:26	IDENTIFIER           nome
+10:30	COLON                
+10:32	STRING_LITERAL       "flux"
+10:39	RBRACE               
+10:40	SEMICOLON            
+11:5	VAR                  
+11:9	IDENTIFIER           saida
+11:14	COMMA                
+11:16	IDENTIFIER           erro
+11:21	ASSIGN               
+11:23	CALL                 
+11:28	IDENTIFIER           build
+11:33	LPAREN               
+11:34	STRING_LITERAL       "src"
+11:39	RPAREN               
+11:40	SEMICOLON            
+12:5	PROCEED              
+12:13	IF                   
+12:16	IDENTIFIER           erro
+12:20	SEMICOLON            
+13:5	ABORT                
+13:11	IF                   
+13:14	IDENTIFIER           erro
+13:18	SEMICOLON            
+14:5	WHILE                
+14:11	LPAREN               
+14:12	IDENTIFIER           ok
+14:15	EQUAL                
+14:18	TRUE                 
+14:23	OR                   
+14:26	IDENTIFIER           taxa
+14:31	NOT_EQUAL            
+14:34	FLOAT_LITERAL        1.5
+14:37	RPAREN               
+14:39	LBRACE               
+15:9	IDENTIFIER           taxa
+15:14	ASSIGN               
+15:16	IDENTIFIER           taxa
+15:21	PLUS                 
+15:23	FLOAT_LITERAL        0.5
+15:26	SEMICOLON            
+16:9	BREAK                
+16:14	SEMICOLON            
+17:5	RBRACE               
+18:1	RBRACE               
+[código 0]

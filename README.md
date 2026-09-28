@@ -263,7 +263,6 @@ Palavras reservadas: `var`, `const`, `func`, `workflow`, `call`, `return`,
 `proceed`, `run`, `true`, `false`, `null`, `int`, `float`, `string`,
 `bool`, `object`, `list`, `main`.
 
-# TODO: Revisar a partir daqui.
 ## 8. Regras semânticas
 
 Verificadas após o parse (etapa semântica). O catálogo completo, com as
@@ -279,7 +278,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   redeclarados.
 - **Chamadas:** o número e os tipos dos argumentos devem bater com os
   parâmetros. Só se chamam funções, workflows (com `call`), métodos de
-  lista e as funções de `terminal`.
+  lista, as funções de `terminal` e as conversões (`toString`, `toInt`,
+  `toFloat`, `toBool`).
 - **Inicialização:** `var x:int;` deixa `x` não inicializada (sem valor
   padrão); usar antes de atribuir é erro. Ela só conta como inicializada
   num ponto se for atribuída em todos os caminhos até ele: um `if` com
@@ -299,8 +299,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   inválidos de `null` são detectados em tempo de execução na v1.
 - **Erros de execução:** fora `run` e `call`, que devolvem erro tratável,
   todo erro em tempo de execução (conversão impossível, índice fora da
-  lista, uso de `null`, divisão inteira por zero) encerra o programa como
-  o `abort`. Ver [`ERROS.md`](docs/ERROS.md#7-erros-em-tempo-de-execução).
+  lista, uso de `null`, divisão inteira por zero, campo com tipo errado)
+  encerra o programa como o `abort`. Ver [`ERROS.md`](docs/ERROS.md#7-erros-em-tempo-de-execução).
 - **Operadores:** os operandos seguem a tabela da seção 3; a única
   conversão implícita é `int` → `float`.
 - **Condições** de `if` e `while` devem ser `bool` (sem truthy/falsy).
@@ -331,18 +331,18 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   `workingDir` (`string`) são opcionais; nenhum campo pode ser repetido ou
   desconhecido.
 
-## 9. Implementação (planejada)
+## 9. Implementação
 
-O compilador está sendo reescrito para a gramática atual. O plano:
+O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
+Bison**. O lexer está pronto; o parser ainda só declara os tokens.
 
-- Linguagem C, lexer em **Flex** e parser em **GNU Bison**. A forma dos
-  nós da AST ainda está em aberto.
 - O lexer rastreia linha e coluna de cada token (colunas contam
-  caracteres, não bytes).
+  caracteres, não bytes; uma tabulação conta como uma coluna).
 - Mapeamento de tipos: `int` → `int`, `float` → `double`,
   `bool` → `int` (`1`/`0`), `string` → `char *`.
 - Mensagens de erro em português, citando o token encontrado e o
-  esperado. Formato, catálogo e modo pânico estão em [`ERROS.md`](docs/ERROS.md).
+  esperado, na saída de erro. Formato, catálogo e modo pânico estão em
+  [`ERROS.md`](docs/ERROS.md).
 
 ```text
 Erro léxico [linha 24, coluna 24]:
@@ -355,7 +355,7 @@ Esperado: '='
 
 ### Compilar e usar
 
-Vai exigir `gcc` (ou `clang`), `flex`, `bison` 3.6+ e `make`.
+Exige `gcc` (ou `clang`), `flex`, `bison` 3.6+ e `make`.
 
 ```sh
 make                            # gera ./fluxc
@@ -364,12 +364,14 @@ make                            # gera ./fluxc
 ./fluxc -t programa.flux        # --tokens: lista os tokens reconhecidos
 ./fluxc -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
+make bear                       # gera compile_commands.json (para o clangd)
 ```
 
 A saída deve terminar com `Programa aceito.` (código de saída 0) ou
 `Programa rejeitado.` (código 1); opção desconhecida ou arquivo que não
 pode ser lido dão código 2. No Trabalho 1, o compilador para no primeiro
-erro. O modo `--tokens` roda só o lexer e continua após erros léxicos.
+erro. O modo `--tokens` roda só o lexer, continua após erros léxicos e
+sai com código 1 se encontrou algum.
 
 | Arquivo | Conteúdo |
 |---|---|
@@ -377,7 +379,7 @@ erro. O modo `--tokens` roda só o lexer e continua após erros léxicos.
 | `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
 | `src/main.c` | Leitura da entrada, modo `--tokens` e resultado |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
-| `tests/` | Casos de teste com a saída esperada; `tests/run.sh` compara |
+| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
 `src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.
@@ -463,4 +465,4 @@ ficam para versões posteriores.
 
 ## Em aberto
 
-Nenhum item no momento.
+- Forma dos nós da AST (Trabalho 2).

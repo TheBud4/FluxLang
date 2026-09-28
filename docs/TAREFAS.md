@@ -4,32 +4,32 @@
 
 ### 1. BNF (`docs/BNF.txt`)
 
-- [ ] Corrigir o conflito de `FUNC` em `<program>` (`<before_main>` / `<after_func>` / `<after_main>`)
-- [ ] Fatorar `<parameters>` com `<parameters_rest>`
-- [ ] Corrigir `<comands>` para `<commands>`
-- [ ] Trocar `<variable>` por `<variable_declaration>` e incluir `<constant_declaration>` no nível global
-- [ ] Mudar `<type>` para `TYPE_LIST LOWER_THAN <type> GREATER_THAN`
+- [x] Corrigir o conflito de `FUNC` em `<program>` (`<before_main>` / `<after_func>` / `<after_main>`)
+- [x] Fatorar `<parameters>` com `<parameters_rest>`
+- [x] Corrigir `<comands>` para `<commands>`
+- [x] Trocar `<variable>` por `<variable_declaration>` e incluir `<constant_declaration>` no nível global
+- [x] Mudar `<type>` para `TYPE_LIST LOWER_THAN <type> GREATER_THAN`
 - [x] Adicionar o token `PROCEED`
 - [x] Trocar "GTE" por `GREATER_THAN_EQUAL` no aviso de maior casamento
-- [ ] Renumerar as seções (falta a 3)
-- [ ] Escrever `<variable_declaration>` e `<constant_declaration>` com resto compartilhado
-- [ ] Escrever `<workflow>`
-- [ ] Escrever `<rhs>` (`call`, `run` ou lista de expressões)
-- [ ] Escrever `<command_if>`, `<command_while>` e `<command_for>`
-- [ ] Escrever `<command_return>`, `<command_break>` e `<command_continue>`
-- [ ] Escrever `<command_error>` (`stop` / `abort` / `proceed if`)
-- [ ] Escrever `<command_expression>` (expressão, atribuição simples e múltipla)
-- [ ] Escrever as expressões com os 8 níveis de precedência
-- [ ] Escrever os literais de lista e de objeto (`<field_key>`)
-- [ ] Escrever `<args>`
-- [ ] Pedir a validação da BNF (FIRST/FOLLOW)
-- [ ] Remover os comentários `[erro]` e `[pendente]` validados
+- [x] Renumerar as seções (falta a 3)
+- [x] Escrever `<variable_declaration>` e `<constant_declaration>` (resto próprio: o `const` exige valor)
+- [x] Escrever `<workflow>`
+- [x] Escrever `<rhs>` (`call`, `run` ou lista de expressões)
+- [x] Escrever `<command_if>`, `<command_while>` e `<command_for>`
+- [x] Escrever `<command_return>`, `<command_break>` e `<command_continue>`
+- [x] Escrever `<command_error>` (`stop` / `abort` / `proceed if`)
+- [x] Escrever `<command_expression>` (expressão, atribuição simples e múltipla)
+- [x] Escrever as expressões com os 8 níveis de precedência
+- [x] Escrever os literais de lista e de objeto (`<field_key>`)
+- [x] Escrever `<args>`
+- [x] Pedir a validação da BNF (FIRST/FOLLOW)
+- [x] Remover os comentários `[erro]` e `[pendente]` validados
 
 ### 2. Documentação
 
-- [ ] Revisar o README da seção 8 em diante e tirar o `# TODO`
-- [ ] Conferir se `docs/exemplos/valido.flux` e `docs/exemplos/invalido.flux` batem com a BNF final
-- [ ] Commitar README, ERROS, BNF e exemplos
+- [x] Revisar o README da seção 8 em diante e tirar o `# TODO`
+- [x] Conferir se `docs/exemplos/valido.flux` e `docs/exemplos/invalido.flux` batem com a BNF final
+- [x] Commitar README, ERROS, BNF e exemplos
 
 ### 3. Implementação
 
