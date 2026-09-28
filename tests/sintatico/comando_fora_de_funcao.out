@@ -1,0 +1,5 @@
+Erro sintático [linha 1, coluna 1]:
+Token encontrado: identificador 'x'
+Esperado: 'var', 'const', 'func' ou 'workflow'
+Programa rejeitado.
+[código 1]

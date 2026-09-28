@@ -572,7 +572,7 @@ char *yytext;
     #define YY_USER_ACTION                                  \
         yylloc.first_line = yylloc.last_line = line;       \
         yylloc.first_column = column;                       \
-        yylval = NULL;                                      \
+        yylval.text = NULL;                                      \
         next(yytext, yyleng);
 #line 577 "build/lex.yy.c"
 #define YY_NO_INPUT 1
@@ -1036,7 +1036,7 @@ YY_RULE_SETUP
 case 33:
 YY_RULE_SETUP
 #line 84 "src/lexer.l"
-{ yylval = strdup(yytext); return FLOAT_LITERAL; }
+{ yylval.text = strdup(yytext); return FLOAT_LITERAL; }
 	YY_BREAK
 case 34:
 YY_RULE_SETUP
@@ -1049,7 +1049,7 @@ YY_RULE_SETUP
                      "Número inteiro fora do intervalo: '%s'", yytext);
         return YYerror;
     }
-    yylval = strdup(yytext);
+    yylval.text = strdup(yytext);
     return INT_LITERAL;
 }
 	YY_BREAK
@@ -1086,7 +1086,7 @@ YY_RULE_SETUP
         }
         i++;
     }
-    yylval = strdup(yytext);
+    yylval.text = strdup(yytext);
     return STRING_LITERAL;
 }
 	YY_BREAK
@@ -1230,12 +1230,21 @@ YY_RULE_SETUP
 case 65:
 YY_RULE_SETUP
 #line 164 "src/lexer.l"
-{ yylval = strdup(yytext); return IDENTIFIER; }
+{ yylval.text = strdup(yytext); return IDENTIFIER; }
+	YY_BREAK
+/* End of file: the position is where the input ends */
+case YY_STATE_EOF(INITIAL):
+#line 167 "src/lexer.l"
+{
+    yylloc.first_line = yylloc.last_line = line;
+    yylloc.first_column = column;
+    return 0;
+}
 	YY_BREAK
 /* Unrecognized characters (L1) */
 case 66:
 YY_RULE_SETUP
-#line 167 "src/lexer.l"
+#line 174 "src/lexer.l"
 {
     report_error("léxico", yylloc.first_line, yylloc.first_column,
                  "Caractere não reconhecido: '%s'", yytext);
@@ -1244,7 +1253,7 @@ YY_RULE_SETUP
 	YY_BREAK
 case 67:
 YY_RULE_SETUP
-#line 173 "src/lexer.l"
+#line 180 "src/lexer.l"
 {
     report_error("léxico", yylloc.first_line, yylloc.first_column,
                  "Caractere não reconhecido: código %d", (unsigned char)yytext[0]);
@@ -1253,12 +1262,10 @@ YY_RULE_SETUP
 	YY_BREAK
 case 68:
 YY_RULE_SETUP
-#line 179 "src/lexer.l"
+#line 186 "src/lexer.l"
 ECHO;
 	YY_BREAK
-#line 1259 "build/lex.yy.c"
-case YY_STATE_EOF(INITIAL):
-	yyterminate();
+#line 1268 "build/lex.yy.c"
 
 	case YY_END_OF_BUFFER:
 		{
@@ -2224,7 +2231,7 @@ void yyfree (void * ptr )
 
 #define YYTABLES_NAME "yytables"
 
-#line 179 "src/lexer.l"
+#line 186 "src/lexer.l"
 
 
 static void next(const char *s, int n) {

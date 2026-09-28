@@ -35,14 +35,14 @@
 
 - [x] `Makefile` (gera `./fluxc`, alvo `test`)
 - [x] `src/lexer.l`: tokens, linha e coluna, erros L1–L6
-- [ ] `src/parser.y`: BNF regra por regra, sem conflitos no Bison
-- [ ] Mensagens em português com token encontrado e esperado (`parse.error custom`)
-- [ ] Verificação S3 (lado esquerdo da atribuição)
-- [ ] `src/main.c`: entrada padrão, `Programa aceito.` / `Programa rejeitado.`, códigos de saída
+- [x] `src/parser.y`: BNF regra por regra, sem conflitos no Bison
+- [x] Mensagens em português com token encontrado e esperado (`parse.error custom`)
+- [x] Verificação S3 (lado esquerdo da atribuição)
+- [x] `src/main.c`: entrada padrão, `Programa aceito.` / `Programa rejeitado.`, códigos de saída
 - [x] Modo `--tokens`
-- [ ] `tests/`: um caso por linha das tabelas das seções 2 e 3 do ERROS.md
-- [ ] Rodar `valido.flux` (aceito)
-- [ ] Rodar `invalido.flux` e conferir as mensagens e posições da seção 5 do ERROS.md
+- [x] `tests/`: um caso por linha das tabelas das seções 2 e 3 do ERROS.md
+- [x] Rodar `valido.flux` (aceito)
+- [x] Rodar `invalido.flux` e conferir as mensagens e posições da seção 5 do ERROS.md
 - [ ] Commitar código e binário
 
 ### 4. Artigo (formato SBC)

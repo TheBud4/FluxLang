@@ -14,7 +14,7 @@
     #define YY_USER_ACTION                                  \
         yylloc.first_line = yylloc.last_line = line;       \
         yylloc.first_column = column;                       \
-        yylval = NULL;                                      \
+        yylval.text = NULL;                                      \
         next(yytext, yyleng);
 %}
 
@@ -81,7 +81,7 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 "null"          { return NULL_LITERAL; }
 
  /* Numbers */
-{DIG}+"."{DIG}+ { yylval = strdup(yytext); return FLOAT_LITERAL; }
+{DIG}+"."{DIG}+ { yylval.text = strdup(yytext); return FLOAT_LITERAL; }
 
 {DIG}+ {
     errno = 0;
@@ -91,7 +91,7 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
                      "Número inteiro fora do intervalo: '%s'", yytext);
         return YYerror;
     }
-    yylval = strdup(yytext);
+    yylval.text = strdup(yytext);
     return INT_LITERAL;
 }
 
@@ -120,7 +120,7 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
         }
         i++;
     }
-    yylval = strdup(yytext);
+    yylval.text = strdup(yytext);
     return STRING_LITERAL;
 }
 
@@ -161,7 +161,14 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 "."             { return DOT; }
 
  /* Identifier */
-{ID}            { yylval = strdup(yytext); return IDENTIFIER; }
+{ID}            { yylval.text = strdup(yytext); return IDENTIFIER; }
+
+ /* End of file: the position is where the input ends */
+<<EOF>> {
+    yylloc.first_line = yylloc.last_line = line;
+    yylloc.first_column = column;
+    return 0;
+}
 
  /* Unrecognized characters (L1) */
 {UTF8}|[\x21-\x7E] {

@@ -1,0 +1,5 @@
+Erro sintático [linha 3, coluna 1]:
+Token encontrado: fim do arquivo
+Esperado: 'var', 'const', 'func' ou 'workflow'
+Programa rejeitado.
+[código 1]

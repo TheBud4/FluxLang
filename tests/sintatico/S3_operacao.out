@@ -1,0 +1,5 @@
+Erro sintático [linha 2, coluna 7]:
+Token encontrado: '='
+Esperado: ';' (o lado esquerdo não é variável, campo ou índice)
+Programa rejeitado.
+[código 1]

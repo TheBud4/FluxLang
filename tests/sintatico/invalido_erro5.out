@@ -1,0 +1,5 @@
+Erro sintático [linha 27, coluna 12]:
+Token encontrado: palavra reservada 'if'
+Esperado: '{'
+Programa rejeitado.
+[código 1]

@@ -116,7 +116,17 @@ extern int yydebug;
 
 /* Value type.  */
 #if ! defined YYSTYPE && ! defined YYSTYPE_IS_DECLARED
-typedef char * YYSTYPE;
+union YYSTYPE
+{
+#line 18 "src/parser.y"
+
+  char *text;      /* texto do token (identificadores e literais) */
+  int assignable;  /* expressões: 1 se pode receber atribuição */
+
+#line 127 "build/parser.tab.h"
+
+};
+typedef union YYSTYPE YYSTYPE;
 # define YYSTYPE_IS_TRIVIAL 1
 # define YYSTYPE_IS_DECLARED 1
 #endif

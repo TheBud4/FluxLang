@@ -451,9 +451,12 @@ uma atribuição.
 
 Algumas regras não são expressáveis na gramática:
 
-- o lado esquerdo de uma atribuição deve ser atribuível (variável,
-  `.campo` ou `[índice]`, sem chamadas): o parser verifica na ação da
-  regra e reporta erro sintático;
+- o lado esquerdo de uma atribuição deve ser atribuível: uma variável
+  escrita diretamente (`x`, e não `(x)`) ou uma expressão que termina em
+  `.campo` ou `[índice]` (`obj.a`, `l[0]`, `f().x`). Se termina numa
+  chamada (`f()`, `obj.m()`) ou é qualquer outra expressão (`a + b`,
+  `10`), não serve. O parser verifica na ação da regra e reporta erro
+  sintático (S3); na atribuição múltipla, vale para cada alvo;
 - os campos de `run` (`command` obrigatório, tipos dos campos, sem
   repetição ou campo desconhecido): análise semântica.
 

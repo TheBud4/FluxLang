@@ -52,6 +52,12 @@ produção vazia por padrão, então o erro aparece no próximo terminal
 obrigatório. Por isso um `;` esquecido gera `Esperado: ';'` em vez de uma
 lista com todos os operadores possíveis.
 
+Pela mesma regra, `call` ou `run` fora do lugar geram só o próximo
+terminal obrigatório (`'}'`, `')'`...). Como isso sozinho não explica o
+erro, quando o token encontrado é `call` ou `run` a mensagem ganha a
+explicação `(call e run só aparecem logo depois do '=' de um var ou de uma
+atribuição)`.
+
 No Bison, as mensagens padrão são em inglês. O `src/parser.y` vai usar
 `%define parse.error custom` e escrever as mensagens em
 `yyreport_syntax_error`, com a lista de tokens esperados vinda de
@@ -93,14 +99,17 @@ caracteres, e uma tabulação conta como uma coluna.
 
 S1 e S2 saem direto da gramática. S3 é verificado pelo parser na ação da
 regra de atribuição, porque atribuição e expressão-comando começam do
-mesmo jeito (ver a seção Gramática do README).
+mesmo jeito (ver a seção Gramática do README). O que decide é o último
+sufixo do alvo: `x`, `obj.a`, `l[0]` e `f().x` são aceitos; `f()`,
+`(x)`, `a + b` e `10` dão S3. A posição é a do `=`, também na
+atribuição múltipla (`a, f() = 1, 2;`).
 
 Casos comuns (mensagens esperadas):
 
 | Situação | Exemplo | Encontrado | Esperado |
 |---|---|---|---|
 | `const` sem valor | `const v:string;` | `';'` | `'='` |
-| `var` sem tipo e sem valor | `var x;` | `';'` | `':' ou '='` |
+| `var` sem tipo e sem valor | `var x;` | `';'` | `'=' ou ':'` |
 | Falta `;` | `x = 1` e na linha seguinte `y = 2;` | `identificador 'y'` | `';'` |
 | Condição sem parênteses | `if x > 5 {` | `identificador 'x'` | `'('` |
 | `else if` (não existe) | `} else if (x) {` | `palavra reservada 'if'` | `'{'` |
@@ -110,15 +119,15 @@ Casos comuns (mensagens esperadas):
 | `main` repetida | segunda `func main () { }` | `palavra reservada 'main'` | `identificador` |
 | `main` com parâmetros | `func main (x:int) {` | `identificador 'x'` | `')'` |
 | `main` com tipo de retorno | `func main ():int {` | `':'` | `'{'` |
-| `call`/`run` como comando isolado | `call build(x);` | `palavra reservada 'call'` | `comando ou '}'` |
-| `call`/`run` dentro de expressão | `terminal.log(call f());` | `palavra reservada 'call'` | `expressão ou ')'` |
+| `call`/`run` como comando isolado | `call build(x);` | `palavra reservada 'call'` | `'}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` |
+| `call`/`run` dentro de expressão | `terminal.log(call f());` | `palavra reservada 'call'` | `')' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` |
 | Bloco não fechado | falta o `}` final | `fim do arquivo` | `'}'` |
 | `stop`/`abort` sem `if` | `abort err;` | `identificador 'err'` | `'if'` |
 | Erro que não é identificador simples | `stop if r.err;` | `'.'` | `';'` |
 | `>=` colado no tipo | `var l:list<int>= [1];` | `'>='` | `'>'` |
 | Tipo de retorno antes dos parâmetros | `func soma:int (a:int)` | `':'` | `'('` |
 | Alvo não atribuível | `soma(1, 2) = 3;` | `'='` | `';'` (S3) |
-| Valor faltando | `var x:int = ;` | `';'` | `expressão` |
+| Valor faltando | `var x:int = ;` | `';'` | `expressão, 'call' ou 'run'` |
 | Tipo faltando | `var x: = 1;` | `'='` | `tipo` |
 | Palavra reservada como nome | `var list:int;` | `palavra reservada 'list'` | `identificador` |
 
@@ -175,7 +184,7 @@ os outros seis corrigidos):
 | 3 | 21:24 | Léxico | `Caractere não reconhecido: '@'` | `@` não pertence ao alfabeto da linguagem |
 | 4 | 22:9 | Léxico | `Número malformado: '2itens'` | Identificador não pode começar com dígito |
 | 5 | 27:12 | Sintático | `Token encontrado: palavra reservada 'if'` / `Esperado: '{'` | Não existe `else if`: aninhe o `if` dentro do bloco do `else` |
-| 6 | 31:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: comando ou '}'` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
+| 6 | 31:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
 | 7 | 32:16 | Sintático (S3) | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` | Chamada de função não pode receber atribuição |
 
 No Trabalho 1, o compilador reporta só o erro 1 (o primeiro da entrada).

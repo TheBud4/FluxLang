@@ -35,7 +35,7 @@ static int list_tokens(void) {
     if (tok == YYerror)
       continue;
     printf("%d:%d\t%-20s %s\n", yylloc.first_line, yylloc.first_column,
-           token_name(tok), yylval ? yylval : "");
+           token_name(tok), yylval.text ? yylval.text : "");
   }
   return error_count > 0;
 }
