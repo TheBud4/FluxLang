@@ -1,0 +1,5 @@
+Erro sintático [linha 31, coluna 5]:
+Token encontrado: palavra reservada 'call'
+Esperado: '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)
+Programa rejeitado.
+[código 1]

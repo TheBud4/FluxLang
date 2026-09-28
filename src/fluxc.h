@@ -1,32 +1,13 @@
 #ifndef FLUXC_H
 #define FLUXC_H
 
-#include <stddef.h>
-#include <stdio.h>
+/* Declarações compartilhadas entre lexer.l, parser.y e main.c */
 
-/* ---- lexer.l ---- */
+int yylex(void); /* lexer.l: devolve o próximo token (0 no fim) */
+const char *
+token_name(int tok); /* parser.y: nome do token, ex.: "IDENTIFIER" */
 
-extern FILE *yyin;
-int  yylex(void);
-int  yylex_destroy(void);
-
-/* Texto do último token lido (truncado), usado nas mensagens de erro. */
-extern char flux_lexema[];
-
-/* Cópia de string que vive até flux_liberar_strings(). */
-char *flux_strdup(const char *s, size_t n);
-void  flux_liberar_strings(void);
-
-/* ---- parser.y ---- */
-
-int yyparse(void);
-
-/* Nome do token (ex.: "SEMICOLON"), usado no modo --tokens. */
-const char *flux_nome_token(int token);
-
-/* ---- main.c ---- */
-
-/* Imprime o cabeçalho "Erro <classe> [linha L, coluna C]:" e conta o erro. */
-void flux_erro(const char *classe, int linha, int coluna);
+/* main.c: imprime "Erro <kind> [linha L, coluna C]:" e a mensagem */
+void report_error(const char *kind, int line, int column, const char *fmt, ...);
 
 #endif

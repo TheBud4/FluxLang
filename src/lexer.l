@@ -1,290 +1,201 @@
-/*
- * Analisador léxico da FluxLang (Flex).
- * Tokens e erros léxicos seguem a seção 0 de BNF.txt e ERROS.md.
- */
-
 %{
+#include <string.h>
+#include "parser.tab.h"
 #include <errno.h>
 #include <limits.h>
-#include <stdarg.h>
 #include <stdlib.h>
-#include <string.h>
-
 #include "fluxc.h"
-#include "parser.h"
 
-#define TAM_LEXEMA 64
+    static int line = 1, column = 1;
+    static void next(const char *s, int n);
+    static int count_chars(const char *s, int n);
+    static int comment_line, comment_column;
 
-char flux_lexema[TAM_LEXEMA + 4];
-
-static int linha = 1, coluna = 1;
-static YYLTYPE inicio_comentario;
-
-/* Colunas contam caracteres: bytes de continuação UTF-8 não avançam. */
-static void avancar(const char *texto, int n)
-{
-    for (int i = 0; i < n; i++) {
-        unsigned char c = (unsigned char) texto[i];
-        if (c == '\n') {
-            linha++;
-            coluna = 1;
-        } else if ((c & 0xC0) != 0x80) {
-            coluna++;
-        }
-    }
-}
-
-#define YY_USER_ACTION                                   \
-    yylloc.first_line = linha;                           \
-    yylloc.first_column = coluna;                        \
-    avancar(yytext, yyleng);                             \
-    yylloc.last_line = linha;                            \
-    yylloc.last_column = coluna;
-
-static void guardar_lexema(void)
-{
-    if (yyleng <= TAM_LEXEMA) {
-        memcpy(flux_lexema, yytext, yyleng);
-        flux_lexema[yyleng] = '\0';
-    } else {
-        int n = TAM_LEXEMA;
-        while (n > 0 && ((unsigned char) yytext[n] & 0xC0) == 0x80)
-            n--;   /* não corta um caractere UTF-8 ao meio */
-        memcpy(flux_lexema, yytext, n);
-        strcpy(flux_lexema + n, "...");
-    }
-}
-
-#define TOKEN(t) do { guardar_lexema(); return (t); } while (0)
-
-/* Erros fatais do próprio Flex (ex.: ler um diretório) em português. */
-static _Noreturn void erro_fatal(const char *msg)
-{
-    int e = errno;
-    if (strcmp(msg, "input in flex scanner failed") == 0) {
-        fprintf(stderr, "Erro: falha ao ler a entrada: %s\n", strerror(e));
-    } else if (strncmp(msg, "out of dynamic memory", 21) == 0) {
-        fputs("Erro: memória esgotada\n", stderr);
-    } else {
-        /* Falha interna do Flex: yy_fatal_error completa com o original. */
-        fputs("Erro interno do analisador léxico: ", stderr);
-        yy_fatal_error(msg);
-    }
-    exit(2);
-}
-
-#define YY_FATAL_ERROR(msg) erro_fatal(msg)
-
-static int erro_lexico(int lin, int col, const char *formato, ...)
-{
-    va_list args;
-    flux_erro("léxico", lin, col);
-    va_start(args, formato);
-    vfprintf(stderr, formato, args);
-    va_end(args);
-    fputc('\n', stderr);
-    guardar_lexema();
-    return ERRO_LEXICO;
-}
-
-/* Remove as aspas e traduz os escapes \n \t \" \\. */
-static char *desescapar(const char *texto, int n)
-{
-    char *s = flux_strdup(texto + 1, n - 2);
-    char *w = s;
-    for (const char *r = s; *r; r++) {
-        if (*r == '\\') {
-            r++;
-            *w++ = *r == 'n' ? '\n' : *r == 't' ? '\t' : *r;
-        } else {
-            *w++ = *r;
-        }
-    }
-    *w = '\0';
-    return s;
-}
-
-/* Localiza o primeiro escape inválido de uma string já casada. */
-static int erro_escape(void)
-{
-    int col = yylloc.first_column;
-    for (int i = 0; i < yyleng; i++) {
-        unsigned char c = (unsigned char) yytext[i];
-        if (c == '\\') {
-            char e = yytext[i + 1];
-            if (e != 'n' && e != 't' && e != '"' && e != '\\') {
-                int n = 1;   /* o caractere escapado pode ter vários bytes */
-                while ((yytext[i + 1 + n] & 0xC0) == 0x80)
-                    n++;
-                return erro_lexico(yylloc.first_line, col,
-                                   "Sequência de escape inválida: '\\%.*s'", n, yytext + i + 1);
-            }
-            i++;
-            col++;
-        }
-        if ((c & 0xC0) != 0x80)
-            col++;
-    }
-    return ERRO_LEXICO;
-}
-
-static int erro_caractere(void)
-{
-    unsigned char c = (unsigned char) yytext[0];
-    /* Byte isolado >= 128 não é UTF-8 válido (ex.: arquivo em Latin-1). */
-    if (c < 32 || c == 127 || (c >= 128 && yyleng == 1))
-        return erro_lexico(yylloc.first_line, yylloc.first_column,
-                           "Caractere não reconhecido: código %d", c);
-    return erro_lexico(yylloc.first_line, yylloc.first_column,
-                       "Caractere não reconhecido: '%s'", yytext);
-}
+    #define YY_USER_ACTION                                  \
+        yylloc.first_line = yylloc.last_line = line;       \
+        yylloc.first_column = column;                       \
+        yylval.text = NULL;                                      \
+        next(yytext, yyleng);
 %}
 
 %option noyywrap nounput noinput
-%x COMENTARIO
+%x COMMENT
 
-DIGITO   [0-9]
-LETRA    [A-Za-z_]
-ID       {LETRA}({LETRA}|{DIGITO})*
-UTF8     [\xC0-\xFF][\x80-\xBF]*
-
-%%
-
-[ \t\r\n]+                  ;
-"//".*                      ;
-
-"/*"                        { inicio_comentario = yylloc; BEGIN(COMENTARIO); }
-<COMENTARIO>"*/"            { BEGIN(INITIAL); }
-<COMENTARIO>[^*]+           ;
-<COMENTARIO>"*"             ;
-<COMENTARIO><<EOF>>         {
-                                BEGIN(INITIAL);
-                                return erro_lexico(inicio_comentario.first_line,
-                                                   inicio_comentario.first_column,
-                                                   "Comentário de bloco não terminado");
-                            }
-
- /* ---- Palavras reservadas ---- */
-"var"                       TOKEN(VAR);
-"const"                     TOKEN(CONST);
-"func"                      TOKEN(FUNC);
-"workflow"                  TOKEN(WORKFLOW);
-"call"                      TOKEN(CALL);
-"return"                    TOKEN(RETURN);
-"if"                        TOKEN(IF);
-"else"                      TOKEN(ELSE);
-"while"                     TOKEN(WHILE);
-"for"                       TOKEN(FOR);
-"in"                        TOKEN(IN);
-"break"                     TOKEN(BREAK);
-"continue"                  TOKEN(CONTINUE);
-"stop"                      TOKEN(STOP);
-"abort"                     TOKEN(ABORT);
-"run"                       TOKEN(RUN);
-"true"                      TOKEN(TRUE);
-"false"                     TOKEN(FALSE);
-"null"                      TOKEN(NULL_LITERAL);
-"int"                       TOKEN(TYPE_INT);
-"float"                     TOKEN(TYPE_FLOAT);
-"string"                    TOKEN(TYPE_STRING);
-"bool"                      TOKEN(TYPE_BOOL);
-"object"                    TOKEN(TYPE_OBJECT);
-"list"                      TOKEN(TYPE_LIST);
-
- /* ---- Literais e identificadores ---- */
-{DIGITO}+"."{DIGITO}+       { yylval.fval = strtod(yytext, NULL); TOKEN(FLOAT_LITERAL); }
-{DIGITO}+                   {
-                                errno = 0;
-                                long v = strtol(yytext, NULL, 10);
-                                if (errno == ERANGE || v > INT_MAX)
-                                    return erro_lexico(yylloc.first_line, yylloc.first_column,
-                                                       "Número inteiro fora do intervalo: '%s'", yytext);
-                                yylval.ival = (int) v;
-                                TOKEN(INT_LITERAL);
-                            }
-{DIGITO}+("."{DIGITO}+)?{ID} |
-{DIGITO}+"."                {
-                                return erro_lexico(yylloc.first_line, yylloc.first_column,
-                                                   "Número malformado: '%s'", yytext);
-                            }
-{ID}                        { yylval.sval = flux_strdup(yytext, yyleng); TOKEN(IDENTIFIER); }
-
-\"([^"\\\n]|\\[nt"\\])*\"   { yylval.sval = desescapar(yytext, yyleng); TOKEN(STRING_LITERAL); }
-\"([^"\\\n]|\\.)*\"         { return erro_escape(); }
-\"([^"\\\n]|\\.)*\\?        {
-                                return erro_lexico(yylloc.first_line, yylloc.first_column,
-                                                   "String não terminada");
-                            }
-
- /* ---- Operadores e pontuação ---- */
-"=="                        TOKEN(EQ);
-"!="                        TOKEN(NEQ);
-"<="                        TOKEN(LTE);
-">="                        TOKEN(GTE);
-"&&"                        TOKEN(AND);
-"||"                        TOKEN(OR);
-"="                         TOKEN(ASSIGN);
-"<"                         TOKEN(LT);
-">"                         TOKEN(GT);
-"+"                         TOKEN(PLUS);
-"-"                         TOKEN(MINUS);
-"*"                         TOKEN(MUL);
-"/"                         TOKEN(DIV);
-"%"                         TOKEN(MOD);
-"!"                         TOKEN(NOT);
-"("                         TOKEN(LPAREN);
-")"                         TOKEN(RPAREN);
-"{"                         TOKEN(LBRACE);
-"}"                         TOKEN(RBRACE);
-"["                         TOKEN(LBRACKET);
-"]"                         TOKEN(RBRACKET);
-","                         TOKEN(COMMA);
-":"                         TOKEN(COLON);
-";"                         TOKEN(SEMICOLON);
-"."                         TOKEN(DOT);
-
- /* ---- Erros ---- */
-{UTF8}                      { return erro_caractere(); }
-.                           { return erro_caractere(); }
-
-<<EOF>>                     {
-                                yylloc.first_line = yylloc.last_line = linha;
-                                yylloc.first_column = yylloc.last_column = coluna;
-                                flux_lexema[0] = '\0';
-                                return YYEOF;
-                            }
+DIG     [0-9]
+LETTER   [A-Za-z_]
+ID      {LETTER}({LETTER}|{DIG})*
+UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{3}
 
 %%
 
-static char **strings;
-static size_t n_strings, cap_strings;
+[ \t\r\n]+      { /* ignores spaces */ }
 
-char *flux_strdup(const char *s, size_t n)
-{
-    if (n_strings == cap_strings) {
-        cap_strings = cap_strings ? 2 * cap_strings : 64;
-        strings = realloc(strings, cap_strings * sizeof *strings);
-        if (!strings) {
-            perror("fluxc");
-            exit(2);
-        }
-    }
-    char *copia = malloc(n + 1);
-    if (!copia) {
-        perror("fluxc");
-        exit(2);
-    }
-    memcpy(copia, s, n);
-    copia[n] = '\0';
-    strings[n_strings++] = copia;
-    return copia;
+ /* Comments */
+"//"[^\n]*      { /* ignores line comments */ }
+
+"/*" {
+    comment_line = yylloc.first_line;
+    comment_column = yylloc.first_column;
+    BEGIN(COMMENT);
+}
+<COMMENT>"*/"       { BEGIN(INITIAL); }
+<COMMENT>[^*]+|"*"  { /* ignores comment content */ }
+<COMMENT><<EOF>> {
+    report_error("léxico", comment_line, comment_column,
+                 "Comentário de bloco não terminado");
+    BEGIN(INITIAL);
+    return YYerror;
 }
 
-void flux_liberar_strings(void)
-{
-    for (size_t i = 0; i < n_strings; i++)
-        free(strings[i]);
-    free(strings);
-    strings = NULL;
-    n_strings = cap_strings = 0;
+ /* Keywords */
+"var"           { return VAR; }
+"const"         { return CONST; }
+"func"          {return FUNC; }
+"workflow"      {return WORKFLOW; }
+"main"          {return MAIN; }
+"return"        {return RETURN; }
+"if"            {return IF; }
+"else"          {return ELSE; }
+"while"         {return WHILE; }
+"for"           {return FOR; }
+"in"            {return IN; }
+"break"         {return BREAK; }
+"continue"      {return CONTINUE; }
+"call"          {return CALL; }
+"run"           {return RUN; }
+"stop"          {return STOP; }
+"abort"         {return ABORT; }
+"proceed"       { return PROCEED; }
+
+ /* Type keywords */
+"int"           { return TYPE_INT; }
+"float"         { return TYPE_FLOAT; }
+"string"        { return TYPE_STRING; }
+"bool"          { return TYPE_BOOL; }
+"object"        { return TYPE_OBJECT; }
+"list"          { return TYPE_LIST; }
+
+ /* Literals */
+"true"          { return TRUE; }
+"false"         { return FALSE; }
+"null"          { return NULL_LITERAL; }
+
+ /* Numbers */
+{DIG}+"."{DIG}+ { yylval.text = strdup(yytext); return FLOAT_LITERAL; }
+
+{DIG}+ {
+    errno = 0;
+    long value = strtol(yytext, NULL, 10);
+    if (errno == ERANGE || value > INT_MAX) {
+        report_error("léxico", yylloc.first_line, yylloc.first_column,
+                     "Número inteiro fora do intervalo: '%s'", yytext);
+        return YYerror;
+    }
+    yylval.text = strdup(yytext);
+    return INT_LITERAL;
+}
+
+{DIG}+"."                                  |
+{DIG}+{LETTER}({LETTER}|{DIG})*            |
+{DIG}+"."{DIG}+{LETTER}({LETTER}|{DIG})*   {
+    report_error("léxico", yylloc.first_line, yylloc.first_column,
+                 "Número malformado: '%s'", yytext);
+    return YYerror;
+}
+
+ /* Strings */
+\"([^"\\\n]|\\[^\n])*\" {
+    for (int i = 1; i < yyleng - 1; i++) {
+        if (yytext[i] != '\\')
+            continue;
+        char c = yytext[i + 1];
+        if (c != 'n' && c != 't' && c != '"' && c != '\\') {
+            int size = 2;
+            while ((yytext[i + size] & 0xC0) == 0x80)
+                size++;
+            report_error("léxico", yylloc.first_line,
+                         yylloc.first_column + count_chars(yytext, i),
+                         "Sequência de escape inválida: '%.*s'", size, yytext + i);
+            return YYerror;
+        }
+        i++;
+    }
+    yylval.text = strdup(yytext);
+    return STRING_LITERAL;
+}
+
+\"([^"\\\n]|\\[^\n])*\\? {
+    report_error("léxico", yylloc.first_line, yylloc.first_column,
+                 "String não terminada");
+    return YYerror;
+}
+
+ /* Operators */
+"="             { return ASSIGN; }
+"=="            { return EQUAL; }
+"!="            { return NOT_EQUAL; }
+"<"             { return LOWER_THAN; }
+"<="            { return LOWER_THAN_EQUAL; }
+">"             { return GREATER_THAN; }
+">="            { return GREATER_THAN_EQUAL; }
+"+"             { return PLUS; }
+"-"             { return MINUS; }
+"*"             { return MUL; }
+"/"             { return DIV; }
+"%"             { return MOD; }
+"&&"            { return AND; }
+"||"            { return OR; }
+"!"             { return NOT; }
+
+
+ /* Punctuation */
+"("             { return LPAREN; }
+")"             { return RPAREN; }
+"{"             { return LBRACE; }
+"}"             { return RBRACE; }
+"["             { return LBRACKET; }
+"]"             { return RBRACKET; }
+","             { return COMMA; }
+":"             { return COLON; }
+";"             { return SEMICOLON; }
+"."             { return DOT; }
+
+ /* Identifier */
+{ID}            { yylval.text = strdup(yytext); return IDENTIFIER; }
+
+ /* End of file: the position is where the input ends */
+<<EOF>> {
+    yylloc.first_line = yylloc.last_line = line;
+    yylloc.first_column = column;
+    return 0;
+}
+
+ /* Unrecognized characters (L1) */
+{UTF8}|[\x21-\x7E] {
+    report_error("léxico", yylloc.first_line, yylloc.first_column,
+                 "Caractere não reconhecido: '%s'", yytext);
+    return YYerror;
+}
+
+. {
+    report_error("léxico", yylloc.first_line, yylloc.first_column,
+                 "Caractere não reconhecido: código %d", (unsigned char)yytext[0]);
+    return YYerror;
+}
+
+%%
+
+static void next(const char *s, int n) {
+    for (int i = 0; i < n; i++) {
+        unsigned char c = s[i];
+        if (c == '\n') { line++; column = 1; }
+        else if ((c & 0xC0) != 0x80) column++;
+    }
+}
+static int count_chars(const char *s, int n) {
+    int count = 0;
+    for (int i = 0; i < n; i++)
+        if ((s[i] & 0xC0) != 0x80)
+            count++;
+    return count;
 }

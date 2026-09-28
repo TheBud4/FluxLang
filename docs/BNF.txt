@@ -1,0 +1,329 @@
+;; ===================================================================
+;; FLUXLANG (v1) - LL(1) GRAMMAR IN BNF
+;; ===================================================================
+;;
+;; Conventions:
+;;   <non_terminal>   non-terminal symbol
+;;   UPPERCASE        token produced by the lexer
+;;   ε                empty production
+;;
+;; The grammar has no left recursion and is left-factored: for each
+;; non-terminal, the FIRST sets of its alternatives are disjoint and,
+;; when there is an ε alternative, also disjoint from its FOLLOW set.
+
+;; ===================================================================
+;; 0. TOKENS
+;; ===================================================================
+;;
+;; Keywords:
+;;   VAR       var        CONST     const      FUNC      func
+;;   WORKFLOW  workflow   MAIN      main       RETURN    return
+;;   IF        if         ELSE      else       WHILE     while
+;;   FOR       for        IN        in         BREAK     break
+;;   CONTINUE  continue   CALL      call       RUN       run
+;;   STOP      stop       ABORT     abort      PROCEED   proceed
+;;
+;; Type keywords:
+;;   TYPE_INT     int      TYPE_FLOAT   float    TYPE_STRING  string
+;;   TYPE_BOOL    bool     TYPE_OBJECT  object   TYPE_LIST    list
+;;
+;; Literals:
+;;   TRUE            true
+;;   FALSE           false
+;;   NULL_LITERAL    null
+;;   INT_LITERAL     [0-9]+                       (up to 2147483647)
+;;   FLOAT_LITERAL   [0-9]+ "." [0-9]+
+;;   STRING_LITERAL  '"' ( [^"\\\n] | '\' [nt"\\] )* '"'
+;;                   (one line; only the escapes \n \t \" \\)
+;;
+;; Identifier:
+;;   IDENTIFIER      [A-Za-z_][A-Za-z0-9_]*       (except keywords)
+;;
+;; Operators:
+;;   ASSIGN        =     EQUAL               ==    NOT_EQUAL  !=
+;;   LOWER_THAN    <     LOWER_THAN_EQUAL    <=
+;;   GREATER_THAN  >     GREATER_THAN_EQUAL  >=
+;;   PLUS          +     MINUS               -     MUL        *
+;;   DIV           /     MOD                 %
+;;   AND           &&    OR                  ||    NOT        !
+;;
+;; Punctuation:
+;;   LPAREN    (    RPAREN    )    LBRACE    {    RBRACE    }
+;;   LBRACKET  [    RBRACKET  ]    COMMA     ,    COLON     :
+;;   SEMICOLON ;    DOT       .
+;;
+;; EOF is not a token: the lexer returns 0 (Bison's $end).
+;;
+;; Notes:
+;;   - Case-sensitive. Spaces, tabs, line breaks, // line comments and
+;;     /* block */ comments (no nesting) are ignored.
+;;   - Library names (terminal, log, info, warn, error, input, push,
+;;     remove, length, toString, toInt, toFloat, toBool, command, flags,
+;;     workingDir) are not reserved: they are IDENTIFIER.
+;;   - Longest match: "list<int>= [1]" reads ">=" as GREATER_THAN_EQUAL,
+;;     so write "list<int> = [1]". ">>" is not an operator, so
+;;     "list<list<int>>" works.
+;;
+;; Lexical errors (details in docs/ERROS.md, section 2):
+;;   L1  unrecognized character: @ # $ ' and a lone & or |
+;;   L2  unterminated string (line break or EOF before the closing ")
+;;   L3  invalid escape sequence, e.g. "\q"
+;;   L4  unterminated block comment
+;;   L5  malformed number: 5. / 1e10 / 0xFF / 2items / 3.14abc
+;;   L6  integer above 2147483647
+
+
+;; ===================================================================
+;; 1. PROGRAM STRUCTURE
+;; ===================================================================
+;;
+;; Globals (var, const, func, workflow) come in any order, with exactly
+;; one "func main ()". A plain "<globals> <main> <globals>" is not LL(1):
+;; on FUNC the parser cannot tell a function from the main. FUNC is
+;; therefore factored out, and the name after it (MAIN or IDENTIFIER)
+;; decides. After the main, MAIN is no longer accepted, which makes the
+;; main unique.
+
+<program>        ::= <before_main> EOF
+
+<before_main>    ::= <global_no_func> <before_main>
+                   | FUNC <after_func>
+
+<after_func>     ::= MAIN LPAREN RPAREN <block> <after_main>
+                   | IDENTIFIER <function_rest> <before_main>
+
+<after_main>     ::= <global_no_func> <after_main>
+                   | FUNC IDENTIFIER <function_rest> <after_main>
+                   | ε
+
+<global_no_func> ::= <variable_declaration>
+                   | <constant_declaration>
+                   | <workflow>
+
+;; ===================================================================
+;; 2. DECLARATIONS
+;; ===================================================================
+;;
+;; "var" may omit the type or the value, but not both ("var x;" is a
+;; syntax error). "const" always has a value. call and run are not
+;; expressions: they only appear in <rhs>, right after the "=" of a "var"
+;; or of an assignment (never in a "const").
+
+<variable_declaration> ::= VAR <identifier_list> <variable_rest> SEMICOLON
+
+<variable_rest>        ::= COLON <type> <initializer>
+                         | ASSIGN <rhs>
+
+<initializer>          ::= ASSIGN <rhs>
+                         | ε
+
+<constant_declaration> ::= CONST <identifier_list> <constant_rest> SEMICOLON
+
+<constant_rest>        ::= COLON <type> ASSIGN <expression_list>
+                         | ASSIGN <expression_list>
+
+<identifier_list>      ::= IDENTIFIER <identifier_list_rest>
+
+<identifier_list_rest> ::= COMMA IDENTIFIER <identifier_list_rest>
+                         | ε
+
+<rhs>                  ::= CALL IDENTIFIER LPAREN <args> RPAREN
+                         | RUN <object_literal>
+                         | <expression_list>
+
+;; ===================================================================
+;; 3. TYPES
+;; ===================================================================
+
+<type> ::= TYPE_INT
+         | TYPE_FLOAT
+         | TYPE_STRING
+         | TYPE_BOOL
+         | TYPE_OBJECT
+         | TYPE_LIST LOWER_THAN <type> GREATER_THAN
+
+;; ===================================================================
+;; 4. FUNCTIONS AND WORKFLOWS
+;; ===================================================================
+;;
+;; Functions and workflows share everything after the name.
+
+<workflow>        ::= WORKFLOW IDENTIFIER <function_rest>
+
+<function_rest>   ::= LPAREN <parameter_list> RPAREN <return_type> <block>
+
+<parameter_list>  ::= <parameters>
+                    | ε
+
+<parameters>      ::= <parameter> <parameters_rest>
+
+<parameters_rest> ::= COMMA <parameter> <parameters_rest>
+                    | ε
+
+<parameter>       ::= IDENTIFIER COLON <type>
+
+<return_type>     ::= COLON <type>
+                    | ε
+
+;; ===================================================================
+;; 5. COMMANDS
+;; ===================================================================
+
+<block>              ::= LBRACE <commands> RBRACE
+
+<commands>           ::= <command> <commands>
+                       | ε
+
+<command>            ::= <variable_declaration>
+                       | <constant_declaration>
+                       | <command_if>
+                       | <command_while>
+                       | <command_for>
+                       | <command_return>
+                       | <command_break>
+                       | <command_continue>
+                       | <command_error>
+                       | <command_expression>
+
+<command_if>         ::= IF LPAREN <expression> RPAREN <block> <else_part>
+
+<else_part>          ::= ELSE <block>
+                       | ε
+
+<command_while>      ::= WHILE LPAREN <expression> RPAREN <block>
+
+<command_for>        ::= FOR IDENTIFIER IN <expression> <block>
+
+<command_return>     ::= RETURN <return_values> SEMICOLON
+
+<return_values>      ::= <expression_list>
+                       | ε
+
+<command_break>      ::= BREAK SEMICOLON
+
+<command_continue>   ::= CONTINUE SEMICOLON
+
+<command_error>      ::= <error_action> IF IDENTIFIER SEMICOLON
+
+<error_action>       ::= STOP
+                       | ABORT
+                       | PROCEED
+
+;; A call, an assignment and a multiple assignment all start with an
+;; expression, so the expression is read first and the next token
+;; decides. The grammar accepts any expression on the left of "=";
+;; the parser action rejects what is not a variable, field or index
+;; (error S3 in docs/ERROS.md).
+
+<command_expression> ::= <expression> <assignment_rest> SEMICOLON
+
+<assignment_rest>    ::= ASSIGN <rhs>
+                       | COMMA <expression_list> ASSIGN <rhs>
+                       | ε
+
+;; ===================================================================
+;; 6. EXPRESSIONS
+;; ===================================================================
+;;
+;; One non-terminal per precedence level, from lowest (1) to highest (8).
+;; Binary levels use "<x_expr> ::= <next> <x_rest>" instead of left
+;; recursion, which keeps the grammar LL(1) and the operators
+;; left-associative.
+
+<expression>           ::= <or_expr>
+
+;; 1. ||
+<or_expr>              ::= <and_expr> <or_rest>
+<or_rest>              ::= OR <and_expr> <or_rest>
+                         | ε
+
+;; 2. &&
+<and_expr>             ::= <equality_expr> <and_rest>
+<and_rest>             ::= AND <equality_expr> <and_rest>
+                         | ε
+
+;; 3. == !=
+<equality_expr>        ::= <relational_expr> <equality_rest>
+<equality_rest>        ::= <equality_op> <relational_expr> <equality_rest>
+                         | ε
+<equality_op>          ::= EQUAL
+                         | NOT_EQUAL
+
+;; 4. < > <= >=
+<relational_expr>      ::= <additive_expr> <relational_rest>
+<relational_rest>      ::= <relational_op> <additive_expr> <relational_rest>
+                         | ε
+<relational_op>        ::= LOWER_THAN
+                         | GREATER_THAN
+                         | LOWER_THAN_EQUAL
+                         | GREATER_THAN_EQUAL
+
+;; 5. + -
+<additive_expr>        ::= <multiplicative_expr> <additive_rest>
+<additive_rest>        ::= <additive_op> <multiplicative_expr> <additive_rest>
+                         | ε
+<additive_op>          ::= PLUS
+                         | MINUS
+
+;; 6. * / %
+<multiplicative_expr>  ::= <unary_expr> <multiplicative_rest>
+<multiplicative_rest>  ::= <multiplicative_op> <unary_expr> <multiplicative_rest>
+                         | ε
+<multiplicative_op>    ::= MUL
+                         | DIV
+                         | MOD
+
+;; 7. ! - (unary)
+<unary_expr>           ::= <unary_op> <unary_expr>
+                         | <postfix_expr>
+<unary_op>             ::= NOT
+                         | MINUS
+
+;; 8. .field [index] (arguments)
+<postfix_expr>         ::= <primary> <postfix_rest>
+<postfix_rest>         ::= DOT IDENTIFIER <postfix_rest>
+                         | LBRACKET <expression> RBRACKET <postfix_rest>
+                         | LPAREN <args> RPAREN <postfix_rest>
+                         | ε
+
+<primary>              ::= INT_LITERAL
+                         | FLOAT_LITERAL
+                         | STRING_LITERAL
+                         | TRUE
+                         | FALSE
+                         | NULL_LITERAL
+                         | IDENTIFIER
+                         | LPAREN <expression> RPAREN
+                         | <list_literal>
+                         | <object_literal>
+
+;; Lists and objects accept a trailing comma ([1, 2,] and { a: 1, }), so
+;; they have their own "_rest" instead of reusing <expression_list>,
+;; which is also used where a trailing comma is not allowed (return,
+;; <rhs>, arguments).
+
+<list_literal>         ::= LBRACKET <list_items> RBRACKET
+<list_items>           ::= <expression> <list_rest>
+                         | ε
+<list_rest>            ::= COMMA <list_after_comma>
+                         | ε
+<list_after_comma>     ::= <expression> <list_rest>
+                         | ε
+
+<object_literal>       ::= LBRACE <object_items> RBRACE
+<object_items>         ::= <field> <fields_rest>
+                         | ε
+<fields_rest>          ::= COMMA <fields_after_comma>
+                         | ε
+<fields_after_comma>   ::= <field> <fields_rest>
+                         | ε
+<field>                ::= <field_key> COLON <expression>
+<field_key>            ::= IDENTIFIER
+                         | STRING_LITERAL
+
+<expression_list>      ::= <expression> <expression_list_rest>
+<expression_list_rest> ::= COMMA <expression> <expression_list_rest>
+                         | ε
+
+<args>                 ::= <expression_list>
+                         | ε

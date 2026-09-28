@@ -1,0 +1,9 @@
+1:1	IDENTIFIER           x
+1:3	ASSIGN               
+1:5	INT_LITERAL          1
+1:6	SEMICOLON            
+5:1	IDENTIFIER           y
+5:3	ASSIGN               
+5:5	INT_LITERAL          2
+5:6	SEMICOLON            
+[código 0]

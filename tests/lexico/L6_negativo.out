@@ -1,0 +1,7 @@
+1:1	IDENTIFIER           x
+1:3	ASSIGN               
+1:5	MINUS                
+Erro léxico [linha 1, coluna 6]:
+Número inteiro fora do intervalo: '2147483648'
+1:16	SEMICOLON            
+[código 1]

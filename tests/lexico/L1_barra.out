@@ -1,0 +1,8 @@
+1:1	IDENTIFIER           x
+1:3	ASSIGN               
+1:5	IDENTIFIER           a
+Erro léxico [linha 1, coluna 7]:
+Caractere não reconhecido: '|'
+1:9	IDENTIFIER           b
+1:10	SEMICOLON            
+[código 1]

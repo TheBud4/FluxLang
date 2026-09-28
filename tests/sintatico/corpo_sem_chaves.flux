@@ -1,0 +1,3 @@
+func main () {
+while (x) x = x - 1;
+}

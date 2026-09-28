@@ -1,640 +1,411 @@
-/*
- * Analisador sintático da FluxLang (GNU Bison).
- *
- * Tradução direta de BNF.txt: cada <nao-terminal> vira nao_terminal e
- * cada ε vira %empty. A gramática continua LL(1); o Bison a trata como
- * LALR(1) sem conflitos. O EOF da BNF é o $end implícito do Bison.
- *
- * Por enquanto não há AST. O único valor semântico calculado é um
- * atributo inteiro (<flag>) usado na verificação do alvo de atribuição
- * (erro S3 em ERROS.md):
- *   - na cadeia de expressões, 1 = a expressão é atribuível
- *     (IDENTIFIER seguido só de .campo ou [índice]);
- *   - nos não-terminais "-resto", 1 = derivou ε;
- *   - em sufixo/sufixos, 1 = não há chamada.
- */
-
 %{
 #include <stdio.h>
 #include <string.h>
-
 #include "fluxc.h"
-
-/* A BNF LL(1) é recursiva à direita (comandos, globais, -resto): no
-   LALR, a pilha cresce com o número de comandos de um bloco. O padrão
-   do Bison (10000) limitaria um bloco a uns 10 mil comandos. */
-#define YYMAXDEPTH 100000
-
-void yyerror(const char *msg);
+    int yylex(void);
+    void yyerror(const char *msg);
 %}
-
-%code {
-static void erro_atribuicao(const YYLTYPE *loc);
-}
-
 %define parse.error custom
+%code {
+/* S3: onde está o "=" da atribuição, para a mensagem de erro */
+static YYLTYPE assign_loc;
+
+/* Último sufixo de uma expressão pós-fixa (postfix_rest) */
+enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
+}
+
 %locations
-
 %union {
-    int    ival;
-    double fval;
-    char  *sval;
-    int    flag;
+  char *text;      /* texto do token (identificadores e literais) */
+  int assignable;  /* expressões: 1 se pode receber atribuição */
 }
 
-/* Palavras reservadas */
-%token VAR CONST FUNC WORKFLOW CALL RETURN
-%token IF ELSE WHILE FOR IN BREAK CONTINUE STOP ABORT
-%token RUN TRUE FALSE NULL_LITERAL
+/* Keywords */
+%token VAR CONST FUNC WORKFLOW MAIN RETURN IF ELSE WHILE FOR IN BREAK CONTINUE CALL RUN STOP ABORT PROCEED
+/* Type Keywords */
 %token TYPE_INT TYPE_FLOAT TYPE_STRING TYPE_BOOL TYPE_OBJECT TYPE_LIST
+/* Literals */
+%token TRUE FALSE NULL_LITERAL
+%token <text> INT_LITERAL FLOAT_LITERAL STRING_LITERAL
+/* Identifier */
+%token <text> IDENTIFIER
+/* Operators */
+%token ASSIGN EQUAL NOT_EQUAL LOWER_THAN LOWER_THAN_EQUAL GREATER_THAN GREATER_THAN_EQUAL PLUS MINUS MUL DIV MOD AND OR NOT
+/* Punctuation */
+%token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET COMMA COLON SEMICOLON DOT
 
-/* Pontuação e operadores. A ordem de declaração é a ordem em que os
-   tokens aparecem na lista "Esperado:" das mensagens de erro. */
-%token LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET
-%token COMMA COLON SEMICOLON DOT
-%token ASSIGN EQ NEQ LT GT LTE GTE
-%token PLUS MINUS MUL DIV MOD
-%token AND OR NOT
 
-/* Literais e identificadores */
-%token <sval> IDENTIFIER STRING_LITERAL
-%token <ival> INT_LITERAL
-%token <fval> FLOAT_LITERAL
-
-/* Devolvido pelo lexer depois de reportar um erro léxico. */
-%token ERRO_LEXICO
-
-%type <flag> expressao expressao_or_resto
-%type <flag> expressao_and expressao_and_resto
-%type <flag> expressao_igualdade expressao_igualdade_resto
-%type <flag> expressao_relacional expressao_relacional_resto
-%type <flag> expressao_aditiva expressao_aditiva_resto
-%type <flag> expressao_multiplicativa expressao_multiplicativa_resto
-%type <flag> expressao_unaria expressao_posfixa
-%type <flag> sufixos sufixo primaria alvos_resto
-
-%start programa
+%type <assignable> expression or_expr or_rest and_expr and_rest
+%type <assignable> equality_expr equality_rest relational_expr relational_rest
+%type <assignable> additive_expr additive_rest multiplicative_expr multiplicative_rest
+%type <assignable> unary_expr postfix_expr postfix_rest primary
+%type <assignable> expression_list expression_list_rest assignment_rest
 
 %%
 
-/* ===== 1. Estrutura geral do programa ===== */
+    program
+    : before_main;
+    before_main
+    : global_no_func before_main | FUNC after_func;
 
-programa:
-    globais
-  ;
+    after_func
+    : MAIN LPAREN RPAREN block after_main | IDENTIFIER function_rest before_main;
 
-globais:
-    elemento_global globais
-  | %empty
-  ;
+    after_main
+    : global_no_func after_main | FUNC IDENTIFIER function_rest after_main | %empty;
 
-elemento_global:
-    declaracao_var
-  | declaracao_const
-  | funcao
-  | workflow
-  ;
+    global_no_func
+    : variable_declaration | constant_declaration | workflow;
 
-bloco:
-    LBRACE comandos RBRACE
-  ;
+    variable_declaration
+    : VAR identifier_list variable_rest SEMICOLON;
+    variable_rest
+    : COLON type initializer | ASSIGN rhs;
 
-comandos:
-    comando comandos
-  | %empty
-  ;
+    initializer
+    : ASSIGN rhs | %empty;
 
-/* ===== 2. Tipos de dados ===== */
+    constant_declaration
+    : CONST identifier_list constant_rest SEMICOLON;
 
-tipo:
-    TYPE_INT
-  | TYPE_FLOAT
-  | TYPE_STRING
-  | TYPE_BOOL
-  | TYPE_OBJECT
-  | TYPE_LIST LT tipo GT
-  ;
+    constant_rest
+    : COLON type ASSIGN expression_list | ASSIGN expression_list;
 
-/* ===== 3. Declaração de variáveis e constantes ===== */
+    identifier_list
+    : IDENTIFIER identifier_list_rest;
 
-declaracao_var:
-    VAR lista_identificadores declaracao_var_resto SEMICOLON
-  ;
+    identifier_list_rest
+    : COMMA IDENTIFIER identifier_list_rest | %empty;
 
-declaracao_var_resto:
-    COLON tipo inicializacao_opcional
-  | ASSIGN lista_expressoes
-  ;
+    rhs
+    : CALL IDENTIFIER LPAREN args RPAREN | RUN object_literal | expression_list;
 
-inicializacao_opcional:
-    ASSIGN lista_expressoes
-  | %empty
-  ;
+    type
+    : TYPE_INT | TYPE_FLOAT | TYPE_STRING | TYPE_BOOL | TYPE_OBJECT | TYPE_LIST LOWER_THAN type GREATER_THAN;
 
-declaracao_const:
-    CONST lista_identificadores COLON tipo ASSIGN lista_expressoes SEMICOLON
-  ;
+    workflow
+    : WORKFLOW IDENTIFIER function_rest;
 
-lista_identificadores:
-    IDENTIFIER lista_identificadores_resto
-  ;
+    function_rest
+    : LPAREN parameter_list RPAREN return_type block;
 
-lista_identificadores_resto:
-    COMMA IDENTIFIER lista_identificadores_resto
-  | %empty
-  ;
+    parameter_list
+    : parameters | %empty;
 
-lista_expressoes:
-    expressao lista_expressoes_resto
-  ;
+    parameters
+    : parameter parameters_rest;
 
-lista_expressoes_resto:
-    COMMA expressao lista_expressoes_resto
-  | %empty
-  ;
+    parameters_rest
+    : COMMA parameter parameters_rest | %empty;
 
-/* ===== 4. Funções ===== */
+    parameter
+    : IDENTIFIER COLON type;
 
-funcao:
-    FUNC IDENTIFIER LPAREN parametros_opcionais RPAREN tipo_retorno bloco
-  ;
+    return_type
+    : COLON type | %empty;
 
-tipo_retorno:
-    COLON tipo
-  | %empty
-  ;
+    block
+    : LBRACE commands RBRACE;
 
-parametros_opcionais:
-    parametro parametros_resto
-  | %empty
-  ;
+    commands
+    : command commands | %empty;
 
-parametros_resto:
-    COMMA parametro parametros_resto
-  | %empty
-  ;
+    command
+    : variable_declaration | constant_declaration | command_if | command_while | command_for | command_return | command_break | command_continue | command_error | command_expression;
 
-parametro:
-    IDENTIFIER COLON tipo
-  ;
+    command_if
+    : IF LPAREN expression RPAREN block else_part;
 
-/* ===== 5. Workflows ===== */
+    else_part
+    : ELSE block | %empty;
 
-workflow:
-    WORKFLOW IDENTIFIER LPAREN parametros_opcionais RPAREN tipo_retorno bloco
-  ;
+    command_while
+    : WHILE LPAREN expression RPAREN block;
 
-chamada_workflow:
-    CALL IDENTIFIER LPAREN argumentos_opcionais RPAREN
-  ;
+    command_for
+    : FOR IDENTIFIER IN expression block;
 
-argumentos_opcionais:
-    lista_expressoes
-  | %empty
-  ;
+    command_return
+    : RETURN return_values SEMICOLON;
 
-/* ===== 6. Comandos ===== */
+    return_values
+    : expression_list | %empty;
 
-comando:
-    declaracao_var
-  | declaracao_const
-  | comando_if
-  | comando_while
-  | comando_for
-  | comando_return
-  | comando_break
-  | comando_continue
-  | comando_erro
-  | comando_expressao
-  ;
+    command_break
+    : BREAK SEMICOLON;
 
-/* ===== 7. Comandos de expressão e atribuição ===== */
+    command_continue
+    : CONTINUE SEMICOLON;
 
-comando_expressao:
-    expressao resto_comando_expressao
-  ;
+    command_error
+    : error_action IF IDENTIFIER SEMICOLON;
 
-/* $<flag>0 é o valor da <expressao> que vem logo antes deste
-   não-terminal na pilha (o primeiro alvo); $1 cobre os demais. */
-resto_comando_expressao:
-    SEMICOLON
-  | alvos_resto ASSIGN
-      {
-        if (!$<flag>0 || !$1) {
-            erro_atribuicao(&@2);
-            YYABORT;
+    error_action
+    : STOP | ABORT | PROCEED;
+
+    command_expression
+    : expression assignment_rest SEMICOLON {
+        if ($2 != 0 && (!$1 || $2 == 2)) {
+          report_error("sintático", assign_loc.first_line, assign_loc.first_column,
+                       "Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é variável, campo ou índice)");
+          YYABORT;
         }
-      }
-    lista_expressoes SEMICOLON
-  ;
+      };
 
-alvos_resto:
-    COMMA expressao alvos_resto   { $$ = $2 && $3; }
-  | %empty                        { $$ = 1; }
-  ;
+    assignment_rest
+    : ASSIGN rhs                            { assign_loc = @1; $$ = 1; }
+    | COMMA expression_list ASSIGN rhs      { assign_loc = @3; $$ = $2 ? 1 : 2; }
+    | %empty                                { $$ = 0; };
 
-/* ===== 8. Estruturas de controle ===== */
+    expression
+    : or_expr;
 
-comando_if:
-    IF LPAREN expressao RPAREN bloco else_opcional
-  ;
+    or_expr
+    : and_expr or_rest { $$ = $1 && !$2; };
 
-else_opcional:
-    ELSE bloco
-  | %empty
-  ;
+    or_rest
+    : OR and_expr or_rest { $$ = 1; } | %empty { $$ = 0; };
 
-comando_while:
-    WHILE LPAREN expressao RPAREN bloco
-  ;
+    and_expr
+    : equality_expr and_rest { $$ = $1 && !$2; };
 
-comando_for:
-    FOR IDENTIFIER IN expressao bloco
-  ;
+    and_rest
+    : AND equality_expr and_rest { $$ = 1; } | %empty { $$ = 0; };
 
-comando_return:
-    RETURN valor_retorno SEMICOLON
-  ;
+    equality_expr
+    : relational_expr equality_rest { $$ = $1 && !$2; };
 
-valor_retorno:
-    lista_expressoes
-  | %empty
-  ;
+    equality_rest
+    : equality_op relational_expr equality_rest { $$ = 1; } | %empty { $$ = 0; };
 
-comando_break:
-    BREAK SEMICOLON
-  ;
+    equality_op
+    : EQUAL | NOT_EQUAL;
 
-/* ===== 9. Continue e tratamento de erros ===== */
+    relational_expr
+    : additive_expr relational_rest { $$ = $1 && !$2; };
 
-comando_continue:
-    CONTINUE continue_resto
-  ;
+    relational_rest
+    : relational_op additive_expr relational_rest { $$ = 1; } | %empty { $$ = 0; };
 
-continue_resto:
-    SEMICOLON
-  | IF IDENTIFIER SEMICOLON
-  ;
+    relational_op
+    : LOWER_THAN | GREATER_THAN | LOWER_THAN_EQUAL | GREATER_THAN_EQUAL;
 
-comando_erro:
-    STOP IF IDENTIFIER SEMICOLON
-  | ABORT IF IDENTIFIER SEMICOLON
-  ;
+    additive_expr
+    : multiplicative_expr additive_rest { $$ = $1 && !$2; };
 
-/* ===== 10. Expressões e precedência ===== */
+    additive_rest
+    : additive_op multiplicative_expr additive_rest { $$ = 1; } | %empty { $$ = 0; };
 
-expressao:
-    expressao_and expressao_or_resto   { $$ = $1 && $2; }
-  ;
+    additive_op
+    : PLUS | MINUS;
 
-expressao_or_resto:
-    OR expressao_and expressao_or_resto   { $$ = 0; }
-  | %empty                                { $$ = 1; }
-  ;
+    multiplicative_expr
+    : unary_expr multiplicative_rest { $$ = $1 && !$2; };
 
-expressao_and:
-    expressao_igualdade expressao_and_resto   { $$ = $1 && $2; }
-  ;
+    multiplicative_rest
+    : multiplicative_op unary_expr multiplicative_rest { $$ = 1; } | %empty { $$ = 0; };
 
-expressao_and_resto:
-    AND expressao_igualdade expressao_and_resto   { $$ = 0; }
-  | %empty                                        { $$ = 1; }
-  ;
+    multiplicative_op
+    : MUL | DIV | MOD;
 
-expressao_igualdade:
-    expressao_relacional expressao_igualdade_resto   { $$ = $1 && $2; }
-  ;
+    unary_expr
+    : unary_op unary_expr { $$ = 0; } | postfix_expr;
 
-expressao_igualdade_resto:
-    operador_igualdade expressao_relacional expressao_igualdade_resto   { $$ = 0; }
-  | %empty                                                              { $$ = 1; }
-  ;
+    unary_op
+    : NOT | MINUS;
 
-operador_igualdade:
-    EQ
-  | NEQ
-  ;
+    postfix_expr
+    : primary postfix_rest { $$ = ($2 == SUFFIX_NONE) ? $1 : ($2 == SUFFIX_ACCESS); };
 
-expressao_relacional:
-    expressao_aditiva expressao_relacional_resto   { $$ = $1 && $2; }
-  ;
+    postfix_rest
+    : DOT IDENTIFIER postfix_rest                { $$ = $3 ? $3 : SUFFIX_ACCESS; }
+    | LBRACKET expression RBRACKET postfix_rest  { $$ = $4 ? $4 : SUFFIX_ACCESS; }
+    | LPAREN args RPAREN postfix_rest            { $$ = $4 ? $4 : SUFFIX_CALL; }
+    | %empty                                     { $$ = SUFFIX_NONE; };
 
-expressao_relacional_resto:
-    operador_relacional expressao_aditiva expressao_relacional_resto   { $$ = 0; }
-  | %empty                                                             { $$ = 1; }
-  ;
+    primary
+    : IDENTIFIER { $$ = 1; }
+    | INT_LITERAL { $$ = 0; } | FLOAT_LITERAL { $$ = 0; } | STRING_LITERAL { $$ = 0; }
+    | TRUE { $$ = 0; } | FALSE { $$ = 0; } | NULL_LITERAL { $$ = 0; }
+    | LPAREN expression RPAREN { $$ = 0; } | list_literal { $$ = 0; } | object_literal { $$ = 0; };
 
-operador_relacional:
-    GT
-  | LT
-  | GTE
-  | LTE
-  ;
+    list_literal
+    : LBRACKET list_items RBRACKET;
 
-expressao_aditiva:
-    expressao_multiplicativa expressao_aditiva_resto   { $$ = $1 && $2; }
-  ;
+    list_items
+    : expression list_rest | %empty;
 
-expressao_aditiva_resto:
-    operador_aditivo expressao_multiplicativa expressao_aditiva_resto   { $$ = 0; }
-  | %empty                                                              { $$ = 1; }
-  ;
+    list_rest
+    : COMMA list_after_comma | %empty;
 
-operador_aditivo:
-    PLUS
-  | MINUS
-  ;
+    list_after_comma
+    : expression list_rest | %empty;
 
-expressao_multiplicativa:
-    expressao_unaria expressao_multiplicativa_resto   { $$ = $1 && $2; }
-  ;
+    object_literal
+    : LBRACE object_items RBRACE;
 
-expressao_multiplicativa_resto:
-    operador_multiplicativo expressao_unaria expressao_multiplicativa_resto   { $$ = 0; }
-  | %empty                                                                    { $$ = 1; }
-  ;
+    object_items
+    : field fields_rest | %empty;
 
-operador_multiplicativo:
-    MUL
-  | DIV
-  | MOD
-  ;
+    fields_rest
+    : COMMA fields_after_comma | %empty;
 
-expressao_unaria:
-    NOT expressao_unaria     { $$ = 0; }
-  | MINUS expressao_unaria   { $$ = 0; }
-  | expressao_posfixa        { $$ = $1; }
-  ;
+    fields_after_comma
+    : field fields_rest | %empty;
 
-/* ===== 11. Expressões pós-fixas ===== */
+    field
+    : field_key COLON expression;
 
-expressao_posfixa:
-    primaria sufixos   { $$ = $1 && $2; }
-  ;
+    field_key
+    : IDENTIFIER | STRING_LITERAL;
 
-sufixos:
-    sufixo sufixos   { $$ = $1 && $2; }
-  | %empty           { $$ = 1; }
-  ;
+    expression_list
+    : expression expression_list_rest { $$ = $1 && $2; };
 
-sufixo:
-    DOT IDENTIFIER                              { $$ = 1; }
-  | LBRACKET expressao RBRACKET                 { $$ = 1; }
-  | LPAREN argumentos_opcionais RPAREN          { $$ = 0; }
-  ;
+    expression_list_rest
+    : COMMA expression expression_list_rest { $$ = $2 && $3; } | %empty { $$ = 1; };
 
-/* ===== 12. Expressões primárias ===== */
+    args
+    : expression_list | %empty;
 
-primaria:
-    INT_LITERAL                { $$ = 0; }
-  | FLOAT_LITERAL              { $$ = 0; }
-  | STRING_LITERAL             { $$ = 0; }
-  | TRUE                       { $$ = 0; }
-  | FALSE                      { $$ = 0; }
-  | NULL_LITERAL               { $$ = 0; }
-  | IDENTIFIER                 { $$ = 1; }
-  | lista                      { $$ = 0; }
-  | literal_object             { $$ = 0; }
-  | run                        { $$ = 0; }
-  | chamada_workflow           { $$ = 0; }
-  | LPAREN expressao RPAREN    { $$ = 0; }
-  ;
-
-/* ===== 13. Listas (vírgula final opcional) ===== */
-
-lista:
-    LBRACKET elementos_lista RBRACKET
-  ;
-
-elementos_lista:
-    expressao elementos_lista_resto
-  | %empty
-  ;
-
-elementos_lista_resto:
-    COMMA elementos_lista
-  | %empty
-  ;
-
-/* ===== 14. Objetos (vírgula final opcional) ===== */
-
-literal_object:
-    LBRACE campos_object RBRACE
-  ;
-
-campos_object:
-    campo_object campos_object_resto
-  | %empty
-  ;
-
-campos_object_resto:
-    COMMA campos_object
-  | %empty
-  ;
-
-campo_object:
-    IDENTIFIER COLON expressao
-  ;
-
-/* ===== 15. Bloco run ===== */
-
-run:
-    RUN literal_object
-  ;
 
 %%
 
-/* ---- Mensagens de erro em português (formato em ERROS.md) ---- */
+const char *token_name(int tok) { return yysymbol_name(YYTRANSLATE(tok)); }
 
-/* Como um token esperado aparece na mensagem. */
-static const char *descrever(yysymbol_kind_t s)
-{
-    switch (s) {
-    case YYSYMBOL_YYEOF:          return "fim do arquivo";
-    case YYSYMBOL_IDENTIFIER:     return "identificador";
-    case YYSYMBOL_INT_LITERAL:    return "número inteiro";
-    case YYSYMBOL_FLOAT_LITERAL:  return "número real";
-    case YYSYMBOL_STRING_LITERAL: return "texto";
-    case YYSYMBOL_VAR:            return "'var'";
-    case YYSYMBOL_CONST:          return "'const'";
-    case YYSYMBOL_FUNC:           return "'func'";
-    case YYSYMBOL_WORKFLOW:       return "'workflow'";
-    case YYSYMBOL_CALL:           return "'call'";
-    case YYSYMBOL_RETURN:         return "'return'";
-    case YYSYMBOL_IF:             return "'if'";
-    case YYSYMBOL_ELSE:           return "'else'";
-    case YYSYMBOL_WHILE:          return "'while'";
-    case YYSYMBOL_FOR:            return "'for'";
-    case YYSYMBOL_IN:             return "'in'";
-    case YYSYMBOL_BREAK:          return "'break'";
-    case YYSYMBOL_CONTINUE:       return "'continue'";
-    case YYSYMBOL_STOP:           return "'stop'";
-    case YYSYMBOL_ABORT:          return "'abort'";
-    case YYSYMBOL_RUN:            return "'run'";
-    case YYSYMBOL_TRUE:           return "'true'";
-    case YYSYMBOL_FALSE:          return "'false'";
-    case YYSYMBOL_NULL_LITERAL:   return "'null'";
-    case YYSYMBOL_TYPE_INT:       return "'int'";
-    case YYSYMBOL_TYPE_FLOAT:     return "'float'";
-    case YYSYMBOL_TYPE_STRING:    return "'string'";
-    case YYSYMBOL_TYPE_BOOL:      return "'bool'";
-    case YYSYMBOL_TYPE_OBJECT:    return "'object'";
-    case YYSYMBOL_TYPE_LIST:      return "'list'";
-    case YYSYMBOL_ASSIGN:         return "'='";
-    case YYSYMBOL_EQ:             return "'=='";
-    case YYSYMBOL_NEQ:            return "'!='";
-    case YYSYMBOL_LT:             return "'<'";
-    case YYSYMBOL_GT:             return "'>'";
-    case YYSYMBOL_LTE:            return "'<='";
-    case YYSYMBOL_GTE:            return "'>='";
-    case YYSYMBOL_PLUS:           return "'+'";
-    case YYSYMBOL_MINUS:          return "'-'";
-    case YYSYMBOL_MUL:            return "'*'";
-    case YYSYMBOL_DIV:            return "'/'";
-    case YYSYMBOL_MOD:            return "'%'";
-    case YYSYMBOL_AND:            return "'&&'";
-    case YYSYMBOL_OR:             return "'||'";
-    case YYSYMBOL_NOT:            return "'!'";
-    case YYSYMBOL_LPAREN:         return "'('";
-    case YYSYMBOL_RPAREN:         return "')'";
-    case YYSYMBOL_LBRACE:         return "'{'";
-    case YYSYMBOL_RBRACE:         return "'}'";
-    case YYSYMBOL_LBRACKET:       return "'['";
-    case YYSYMBOL_RBRACKET:       return "']'";
-    case YYSYMBOL_COMMA:          return "','";
-    case YYSYMBOL_COLON:          return "':'";
-    case YYSYMBOL_SEMICOLON:      return "';'";
-    case YYSYMBOL_DOT:            return "'.'";
-    default:                      return yysymbol_name(s);
-    }
+void yyerror(const char *msg) { fprintf(stderr, "%s\n", msg); }
+
+/* ---------- Mensagens de erro sintático (docs/ERROS.md, seções 1 e 3) ---------- */
+
+/* Como o token é escrito no código-fonte ("if", ";"...), ou NULL para
+   identificadores, literais e fim do arquivo. */
+static const char *spelling(yysymbol_kind_t s) {
+  switch (s) {
+  case YYSYMBOL_VAR: return "var";           case YYSYMBOL_CONST: return "const";
+  case YYSYMBOL_FUNC: return "func";         case YYSYMBOL_WORKFLOW: return "workflow";
+  case YYSYMBOL_MAIN: return "main";         case YYSYMBOL_RETURN: return "return";
+  case YYSYMBOL_IF: return "if";             case YYSYMBOL_ELSE: return "else";
+  case YYSYMBOL_WHILE: return "while";       case YYSYMBOL_FOR: return "for";
+  case YYSYMBOL_IN: return "in";             case YYSYMBOL_BREAK: return "break";
+  case YYSYMBOL_CONTINUE: return "continue"; case YYSYMBOL_CALL: return "call";
+  case YYSYMBOL_RUN: return "run";           case YYSYMBOL_STOP: return "stop";
+  case YYSYMBOL_ABORT: return "abort";       case YYSYMBOL_PROCEED: return "proceed";
+  case YYSYMBOL_TYPE_INT: return "int";      case YYSYMBOL_TYPE_FLOAT: return "float";
+  case YYSYMBOL_TYPE_STRING: return "string"; case YYSYMBOL_TYPE_BOOL: return "bool";
+  case YYSYMBOL_TYPE_OBJECT: return "object"; case YYSYMBOL_TYPE_LIST: return "list";
+  case YYSYMBOL_TRUE: return "true";         case YYSYMBOL_FALSE: return "false";
+  case YYSYMBOL_NULL_LITERAL: return "null";
+  case YYSYMBOL_ASSIGN: return "=";          case YYSYMBOL_EQUAL: return "==";
+  case YYSYMBOL_NOT_EQUAL: return "!=";      case YYSYMBOL_LOWER_THAN: return "<";
+  case YYSYMBOL_LOWER_THAN_EQUAL: return "<="; case YYSYMBOL_GREATER_THAN: return ">";
+  case YYSYMBOL_GREATER_THAN_EQUAL: return ">="; case YYSYMBOL_PLUS: return "+";
+  case YYSYMBOL_MINUS: return "-";           case YYSYMBOL_MUL: return "*";
+  case YYSYMBOL_DIV: return "/";             case YYSYMBOL_MOD: return "%";
+  case YYSYMBOL_AND: return "&&";            case YYSYMBOL_OR: return "||";
+  case YYSYMBOL_NOT: return "!";             case YYSYMBOL_LPAREN: return "(";
+  case YYSYMBOL_RPAREN: return ")";          case YYSYMBOL_LBRACE: return "{";
+  case YYSYMBOL_RBRACE: return "}";          case YYSYMBOL_LBRACKET: return "[";
+  case YYSYMBOL_RBRACKET: return "]";        case YYSYMBOL_COMMA: return ",";
+  case YYSYMBOL_COLON: return ":";           case YYSYMBOL_SEMICOLON: return ";";
+  case YYSYMBOL_DOT: return ".";
+  default: return NULL;
+  }
 }
 
-static int eh_palavra_reservada(yysymbol_kind_t s)
-{
-    return s >= YYSYMBOL_VAR && s <= YYSYMBOL_TYPE_LIST;
+static int is_keyword(yysymbol_kind_t s) {
+  return s >= YYSYMBOL_VAR && s <= YYSYMBOL_NULL_LITERAL;
 }
 
-/* Como o token encontrado aparece: inclui o lexema quando ajuda. */
-static void imprimir_encontrado(yysymbol_kind_t s)
-{
-    switch (s) {
-    case YYSYMBOL_IDENTIFIER:
-        fprintf(stderr, "identificador '%s'", flux_lexema);
-        break;
-    case YYSYMBOL_INT_LITERAL:
-        fprintf(stderr, "número inteiro %s", flux_lexema);
-        break;
-    case YYSYMBOL_FLOAT_LITERAL:
-        fprintf(stderr, "número real %s", flux_lexema);
-        break;
-    case YYSYMBOL_STRING_LITERAL:
-        fprintf(stderr, "texto %s", flux_lexema);
-        break;
-    default:
-        if (eh_palavra_reservada(s))
-            fprintf(stderr, "palavra reservada %s", descrever(s));
-        else
-            fputs(descrever(s), stderr);
-    }
+/* Nome de um token esperado: 'if', ';', identificador... */
+static const char *expected_name(yysymbol_kind_t s, char *buf, size_t size) {
+  switch (s) {
+  case YYSYMBOL_YYEOF:          return "fim do arquivo";
+  case YYSYMBOL_IDENTIFIER:     return "identificador";
+  case YYSYMBOL_INT_LITERAL:    return "número inteiro";
+  case YYSYMBOL_FLOAT_LITERAL:  return "número real";
+  case YYSYMBOL_STRING_LITERAL: return "texto";
+  default:
+    snprintf(buf, size, "'%s'", spelling(s));
+    return buf;
+  }
 }
 
-/* Conjuntos que viram uma palavra só na lista de esperados. */
-static const yysymbol_kind_t inicio_expressao[] = {
-    YYSYMBOL_CALL, YYSYMBOL_FALSE, YYSYMBOL_FLOAT_LITERAL, YYSYMBOL_IDENTIFIER,
-    YYSYMBOL_INT_LITERAL, YYSYMBOL_LBRACE, YYSYMBOL_LBRACKET, YYSYMBOL_LPAREN,
-    YYSYMBOL_MINUS, YYSYMBOL_NOT, YYSYMBOL_NULL_LITERAL, YYSYMBOL_RUN,
-    YYSYMBOL_STRING_LITERAL, YYSYMBOL_TRUE,
-};
-static const yysymbol_kind_t inicio_tipo[] = {
-    YYSYMBOL_TYPE_INT, YYSYMBOL_TYPE_FLOAT, YYSYMBOL_TYPE_STRING,
-    YYSYMBOL_TYPE_BOOL, YYSYMBOL_TYPE_OBJECT, YYSYMBOL_TYPE_LIST,
-};
-
-#define TAMANHO(v) (sizeof (v) / sizeof *(v))
-
-/* Se todos os tokens do grupo são esperados, marca-os como cobertos. */
-static int cobrir_grupo(const yysymbol_kind_t *grupo, size_t n_grupo,
-                        const yysymbol_kind_t *esperados, int n, int *coberto)
-{
-    int achados[YYNTOKENS];
-    for (size_t g = 0; g < n_grupo; g++) {
-        achados[g] = -1;
-        for (int i = 0; i < n; i++)
-            if (esperados[i] == grupo[g])
-                achados[g] = i;
-        if (achados[g] < 0)
-            return 0;
-    }
-    for (size_t g = 0; g < n_grupo; g++)
-        coberto[achados[g]] = 1;
-    return 1;
+/* O token encontrado, com o texto quando houver: identificador 'total'... */
+static void found_name(yysymbol_kind_t s, char *buf, size_t size) {
+  const char *text = yylval.text ? yylval.text : "";
+  switch (s) {
+  case YYSYMBOL_YYEOF:          snprintf(buf, size, "fim do arquivo"); break;
+  case YYSYMBOL_IDENTIFIER:     snprintf(buf, size, "identificador '%s'", text); break;
+  case YYSYMBOL_INT_LITERAL:    snprintf(buf, size, "número inteiro %s", text); break;
+  case YYSYMBOL_FLOAT_LITERAL:  snprintf(buf, size, "número real %s", text); break;
+  case YYSYMBOL_STRING_LITERAL: snprintf(buf, size, "texto %s", text); break;
+  default:
+    if (is_keyword(s)) snprintf(buf, size, "palavra reservada '%s'", spelling(s));
+    else snprintf(buf, size, "'%s'", spelling(s));
+  }
 }
 
-static void imprimir_esperados(const yysymbol_kind_t *esperados, int n)
-{
-    const char *itens[YYNTOKENS + 2];
-    int coberto[YYNTOKENS] = {0};
-    int k = 0;
+/* Categorias: quando todos os tokens que iniciam uma expressão, um tipo ou
+   um comando são esperados, a lista vira uma palavra só. */
+static const yysymbol_kind_t EXPRESSION_START[] = {
+  YYSYMBOL_INT_LITERAL, YYSYMBOL_FLOAT_LITERAL, YYSYMBOL_STRING_LITERAL,
+  YYSYMBOL_TRUE, YYSYMBOL_FALSE, YYSYMBOL_NULL_LITERAL, YYSYMBOL_IDENTIFIER,
+  YYSYMBOL_LPAREN, YYSYMBOL_LBRACKET, YYSYMBOL_LBRACE, YYSYMBOL_NOT, YYSYMBOL_MINUS,
+  YYSYMBOL_YYEMPTY};
+static const yysymbol_kind_t TYPE_START[] = {
+  YYSYMBOL_TYPE_INT, YYSYMBOL_TYPE_FLOAT, YYSYMBOL_TYPE_STRING,
+  YYSYMBOL_TYPE_BOOL, YYSYMBOL_TYPE_OBJECT, YYSYMBOL_TYPE_LIST, YYSYMBOL_YYEMPTY};
+static const yysymbol_kind_t COMMAND_KEYWORDS[] = {
+  YYSYMBOL_VAR, YYSYMBOL_CONST, YYSYMBOL_IF, YYSYMBOL_WHILE, YYSYMBOL_FOR,
+  YYSYMBOL_RETURN, YYSYMBOL_BREAK, YYSYMBOL_CONTINUE, YYSYMBOL_STOP,
+  YYSYMBOL_ABORT, YYSYMBOL_PROCEED, YYSYMBOL_YYEMPTY};
 
-    /* Após "programa: globais" só resta $end, mas qualquer elemento
-       global ainda poderia vir: a redução de <globais> por ε foi
-       feita antes de olhar o token. */
-    if (n == 1 && esperados[0] == YYSYMBOL_YYEOF) {
-        fputs("'var', 'const', 'func', 'workflow' ou fim do arquivo", stderr);
-        return;
-    }
-
-    if (cobrir_grupo(inicio_expressao, TAMANHO(inicio_expressao), esperados, n, coberto))
-        itens[k++] = "expressão";
-    if (cobrir_grupo(inicio_tipo, TAMANHO(inicio_tipo), esperados, n, coberto))
-        itens[k++] = "tipo";
-    for (int i = 0; i < n; i++)
-        if (!coberto[i])
-            itens[k++] = descrever(esperados[i]);
-
-    for (int i = 0; i < k; i++) {
-        if (i > 0)
-            fputs(i == k - 1 ? " ou " : ", ", stderr);
-        fputs(itens[i], stderr);
-    }
+/* Se todos os tokens de "group" estão marcados em "expected", desmarca-os e
+   devolve 1. */
+static int take_group(int *expected, const yysymbol_kind_t *group) {
+  for (int i = 0; group[i] != YYSYMBOL_YYEMPTY; i++)
+    if (!expected[group[i]]) return 0;
+  for (int i = 0; group[i] != YYSYMBOL_YYEMPTY; i++)
+    expected[group[i]] = 0;
+  return 1;
 }
 
-static int yyreport_syntax_error(const yypcontext_t *ctx)
-{
-    yysymbol_kind_t encontrado = yypcontext_token(ctx);
-    if (encontrado == YYSYMBOL_ERRO_LEXICO)
-        return 0;   /* o lexer já reportou o erro */
+int yyreport_syntax_error(const yypcontext_t *ctx) {
+  yysymbol_kind_t list[YYNTOKENS];
+  int n = yypcontext_expected_tokens(ctx, list, YYNTOKENS);
+  int expected[YYNTOKENS] = {0};
+  for (int i = 0; i < n; i++) expected[list[i]] = 1;
 
-    const YYLTYPE *loc = yypcontext_location(ctx);
-    yysymbol_kind_t esperados[YYNTOKENS];
-    int n = yypcontext_expected_tokens(ctx, esperados, YYNTOKENS);
+  /* "comando" inclui o início de expressão, então é testado primeiro */
+  const char *words[40];
+  char bufs[40][16];
+  int count = 0;
+  int has_command = 0;
+  if (take_group(expected, COMMAND_KEYWORDS)) {
+    if (take_group(expected, EXPRESSION_START)) { words[count++] = "comando"; has_command = 1; }
+    else for (int i = 0; COMMAND_KEYWORDS[i] != YYSYMBOL_YYEMPTY; i++) expected[COMMAND_KEYWORDS[i]] = 1;
+  }
+  if (!has_command && take_group(expected, EXPRESSION_START)) words[count++] = "expressão";
+  if (take_group(expected, TYPE_START)) words[count++] = "tipo";
+  for (int i = 0; i < n; i++)
+    if (expected[list[i]]) { words[count] = expected_name(list[i], bufs[count], sizeof bufs[count]); count++; }
 
-    flux_erro("sintático", loc->first_line, loc->first_column);
-    fputs("Token encontrado: ", stderr);
-    imprimir_encontrado(encontrado);
-    fputs("\nEsperado: ", stderr);
-    imprimir_esperados(esperados, n);
-    fputc('\n', stderr);
-    return 0;
-}
+  char found[256], wanted[512] = "";
+  yysymbol_kind_t token = yypcontext_token(ctx);
+  found_name(token, found, sizeof found);
+  for (int i = 0; i < count; i++) {
+    if (i > 0) strcat(wanted, i == count - 1 ? " ou " : ", ");
+    strcat(wanted, words[i]);
+  }
+  if (token == YYSYMBOL_CALL || token == YYSYMBOL_RUN)
+    strcat(wanted, " (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)");
 
-/* Erro S3: o "=" veio depois de algo que não é variável, campo ou índice. */
-static void erro_atribuicao(const YYLTYPE *loc)
-{
-    flux_erro("sintático", loc->first_line, loc->first_column);
-    fputs("Token encontrado: '='\n"
-          "Esperado: ';' (o lado esquerdo não é variável, campo ou índice)\n",
-          stderr);
-}
-
-void yyerror(const char *msg)
-{
-    if (strcmp(msg, "memory exhausted") == 0)
-        msg = "memória esgotada (programa grande demais para a pilha do parser)";
-    fprintf(stderr, "Erro: %s\n", msg);
-}
-
-const char *flux_nome_token(int token)
-{
-    return yysymbol_name(YYTRANSLATE(token));
+  const YYLTYPE *loc = yypcontext_location(ctx);
+  if (count > 0)
+    report_error("sintático", loc->first_line, loc->first_column,
+                 "Token encontrado: %s\nEsperado: %s", found, wanted);
+  else
+    report_error("sintático", loc->first_line, loc->first_column,
+                 "Token encontrado: %s", found);
+  return 0;
 }

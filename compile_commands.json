@@ -1,0 +1,47 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Isrc",
+      "-Ibuild",
+      "-c",
+      "-o",
+      "build/parser.tab.o",
+      "build/parser.tab.c"
+    ],
+    "directory": "/home/TheBuda/www/Projetos/FluxLang",
+    "file": "/home/TheBuda/www/Projetos/FluxLang/build/parser.tab.c",
+    "output": "/home/TheBuda/www/Projetos/FluxLang/build/parser.tab.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Isrc",
+      "-Ibuild",
+      "-c",
+      "-o",
+      "build/lex.yy.o",
+      "build/lex.yy.c"
+    ],
+    "directory": "/home/TheBuda/www/Projetos/FluxLang",
+    "file": "/home/TheBuda/www/Projetos/FluxLang/build/lex.yy.c",
+    "output": "/home/TheBuda/www/Projetos/FluxLang/build/lex.yy.o"
+  },
+  {
+    "arguments": [
+      "/usr/bin/gcc",
+      "-Wall",
+      "-Isrc",
+      "-Ibuild",
+      "-c",
+      "-o",
+      "build/main.o",
+      "src/main.c"
+    ],
+    "directory": "/home/TheBuda/www/Projetos/FluxLang",
+    "file": "/home/TheBuda/www/Projetos/FluxLang/src/main.c",
+    "output": "/home/TheBuda/www/Projetos/FluxLang/build/main.o"
+  }
+]

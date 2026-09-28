@@ -1,0 +1,11 @@
+1:1	VAR                  
+1:5	IDENTIFIER           a
+Erro léxico [linha 1, coluna 6]:
+Caractere não reconhecido: 'ç'
+Erro léxico [linha 1, coluna 7]:
+Caractere não reconhecido: 'ã'
+1:8	IDENTIFIER           o
+1:9	COLON                
+1:10	TYPE_INT             
+1:13	SEMICOLON            
+[código 1]

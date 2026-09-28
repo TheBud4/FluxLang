@@ -1,0 +1,35 @@
+{
+    "name": "fluxlang",
+    "displayName": "FluxLang",
+    "description": "Language support for FluxLang",
+    "version": "0.0.1",
+    "publisher": "fluxlang",
+    "engines": {
+        "vscode": "^1.90.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "fluxlang",
+                "aliases": [
+                    "FluxLang",
+                    "flux"
+                ],
+                "extensions": [
+                    ".flux"
+                ],
+                "configuration": "./language-configuration.json"
+            }
+        ],
+        "grammars": [
+            {
+                "language": "fluxlang",
+                "scopeName": "source.fluxlang",
+                "path": "./syntaxes/fluxlang.tmLanguage.json"
+            }
+        ]
+    }
+}

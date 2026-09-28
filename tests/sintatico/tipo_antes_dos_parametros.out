@@ -1,0 +1,5 @@
+Erro sintático [linha 1, coluna 10]:
+Token encontrado: ':'
+Esperado: '('
+Programa rejeitado.
+[código 1]

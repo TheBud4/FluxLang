@@ -1,0 +1,7 @@
+1:1	IDENTIFIER           x
+1:3	ASSIGN               
+1:5	INT_LITERAL          1
+1:6	SEMICOLON            
+Erro léxico [linha 1, coluna 8]:
+Comentário de bloco não terminado
+[código 1]

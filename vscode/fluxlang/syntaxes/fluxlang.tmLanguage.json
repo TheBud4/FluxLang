@@ -1,0 +1,262 @@
+{
+    "$schema": "https://raw.githubusercontent.com/martinring/tmlanguage/master/tmlanguage.json",
+    "name": "FluxLang",
+    "scopeName": "source.fluxlang",
+    "patterns": [
+        { "include": "#comments" },
+        { "include": "#strings" },
+        { "include": "#numbers" },
+        { "include": "#declarations" },
+        { "include": "#error-handlers" },
+        { "include": "#keywords" },
+        { "include": "#types" },
+        { "include": "#constants" },
+        { "include": "#library" },
+        { "include": "#members" },
+        { "include": "#calls" },
+        { "include": "#operators" },
+        { "include": "#punctuation" }
+    ],
+    "repository": {
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.double-slash.fluxlang",
+                    "begin": "//",
+                    "beginCaptures": { "0": { "name": "punctuation.definition.comment.fluxlang" } },
+                    "end": "$"
+                },
+                {
+                    "name": "comment.block.fluxlang",
+                    "begin": "/\\*",
+                    "end": "\\*/",
+                    "captures": { "0": { "name": "punctuation.definition.comment.fluxlang" } }
+                }
+            ]
+        },
+        "strings": {
+            "comment": "Uma linha só; escapes válidos: \\n \\t \\\" \\\\ (outros são erro léxico).",
+            "name": "string.quoted.double.fluxlang",
+            "begin": "\"",
+            "beginCaptures": { "0": { "name": "punctuation.definition.string.begin.fluxlang" } },
+            "end": "(\")|$",
+            "endCaptures": { "1": { "name": "punctuation.definition.string.end.fluxlang" } },
+            "patterns": [
+                {
+                    "name": "constant.character.escape.fluxlang",
+                    "match": "\\\\[nt\"\\\\]"
+                },
+                {
+                    "name": "invalid.illegal.escape.fluxlang",
+                    "match": "\\\\."
+                }
+            ]
+        },
+        "numbers": {
+            "patterns": [
+                {
+                    "comment": "Erro léxico: número seguido de letra (2itens, 1e10, 0xFF, 3.14abc).",
+                    "name": "invalid.illegal.numeric.fluxlang",
+                    "match": "\\b[0-9]+(?:\\.[0-9]+)?[A-Za-z_][A-Za-z0-9_]*"
+                },
+                {
+                    "comment": "Erro léxico: float sem dígitos depois do ponto (5.).",
+                    "name": "invalid.illegal.numeric.fluxlang",
+                    "match": "\\b[0-9]+\\.(?![0-9])"
+                },
+                {
+                    "name": "constant.numeric.float.fluxlang",
+                    "match": "\\b[0-9]+\\.[0-9]+\\b"
+                },
+                {
+                    "name": "constant.numeric.integer.fluxlang",
+                    "match": "\\b[0-9]+\\b"
+                }
+            ]
+        },
+        "declarations": {
+            "patterns": [
+                {
+                    "match": "\\b(func)\\s+(main)\\b",
+                    "captures": {
+                        "1": { "name": "storage.type.function.fluxlang" },
+                        "2": { "name": "entity.name.function.main.fluxlang" }
+                    }
+                },
+                {
+                    "match": "\\b(func)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+                    "captures": {
+                        "1": { "name": "storage.type.function.fluxlang" },
+                        "2": { "name": "entity.name.function.fluxlang" }
+                    }
+                },
+                {
+                    "match": "\\b(workflow)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+                    "captures": {
+                        "1": { "name": "storage.type.workflow.fluxlang" },
+                        "2": { "name": "entity.name.function.workflow.fluxlang" }
+                    }
+                },
+                {
+                    "match": "\\b(call)\\s+([A-Za-z_][A-Za-z0-9_]*)",
+                    "captures": {
+                        "1": { "name": "keyword.control.call.fluxlang" },
+                        "2": { "name": "entity.name.function.workflow.fluxlang" }
+                    }
+                },
+                {
+                    "name": "storage.type.function.fluxlang",
+                    "match": "\\b(func|workflow)\\b"
+                },
+                {
+                    "name": "storage.modifier.fluxlang",
+                    "match": "\\b(var|const)\\b"
+                }
+            ]
+        },
+        "error-handlers": {
+            "comment": "stop if e; / abort if e; / proceed if e;",
+            "match": "\\b(stop|abort|proceed)\\s+(if)\\b",
+            "captures": {
+                "1": { "name": "keyword.control.flow.fluxlang" },
+                "2": { "name": "keyword.control.flow.fluxlang" }
+            }
+        },
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.conditional.fluxlang",
+                    "match": "\\b(if|else)\\b"
+                },
+                {
+                    "name": "keyword.control.loop.fluxlang",
+                    "match": "\\b(while|for|in|break|continue)\\b"
+                },
+                {
+                    "name": "keyword.control.flow.fluxlang",
+                    "match": "\\b(return|call|run|stop|abort|proceed)\\b"
+                },
+                {
+                    "name": "entity.name.function.main.fluxlang",
+                    "match": "\\bmain\\b"
+                }
+            ]
+        },
+        "types": {
+            "patterns": [
+                {
+                    "comment": "list<tipo>, inclusive aninhado: list<list<int>>.",
+                    "begin": "\\b(list)\\s*(<)",
+                    "beginCaptures": {
+                        "1": { "name": "storage.type.fluxlang" },
+                        "2": { "name": "punctuation.definition.typeparameters.begin.fluxlang" }
+                    },
+                    "end": ">",
+                    "endCaptures": { "0": { "name": "punctuation.definition.typeparameters.end.fluxlang" } },
+                    "patterns": [
+                        { "include": "#comments" },
+                        { "include": "#types" }
+                    ]
+                },
+                {
+                    "name": "storage.type.fluxlang",
+                    "match": "\\b(int|float|string|bool|object|list)\\b"
+                }
+            ]
+        },
+        "constants": {
+            "patterns": [
+                {
+                    "name": "constant.language.boolean.fluxlang",
+                    "match": "\\b(true|false)\\b"
+                },
+                {
+                    "name": "constant.language.null.fluxlang",
+                    "match": "\\bnull\\b"
+                }
+            ]
+        },
+        "library": {
+            "comment": "Nomes pré-declarados (IDENTIFIER no lexer, não palavras reservadas).",
+            "patterns": [
+                {
+                    "match": "\\b(terminal)\\s*(\\.)\\s*(log|info|warn|error|input)\\b",
+                    "captures": {
+                        "1": { "name": "support.class.fluxlang" },
+                        "2": { "name": "punctuation.accessor.fluxlang" },
+                        "3": { "name": "support.function.terminal.fluxlang" }
+                    }
+                },
+                {
+                    "name": "support.class.fluxlang",
+                    "match": "\\bterminal\\b"
+                },
+                {
+                    "name": "support.function.conversion.fluxlang",
+                    "match": "\\b(toString|toInt|toFloat|toBool)\\b(?=\\s*\\()"
+                }
+            ]
+        },
+        "members": {
+            "patterns": [
+                {
+                    "comment": "Métodos de lista: length(), push(v), remove(i).",
+                    "match": "(\\.)\\s*(length|push|remove)\\b(?=\\s*\\()",
+                    "captures": {
+                        "1": { "name": "punctuation.accessor.fluxlang" },
+                        "2": { "name": "support.function.list.fluxlang" }
+                    }
+                },
+                {
+                    "match": "(\\.)\\s*([A-Za-z_][A-Za-z0-9_]*)",
+                    "captures": {
+                        "1": { "name": "punctuation.accessor.fluxlang" },
+                        "2": { "name": "variable.other.property.fluxlang" }
+                    }
+                }
+            ]
+        },
+        "calls": {
+            "match": "\\b([A-Za-z_][A-Za-z0-9_]*)\\s*(?=\\()",
+            "captures": {
+                "1": { "name": "entity.name.function.call.fluxlang" }
+            }
+        },
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.logical.fluxlang",
+                    "match": "&&|\\|\\|"
+                },
+                {
+                    "comment": "Erro léxico: & e | sozinhos.",
+                    "name": "invalid.illegal.operator.fluxlang",
+                    "match": "[&|]"
+                },
+                {
+                    "name": "keyword.operator.comparison.fluxlang",
+                    "match": "==|!=|<=|>=|<|>"
+                },
+                {
+                    "name": "keyword.operator.logical.fluxlang",
+                    "match": "!"
+                },
+                {
+                    "name": "keyword.operator.assignment.fluxlang",
+                    "match": "="
+                },
+                {
+                    "name": "keyword.operator.arithmetic.fluxlang",
+                    "match": "[+\\-*/%]"
+                }
+            ]
+        },
+        "punctuation": {
+            "patterns": [
+                { "name": "punctuation.terminator.statement.fluxlang", "match": ";" },
+                { "name": "punctuation.separator.comma.fluxlang", "match": "," },
+                { "name": "punctuation.separator.colon.fluxlang", "match": ":" }
+            ]
+        }
+    }
+}

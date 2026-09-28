@@ -1,0 +1,29 @@
+1:1	VAR                  
+1:5	IDENTIFIER           l
+1:6	COLON                
+1:7	TYPE_LIST            
+1:11	LOWER_THAN           
+1:12	TYPE_INT             
+1:15	GREATER_THAN_EQUAL   
+1:18	LBRACKET             
+1:19	INT_LITERAL          1
+1:20	RBRACKET             
+1:21	SEMICOLON            
+2:1	VAR                  
+2:5	IDENTIFIER           m
+2:6	COLON                
+2:7	TYPE_LIST            
+2:11	LOWER_THAN           
+2:12	TYPE_LIST            
+2:16	LOWER_THAN           
+2:17	TYPE_INT             
+2:20	GREATER_THAN         
+2:21	GREATER_THAN         
+2:23	ASSIGN               
+2:25	LBRACKET             
+2:26	LBRACKET             
+2:27	INT_LITERAL          1
+2:28	RBRACKET             
+2:29	RBRACKET             
+2:30	SEMICOLON            
+[código 0]

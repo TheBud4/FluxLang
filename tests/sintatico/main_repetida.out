@@ -1,0 +1,5 @@
+Erro sintático [linha 4, coluna 6]:
+Token encontrado: palavra reservada 'main'
+Esperado: identificador
+Programa rejeitado.
+[código 1]
