@@ -1,1 +1,0 @@
-const versao:string;
