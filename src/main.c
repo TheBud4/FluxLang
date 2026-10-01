@@ -21,7 +21,7 @@ void report_error(const char *kind, int line, int column, const char *fmt,
 }
 
 static void help(void) {
-  printf("Uso: ./fluxc [opções] [arquivo.flux]\n"
+  printf("Uso: ./flux [opções] [arquivo.flux]\n"
          "Sem arquivo, lê o programa da entrada padrão.\n"
          "\n"
          "Opções:\n"

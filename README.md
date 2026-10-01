@@ -358,11 +358,11 @@ Esperado: '='
 Exige `gcc` (ou `clang`), `flex`, `bison` 3.6+ e `make`.
 
 ```sh
-make                            # gera ./fluxc
-./fluxc < programa.flux         # lê da entrada padrão (Trabalho 1)
-./fluxc programa.flux           # lê de um arquivo (Trabalho 2)
-./fluxc -t programa.flux        # --tokens: lista os tokens reconhecidos
-./fluxc -h                      # --help: mostra as opções
+make                            # gera ./flux
+./flux < programa.flux         # lê da entrada padrão (Trabalho 1)
+./flux programa.flux           # lê de um arquivo (Trabalho 2)
+./flux -t programa.flux        # --tokens: lista os tokens reconhecidos
+./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
 ```

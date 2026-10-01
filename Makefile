@@ -1,6 +1,6 @@
-# FluxLang - compilador fluxc
+# FluxLang - compilador flux
 #
-#   make           gera ./fluxc (todas as partes)
+#   make           gera ./flux (todas as partes)
 #   make parser    só o parser: src/parser.y -> build/parser.tab.o
 #   make lexer     só o lexer:  src/lexer.l  -> build/lex.yy.o
 #   make main      só o main:   src/main.c   -> build/main.o
@@ -11,14 +11,14 @@
 CC     = gcc
 CFLAGS = -Wall -Isrc -Ibuild
 
-all: fluxc
+all: flux
 
 parser: build/parser.tab.o
 lexer:  build/lex.yy.o
 main:   build/main.o
 
 # Ligação: junta as três partes no executável
-fluxc: build/parser.tab.o build/lex.yy.o build/main.o
+flux: build/parser.tab.o build/lex.yy.o build/main.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Parser: o bison gera o .c e o .h (lista de tokens) de uma vez só
@@ -39,11 +39,11 @@ build/%.o: src/%.c build/parser.tab.h src/fluxc.h | build
 build:
 	mkdir -p build
 
-test: fluxc
+test: flux
 	bash tests/run.sh
 
 clean:
-	rm -f build/* fluxc
+	rm -f build/* flux
 
 # -B força recompilar tudo: o bear só registra comandos que de fato rodam
 bear:
