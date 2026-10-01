@@ -43,28 +43,28 @@
 - [x] `tests/`: um caso por linha das tabelas das seções 2 e 3 do ERROS.md
 - [x] Rodar `valido.flux` (aceito)
 - [x] Rodar `invalido.flux` e conferir as mensagens e posições da seção 5 do ERROS.md
-- [ ] Commitar código e binário
+- [x] Commitar código e binário
 
 ### 4. Artigo (formato SBC)
 
-- [ ] Montar o template SBC
-- [ ] Definição de compiladores
-- [ ] Análise léxica
-- [ ] Análise sintática
-- [ ] Análise semântica
-- [ ] Apresentação da FluxLang
-- [ ] BNF
-- [ ] Exemplo válido
-- [ ] Exemplo inválido com a definição dos erros
-- [ ] Catálogo de erros (léxicos, sintáticos e semânticos)
-- [ ] Referências
-- [ ] Revisão final com o grupo
+- [x] Montar o template SBC
+- [x] Definição de compiladores
+- [x] Análise léxica
+- [x] Análise sintática
+- [x] Análise semântica
+- [x] Apresentação da FluxLang
+- [x] BNF
+- [x] Exemplo válido
+- [x] Exemplo inválido com a definição dos erros
+- [x] Catálogo de erros (léxicos, sintáticos e semânticos)
+- [x] Referências
+- [x] Revisão final com o grupo
 
 ### 5. Apresentação
 
-- [ ] Slides da linguagem
-- [ ] Slides da implementação
-- [ ] Demonstração com `valido.flux` e `invalido.flux`
+- [x] Slides da linguagem
+- [x] Slides da implementação
+- [x] Demonstração com `valido.flux` e `invalido.flux`
 - [ ] Ensaio com o grupo
 
 ## Trabalho 2 (26/11/2026)

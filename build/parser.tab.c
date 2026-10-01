@@ -1572,253 +1572,253 @@ yyreduce:
     {
   case 70: /* command_expression: expression assignment_rest SEMICOLON  */
 #line 147 "src/parser.y"
-                                           {
-        if ((yyvsp[-1].assignable) != 0 && (!(yyvsp[-2].assignable) || (yyvsp[-1].assignable) == 2)) {
-          report_error("sintático", assign_loc.first_line, assign_loc.first_column,
-                       "Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é variável, campo ou índice)");
-          YYABORT;
-        }
-      }
+                                         {
+  if ((yyvsp[-1].assignable) != 0 && (!(yyvsp[-2].assignable) || (yyvsp[-1].assignable) == 2)) {
+  report_error("sintático", assign_loc.first_line, assign_loc.first_column,
+  "Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é variável, campo ou índice)");
+  YYABORT;
+  }
+  }
 #line 1583 "build/parser.tab.c"
     break;
 
   case 71: /* assignment_rest: ASSIGN rhs  */
 #line 156 "src/parser.y"
-                                            { assign_loc = (yylsp[-1]); (yyval.assignable) = 1; }
+               { assign_loc = (yylsp[-1]); (yyval.assignable) = 1; }
 #line 1589 "build/parser.tab.c"
     break;
 
   case 72: /* assignment_rest: COMMA expression_list ASSIGN rhs  */
 #line 157 "src/parser.y"
-                                            { assign_loc = (yylsp[-1]); (yyval.assignable) = (yyvsp[-2].assignable) ? 1 : 2; }
+                                     { assign_loc = (yylsp[-1]); (yyval.assignable) = (yyvsp[-2].assignable) ? 1 : 2; }
 #line 1595 "build/parser.tab.c"
     break;
 
   case 73: /* assignment_rest: %empty  */
 #line 158 "src/parser.y"
-                                            { (yyval.assignable) = 0; }
+           { (yyval.assignable) = 0; }
 #line 1601 "build/parser.tab.c"
     break;
 
   case 75: /* or_expr: and_expr or_rest  */
 #line 164 "src/parser.y"
-                       { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
+                     { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
 #line 1607 "build/parser.tab.c"
     break;
 
   case 76: /* or_rest: OR and_expr or_rest  */
 #line 167 "src/parser.y"
-                          { (yyval.assignable) = 1; }
+                        { (yyval.assignable) = 1; }
 #line 1613 "build/parser.tab.c"
     break;
 
   case 77: /* or_rest: %empty  */
 #line 167 "src/parser.y"
-                                               { (yyval.assignable) = 0; }
+                                             { (yyval.assignable) = 0; }
 #line 1619 "build/parser.tab.c"
     break;
 
   case 78: /* and_expr: equality_expr and_rest  */
 #line 170 "src/parser.y"
-                             { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
+                           { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
 #line 1625 "build/parser.tab.c"
     break;
 
   case 79: /* and_rest: AND equality_expr and_rest  */
 #line 173 "src/parser.y"
-                                 { (yyval.assignable) = 1; }
+                               { (yyval.assignable) = 1; }
 #line 1631 "build/parser.tab.c"
     break;
 
   case 80: /* and_rest: %empty  */
 #line 173 "src/parser.y"
-                                                      { (yyval.assignable) = 0; }
+                                                    { (yyval.assignable) = 0; }
 #line 1637 "build/parser.tab.c"
     break;
 
   case 81: /* equality_expr: relational_expr equality_rest  */
 #line 176 "src/parser.y"
-                                    { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
+                                  { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
 #line 1643 "build/parser.tab.c"
     break;
 
   case 82: /* equality_rest: equality_op relational_expr equality_rest  */
 #line 179 "src/parser.y"
-                                                { (yyval.assignable) = 1; }
+                                              { (yyval.assignable) = 1; }
 #line 1649 "build/parser.tab.c"
     break;
 
   case 83: /* equality_rest: %empty  */
 #line 179 "src/parser.y"
-                                                                     { (yyval.assignable) = 0; }
+                                                                   { (yyval.assignable) = 0; }
 #line 1655 "build/parser.tab.c"
     break;
 
   case 86: /* relational_expr: additive_expr relational_rest  */
 #line 185 "src/parser.y"
-                                    { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
+                                  { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
 #line 1661 "build/parser.tab.c"
     break;
 
   case 87: /* relational_rest: relational_op additive_expr relational_rest  */
 #line 188 "src/parser.y"
-                                                  { (yyval.assignable) = 1; }
+                                                { (yyval.assignable) = 1; }
 #line 1667 "build/parser.tab.c"
     break;
 
   case 88: /* relational_rest: %empty  */
 #line 188 "src/parser.y"
-                                                                       { (yyval.assignable) = 0; }
+                                                                     { (yyval.assignable) = 0; }
 #line 1673 "build/parser.tab.c"
     break;
 
   case 93: /* additive_expr: multiplicative_expr additive_rest  */
 #line 194 "src/parser.y"
-                                        { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
+                                      { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
 #line 1679 "build/parser.tab.c"
     break;
 
   case 94: /* additive_rest: additive_op multiplicative_expr additive_rest  */
 #line 197 "src/parser.y"
-                                                    { (yyval.assignable) = 1; }
+                                                  { (yyval.assignable) = 1; }
 #line 1685 "build/parser.tab.c"
     break;
 
   case 95: /* additive_rest: %empty  */
 #line 197 "src/parser.y"
-                                                                         { (yyval.assignable) = 0; }
+                                                                       { (yyval.assignable) = 0; }
 #line 1691 "build/parser.tab.c"
     break;
 
   case 98: /* multiplicative_expr: unary_expr multiplicative_rest  */
 #line 203 "src/parser.y"
-                                     { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
+                                   { (yyval.assignable) = (yyvsp[-1].assignable) && !(yyvsp[0].assignable); }
 #line 1697 "build/parser.tab.c"
     break;
 
   case 99: /* multiplicative_rest: multiplicative_op unary_expr multiplicative_rest  */
 #line 206 "src/parser.y"
-                                                       { (yyval.assignable) = 1; }
+                                                     { (yyval.assignable) = 1; }
 #line 1703 "build/parser.tab.c"
     break;
 
   case 100: /* multiplicative_rest: %empty  */
 #line 206 "src/parser.y"
-                                                                            { (yyval.assignable) = 0; }
+                                                                          { (yyval.assignable) = 0; }
 #line 1709 "build/parser.tab.c"
     break;
 
   case 104: /* unary_expr: unary_op unary_expr  */
 #line 212 "src/parser.y"
-                          { (yyval.assignable) = 0; }
+                        { (yyval.assignable) = 0; }
 #line 1715 "build/parser.tab.c"
     break;
 
   case 108: /* postfix_expr: primary postfix_rest  */
 #line 218 "src/parser.y"
-                           { (yyval.assignable) = ((yyvsp[0].assignable) == SUFFIX_NONE) ? (yyvsp[-1].assignable) : ((yyvsp[0].assignable) == SUFFIX_ACCESS); }
+                         { (yyval.assignable) = ((yyvsp[0].assignable) == SUFFIX_NONE) ? (yyvsp[-1].assignable) : ((yyvsp[0].assignable) == SUFFIX_ACCESS); }
 #line 1721 "build/parser.tab.c"
     break;
 
   case 109: /* postfix_rest: DOT IDENTIFIER postfix_rest  */
 #line 221 "src/parser.y"
-                                                 { (yyval.assignable) = (yyvsp[0].assignable) ? (yyvsp[0].assignable) : SUFFIX_ACCESS; }
+                                { (yyval.assignable) = (yyvsp[0].assignable) ? (yyvsp[0].assignable) : SUFFIX_ACCESS; }
 #line 1727 "build/parser.tab.c"
     break;
 
   case 110: /* postfix_rest: LBRACKET expression RBRACKET postfix_rest  */
 #line 222 "src/parser.y"
-                                                 { (yyval.assignable) = (yyvsp[0].assignable) ? (yyvsp[0].assignable) : SUFFIX_ACCESS; }
+                                              { (yyval.assignable) = (yyvsp[0].assignable) ? (yyvsp[0].assignable) : SUFFIX_ACCESS; }
 #line 1733 "build/parser.tab.c"
     break;
 
   case 111: /* postfix_rest: LPAREN args RPAREN postfix_rest  */
 #line 223 "src/parser.y"
-                                                 { (yyval.assignable) = (yyvsp[0].assignable) ? (yyvsp[0].assignable) : SUFFIX_CALL; }
+                                    { (yyval.assignable) = (yyvsp[0].assignable) ? (yyvsp[0].assignable) : SUFFIX_CALL; }
 #line 1739 "build/parser.tab.c"
     break;
 
   case 112: /* postfix_rest: %empty  */
 #line 224 "src/parser.y"
-                                                 { (yyval.assignable) = SUFFIX_NONE; }
+           { (yyval.assignable) = SUFFIX_NONE; }
 #line 1745 "build/parser.tab.c"
     break;
 
   case 113: /* primary: IDENTIFIER  */
 #line 227 "src/parser.y"
-                 { (yyval.assignable) = 1; }
+               { (yyval.assignable) = 1; }
 #line 1751 "build/parser.tab.c"
     break;
 
   case 114: /* primary: INT_LITERAL  */
 #line 228 "src/parser.y"
-                  { (yyval.assignable) = 0; }
+                { (yyval.assignable) = 0; }
 #line 1757 "build/parser.tab.c"
     break;
 
   case 115: /* primary: FLOAT_LITERAL  */
 #line 228 "src/parser.y"
-                                              { (yyval.assignable) = 0; }
+                                            { (yyval.assignable) = 0; }
 #line 1763 "build/parser.tab.c"
     break;
 
   case 116: /* primary: STRING_LITERAL  */
 #line 228 "src/parser.y"
-                                                                           { (yyval.assignable) = 0; }
+                                                                         { (yyval.assignable) = 0; }
 #line 1769 "build/parser.tab.c"
     break;
 
   case 117: /* primary: TRUE  */
 #line 229 "src/parser.y"
-           { (yyval.assignable) = 0; }
+         { (yyval.assignable) = 0; }
 #line 1775 "build/parser.tab.c"
     break;
 
   case 118: /* primary: FALSE  */
 #line 229 "src/parser.y"
-                               { (yyval.assignable) = 0; }
+                             { (yyval.assignable) = 0; }
 #line 1781 "build/parser.tab.c"
     break;
 
   case 119: /* primary: NULL_LITERAL  */
 #line 229 "src/parser.y"
-                                                          { (yyval.assignable) = 0; }
+                                                        { (yyval.assignable) = 0; }
 #line 1787 "build/parser.tab.c"
     break;
 
   case 120: /* primary: LPAREN expression RPAREN  */
 #line 230 "src/parser.y"
-                               { (yyval.assignable) = 0; }
+                             { (yyval.assignable) = 0; }
 #line 1793 "build/parser.tab.c"
     break;
 
   case 121: /* primary: list_literal  */
 #line 230 "src/parser.y"
-                                                          { (yyval.assignable) = 0; }
+                                                        { (yyval.assignable) = 0; }
 #line 1799 "build/parser.tab.c"
     break;
 
   case 122: /* primary: object_literal  */
 #line 230 "src/parser.y"
-                                                                                       { (yyval.assignable) = 0; }
+                                                                                     { (yyval.assignable) = 0; }
 #line 1805 "build/parser.tab.c"
     break;
 
   case 140: /* expression_list: expression expression_list_rest  */
 #line 263 "src/parser.y"
-                                      { (yyval.assignable) = (yyvsp[-1].assignable) && (yyvsp[0].assignable); }
+                                    { (yyval.assignable) = (yyvsp[-1].assignable) && (yyvsp[0].assignable); }
 #line 1811 "build/parser.tab.c"
     break;
 
   case 141: /* expression_list_rest: COMMA expression expression_list_rest  */
 #line 266 "src/parser.y"
-                                            { (yyval.assignable) = (yyvsp[-1].assignable) && (yyvsp[0].assignable); }
+                                          { (yyval.assignable) = (yyvsp[-1].assignable) && (yyvsp[0].assignable); }
 #line 1817 "build/parser.tab.c"
     break;
 
   case 142: /* expression_list_rest: %empty  */
 #line 266 "src/parser.y"
-                                                                        { (yyval.assignable) = 1; }
+                                                                      { (yyval.assignable) = 1; }
 #line 1823 "build/parser.tab.c"
     break;
 
@@ -2033,7 +2033,7 @@ const char *token_name(int tok) { return yysymbol_name(YYTRANSLATE(tok)); }
 
 void yyerror(const char *msg) { fprintf(stderr, "%s\n", msg); }
 
-/* ---------- Mensagens de erro sintático (docs/ERROS.md, seções 1 e 3) ---------- */
+/* ---------- Mensagens de erro sintático (docs/ERROS.md,1 e 3) ---------- */
 
 /* Como o token é escrito no código-fonte ("if", ";"...), ou NULL para
    identificadores, literais e fim do arquivo. */

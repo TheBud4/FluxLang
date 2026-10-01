@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# Roda os testes e compara com X.out.
+# Runs the tests and compares each one with its X.out file.
 #
-#   tests/lexico/*.flux     roda ./fluxc -t (só lexer)
-#   tests/sintatico/*.flux  roda ./fluxc    (lexer + parser)
+#   tests/lexico/*.flux     Runs: ./fluxc -t (lexer)
+#   tests/sintatico/*.flux  Runs: ./fluxc    (lexer + parser)
 #
-#   Uso:
-#   tests/run.sh          compara todos os casos
-#   tests/run.sh --generate  cria o .out dos casos que ainda não têm
+#   Usage:
+#   tests/run.sh             Compare all the cases
+#   tests/run.sh --generate  Create the .out of the cases that don't have one yet
 
 cd "$(dirname "$0")/.." || exit 2
 
