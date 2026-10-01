@@ -17,7 +17,7 @@ em `Old/Atividades.md` (é o único arquivo de `Old/` que vale).
 | Extras | — | Realce das linhas com erro; geração de código C + `gcc` |
 
 Implementação: C, lexer em Flex, parser em GNU Bison 3.6+, binário
-`./fluxc`. Lexer e parser do T1 prontos: erros L1–L6, mensagens
+`./flux`. Lexer e parser do T1 prontos: erros L1–L6, mensagens
 sintáticas em português (`parse.error custom`, `yyreport_syntax_error` no
 fim do `src/parser.y`), checagem S3 nas ações (`%union` com `text` e
 `assignable`), modo `-t`/`--tokens`. `make test` roda `tests/lexico/` (com
@@ -60,7 +60,7 @@ que faltam, que devem ser conferidos à mão).
    `<commands>`, `<return_type>`...).
 7. **Git:** nunca adicione `Co-Authored-By` nem qualquer atribuição a IA
    nas mensagens de commit. Só commite quando o usuário pedir. Os artefatos
-   de build (`build/*`, `fluxc`) são commitados de propósito, junto com o
+   de build (`build/*`, `flux`) são commitados de propósito, junto com o
    código-fonte; não proponha `.gitignore` para eles.
 
 ## Estado atual (28/09/2026)
@@ -74,7 +74,7 @@ que faltam, que devem ser conferidos à mão).
   (menos o S3, que é checado na ação do parser). Não há comentários
   `[erro]`/`[pendente]` abertos.
 - Os exemplos foram escritos pelo agente. As posições da seção 5 do
-  ERROS.md foram conferidas: os erros léxicos com o `fluxc`, os sintáticos
+  ERROS.md foram conferidas: os erros léxicos com o `flux`, os sintáticos
   com um parser preditivo gerado da BNF (cada erro isolado).
 - Adiado pelo usuário para depois do T1: a seção da interface gráfica e a
   demonstração da transformação para LL(1).

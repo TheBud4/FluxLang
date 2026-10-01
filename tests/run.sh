@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Runs the tests and compares each one with its X.out file.
 #
-#   tests/lexico/*.flux     Runs: ./fluxc -t (lexer)
-#   tests/sintatico/*.flux  Runs: ./fluxc    (lexer + parser)
+#   tests/lexico/*.flux     Runs: ./flux -t (lexer)
+#   tests/sintatico/*.flux  Runs: ./flux    (lexer + parser)
 #
 #   Usage:
 #   tests/run.sh             Compare all the cases
@@ -11,7 +11,7 @@
 cd "$(dirname "$0")/.." || exit 2
 
 run_case() {
-  ./fluxc $1 "$2" 2>&1
+  ./flux $1 "$2" 2>&1
   echo "[código $?]"
 }
 

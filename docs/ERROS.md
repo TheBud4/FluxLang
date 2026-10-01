@@ -174,7 +174,7 @@ estejam sozinhos do lado direito do `=` já é garantido pela gramática.
 [`exemplos/invalido.flux`](exemplos/invalido.flux) tem sete erros, cada
 um numa linha marcada com comentário. As posições foram calculadas a
 partir do arquivo, e as mensagens seguem as seções 1 a 3. Quando o
-`fluxc` existir, elas devem ser conferidas isolando um erro por vez (com
+`flux` existir, elas devem ser conferidas isolando um erro por vez (com
 os outros seis corrigidos):
 
 | # | Linha:coluna | Classe | Mensagem | Causa |

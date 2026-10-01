@@ -33,7 +33,7 @@
 
 ### 3. Implementação
 
-- [x] `Makefile` (gera `./fluxc`, alvo `test`)
+- [x] `Makefile` (gera `./flux`, alvo `test`)
 - [x] `src/lexer.l`: tokens, linha e coluna, erros L1–L6
 - [x] `src/parser.y`: BNF regra por regra, sem conflitos no Bison
 - [x] Mensagens em português com token encontrado e esperado (`parse.error custom`)
@@ -71,7 +71,7 @@
 
 ### 6. Compilador
 
-- [ ] Leitura de arquivo (`./fluxc programa.flux`)
+- [ ] Leitura de arquivo (`./flux programa.flux`)
 - [ ] Lexer entregando token de erro sem segunda mensagem
 - [ ] Modo pânico no parser (seção 6 do ERROS.md)
 - [ ] Pular blocos `{ ... }` com chaves balanceadas ao descartar tokens
