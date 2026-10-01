@@ -43,230 +43,230 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
 
 %%
 
-    program
-    : before_main;
-    before_main
-    : global_no_func before_main | FUNC after_func;
+  program
+  : before_main;
+  before_main
+  : global_no_func before_main | FUNC after_func;
 
-    after_func
-    : MAIN LPAREN RPAREN block after_main | IDENTIFIER function_rest before_main;
+  after_func
+  : MAIN LPAREN RPAREN block after_main | IDENTIFIER function_rest before_main;
 
-    after_main
-    : global_no_func after_main | FUNC IDENTIFIER function_rest after_main | %empty;
+  after_main
+  : global_no_func after_main | FUNC IDENTIFIER function_rest after_main | %empty;
 
-    global_no_func
-    : variable_declaration | constant_declaration | workflow;
+  global_no_func
+  : variable_declaration | constant_declaration | workflow;
 
-    variable_declaration
-    : VAR identifier_list variable_rest SEMICOLON;
-    variable_rest
-    : COLON type initializer | ASSIGN rhs;
+  variable_declaration
+  : VAR identifier_list variable_rest SEMICOLON;
+  variable_rest
+  : COLON type initializer | ASSIGN rhs;
 
-    initializer
-    : ASSIGN rhs | %empty;
+  initializer
+  : ASSIGN rhs | %empty;
 
-    constant_declaration
-    : CONST identifier_list constant_rest SEMICOLON;
+  constant_declaration
+  : CONST identifier_list constant_rest SEMICOLON;
 
-    constant_rest
-    : COLON type ASSIGN expression_list | ASSIGN expression_list;
+  constant_rest
+  : COLON type ASSIGN expression_list | ASSIGN expression_list;
 
-    identifier_list
-    : IDENTIFIER identifier_list_rest;
+  identifier_list
+  : IDENTIFIER identifier_list_rest;
 
-    identifier_list_rest
-    : COMMA IDENTIFIER identifier_list_rest | %empty;
+  identifier_list_rest
+  : COMMA IDENTIFIER identifier_list_rest | %empty;
 
-    rhs
-    : CALL IDENTIFIER LPAREN args RPAREN | RUN object_literal | expression_list;
+  rhs
+  : CALL IDENTIFIER LPAREN args RPAREN | RUN object_literal | expression_list;
 
-    type
-    : TYPE_INT | TYPE_FLOAT | TYPE_STRING | TYPE_BOOL | TYPE_OBJECT | TYPE_LIST LOWER_THAN type GREATER_THAN;
+  type
+  : TYPE_INT | TYPE_FLOAT | TYPE_STRING | TYPE_BOOL | TYPE_OBJECT | TYPE_LIST LOWER_THAN type GREATER_THAN;
 
-    workflow
-    : WORKFLOW IDENTIFIER function_rest;
+  workflow
+  : WORKFLOW IDENTIFIER function_rest;
 
-    function_rest
-    : LPAREN parameter_list RPAREN return_type block;
+  function_rest
+  : LPAREN parameter_list RPAREN return_type block;
 
-    parameter_list
-    : parameters | %empty;
+  parameter_list
+  : parameters | %empty;
 
-    parameters
-    : parameter parameters_rest;
+  parameters
+  : parameter parameters_rest;
 
-    parameters_rest
-    : COMMA parameter parameters_rest | %empty;
+  parameters_rest
+  : COMMA parameter parameters_rest | %empty;
 
-    parameter
-    : IDENTIFIER COLON type;
+  parameter
+  : IDENTIFIER COLON type;
 
-    return_type
-    : COLON type | %empty;
+  return_type
+  : COLON type | %empty;
 
-    block
-    : LBRACE commands RBRACE;
+  block
+  : LBRACE commands RBRACE;
 
-    commands
-    : command commands | %empty;
+  commands
+  : command commands | %empty;
 
-    command
-    : variable_declaration | constant_declaration | command_if | command_while | command_for | command_return | command_break | command_continue | command_error | command_expression;
+  command
+  : variable_declaration | constant_declaration | command_if | command_while | command_for | command_return | command_break | command_continue | command_error | command_expression;
 
-    command_if
-    : IF LPAREN expression RPAREN block else_part;
+  command_if
+  : IF LPAREN expression RPAREN block else_part;
 
-    else_part
-    : ELSE block | %empty;
+  else_part
+  : ELSE block | %empty;
 
-    command_while
-    : WHILE LPAREN expression RPAREN block;
+  command_while
+  : WHILE LPAREN expression RPAREN block;
 
-    command_for
-    : FOR IDENTIFIER IN expression block;
+  command_for
+  : FOR IDENTIFIER IN expression block;
 
-    command_return
-    : RETURN return_values SEMICOLON;
+  command_return
+  : RETURN return_values SEMICOLON;
 
-    return_values
-    : expression_list | %empty;
+  return_values
+  : expression_list | %empty;
 
-    command_break
-    : BREAK SEMICOLON;
+  command_break
+  : BREAK SEMICOLON;
 
-    command_continue
-    : CONTINUE SEMICOLON;
+  command_continue
+  : CONTINUE SEMICOLON;
 
-    command_error
-    : error_action IF IDENTIFIER SEMICOLON;
+  command_error
+  : error_action IF IDENTIFIER SEMICOLON;
 
-    error_action
-    : STOP | ABORT | PROCEED;
+  error_action
+  : STOP | ABORT | PROCEED;
 
-    command_expression
-    : expression assignment_rest SEMICOLON {
-        if ($2 != 0 && (!$1 || $2 == 2)) {
-          report_error("sintático", assign_loc.first_line, assign_loc.first_column,
-                       "Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é variável, campo ou índice)");
-          YYABORT;
-        }
-      };
+  command_expression
+  : expression assignment_rest SEMICOLON {
+  if ($2 != 0 && (!$1 || $2 == 2)) {
+  report_error("sintático", assign_loc.first_line, assign_loc.first_column,
+  "Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é variável, campo ou índice)");
+  YYABORT;
+  }
+  };
 
-    assignment_rest
-    : ASSIGN rhs                            { assign_loc = @1; $$ = 1; }
-    | COMMA expression_list ASSIGN rhs      { assign_loc = @3; $$ = $2 ? 1 : 2; }
-    | %empty                                { $$ = 0; };
+  assignment_rest
+  : ASSIGN rhs { assign_loc = @1; $$ = 1; }
+  | COMMA expression_list ASSIGN rhs { assign_loc = @3; $$ = $2 ? 1 : 2; }
+  | %empty { $$ = 0; };
 
-    expression
-    : or_expr;
+  expression
+  : or_expr;
 
-    or_expr
-    : and_expr or_rest { $$ = $1 && !$2; };
+  or_expr
+  : and_expr or_rest { $$ = $1 && !$2; };
 
-    or_rest
-    : OR and_expr or_rest { $$ = 1; } | %empty { $$ = 0; };
+  or_rest
+  : OR and_expr or_rest { $$ = 1; } | %empty { $$ = 0; };
 
-    and_expr
-    : equality_expr and_rest { $$ = $1 && !$2; };
+  and_expr
+  : equality_expr and_rest { $$ = $1 && !$2; };
 
-    and_rest
-    : AND equality_expr and_rest { $$ = 1; } | %empty { $$ = 0; };
+  and_rest
+  : AND equality_expr and_rest { $$ = 1; } | %empty { $$ = 0; };
 
-    equality_expr
-    : relational_expr equality_rest { $$ = $1 && !$2; };
+  equality_expr
+  : relational_expr equality_rest { $$ = $1 && !$2; };
 
-    equality_rest
-    : equality_op relational_expr equality_rest { $$ = 1; } | %empty { $$ = 0; };
+  equality_rest
+  : equality_op relational_expr equality_rest { $$ = 1; } | %empty { $$ = 0; };
 
-    equality_op
-    : EQUAL | NOT_EQUAL;
+  equality_op
+  : EQUAL | NOT_EQUAL;
 
-    relational_expr
-    : additive_expr relational_rest { $$ = $1 && !$2; };
+  relational_expr
+  : additive_expr relational_rest { $$ = $1 && !$2; };
 
-    relational_rest
-    : relational_op additive_expr relational_rest { $$ = 1; } | %empty { $$ = 0; };
+  relational_rest
+  : relational_op additive_expr relational_rest { $$ = 1; } | %empty { $$ = 0; };
 
-    relational_op
-    : LOWER_THAN | GREATER_THAN | LOWER_THAN_EQUAL | GREATER_THAN_EQUAL;
+  relational_op
+  : LOWER_THAN | GREATER_THAN | LOWER_THAN_EQUAL | GREATER_THAN_EQUAL;
 
-    additive_expr
-    : multiplicative_expr additive_rest { $$ = $1 && !$2; };
+  additive_expr
+  : multiplicative_expr additive_rest { $$ = $1 && !$2; };
 
-    additive_rest
-    : additive_op multiplicative_expr additive_rest { $$ = 1; } | %empty { $$ = 0; };
+  additive_rest
+  : additive_op multiplicative_expr additive_rest { $$ = 1; } | %empty { $$ = 0; };
 
-    additive_op
-    : PLUS | MINUS;
+  additive_op
+  : PLUS | MINUS;
 
-    multiplicative_expr
-    : unary_expr multiplicative_rest { $$ = $1 && !$2; };
+  multiplicative_expr
+  : unary_expr multiplicative_rest { $$ = $1 && !$2; };
 
-    multiplicative_rest
-    : multiplicative_op unary_expr multiplicative_rest { $$ = 1; } | %empty { $$ = 0; };
+  multiplicative_rest
+  : multiplicative_op unary_expr multiplicative_rest { $$ = 1; } | %empty { $$ = 0; };
 
-    multiplicative_op
-    : MUL | DIV | MOD;
+  multiplicative_op
+  : MUL | DIV | MOD;
 
-    unary_expr
-    : unary_op unary_expr { $$ = 0; } | postfix_expr;
+  unary_expr
+  : unary_op unary_expr { $$ = 0; } | postfix_expr;
 
-    unary_op
-    : NOT | MINUS;
+  unary_op
+  : NOT | MINUS;
 
-    postfix_expr
-    : primary postfix_rest { $$ = ($2 == SUFFIX_NONE) ? $1 : ($2 == SUFFIX_ACCESS); };
+  postfix_expr
+  : primary postfix_rest { $$ = ($2 == SUFFIX_NONE) ? $1 : ($2 == SUFFIX_ACCESS); };
 
-    postfix_rest
-    : DOT IDENTIFIER postfix_rest                { $$ = $3 ? $3 : SUFFIX_ACCESS; }
-    | LBRACKET expression RBRACKET postfix_rest  { $$ = $4 ? $4 : SUFFIX_ACCESS; }
-    | LPAREN args RPAREN postfix_rest            { $$ = $4 ? $4 : SUFFIX_CALL; }
-    | %empty                                     { $$ = SUFFIX_NONE; };
+  postfix_rest
+  : DOT IDENTIFIER postfix_rest { $$ = $3 ? $3 : SUFFIX_ACCESS; }
+  | LBRACKET expression RBRACKET postfix_rest { $$ = $4 ? $4 : SUFFIX_ACCESS; }
+  | LPAREN args RPAREN postfix_rest { $$ = $4 ? $4 : SUFFIX_CALL; }
+  | %empty { $$ = SUFFIX_NONE; };
 
-    primary
-    : IDENTIFIER { $$ = 1; }
-    | INT_LITERAL { $$ = 0; } | FLOAT_LITERAL { $$ = 0; } | STRING_LITERAL { $$ = 0; }
-    | TRUE { $$ = 0; } | FALSE { $$ = 0; } | NULL_LITERAL { $$ = 0; }
-    | LPAREN expression RPAREN { $$ = 0; } | list_literal { $$ = 0; } | object_literal { $$ = 0; };
+  primary
+  : IDENTIFIER { $$ = 1; }
+  | INT_LITERAL { $$ = 0; } | FLOAT_LITERAL { $$ = 0; } | STRING_LITERAL { $$ = 0; }
+  | TRUE { $$ = 0; } | FALSE { $$ = 0; } | NULL_LITERAL { $$ = 0; }
+  | LPAREN expression RPAREN { $$ = 0; } | list_literal { $$ = 0; } | object_literal { $$ = 0; };
 
-    list_literal
-    : LBRACKET list_items RBRACKET;
+  list_literal
+  : LBRACKET list_items RBRACKET;
 
-    list_items
-    : expression list_rest | %empty;
+  list_items
+  : expression list_rest | %empty;
 
-    list_rest
-    : COMMA list_after_comma | %empty;
+  list_rest
+  : COMMA list_after_comma | %empty;
 
-    list_after_comma
-    : expression list_rest | %empty;
+  list_after_comma
+  : expression list_rest | %empty;
 
-    object_literal
-    : LBRACE object_items RBRACE;
+  object_literal
+  : LBRACE object_items RBRACE;
 
-    object_items
-    : field fields_rest | %empty;
+  object_items
+  : field fields_rest | %empty;
 
-    fields_rest
-    : COMMA fields_after_comma | %empty;
+  fields_rest
+  : COMMA fields_after_comma | %empty;
 
-    fields_after_comma
-    : field fields_rest | %empty;
+  fields_after_comma
+  : field fields_rest | %empty;
 
-    field
-    : field_key COLON expression;
+  field
+  : field_key COLON expression;
 
-    field_key
-    : IDENTIFIER | STRING_LITERAL;
+  field_key
+  : IDENTIFIER | STRING_LITERAL;
 
-    expression_list
-    : expression expression_list_rest { $$ = $1 && $2; };
+  expression_list
+  : expression expression_list_rest { $$ = $1 && $2; };
 
-    expression_list_rest
-    : COMMA expression expression_list_rest { $$ = $2 && $3; } | %empty { $$ = 1; };
+  expression_list_rest
+  : COMMA expression expression_list_rest { $$ = $2 && $3; } | %empty { $$ = 1; };
 
-    args
-    : expression_list | %empty;
+  args
+  : expression_list | %empty;
 
 
 %%
@@ -275,7 +275,7 @@ const char *token_name(int tok) { return yysymbol_name(YYTRANSLATE(tok)); }
 
 void yyerror(const char *msg) { fprintf(stderr, "%s\n", msg); }
 
-/* ---------- Mensagens de erro sintático (docs/ERROS.md, seções 1 e 3) ---------- */
+/* ---------- Mensagens de erro sintático (docs/ERROS.md,1 e 3) ---------- */
 
 /* Como o token é escrito no código-fonte ("if", ";"...), ou NULL para
    identificadores, literais e fim do arquivo. */
