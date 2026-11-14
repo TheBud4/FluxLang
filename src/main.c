@@ -3,6 +3,8 @@
 #include "ast.h"
 #include "tree.h"
 #include <stdarg.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -37,7 +39,10 @@ static void help(void) {
          "  --tree         imprime a árvore de derivação\n"
          "  --json         imprime tokens, erros e árvore em JSON\n"
          "  --ast          imprime a AST (a árvore sem a burocracia da gramática)\n"
-         "  --semantic     confere também os erros semânticos (E1 a E22)\n"
+         "  --semantic     confere também os erros semânticos (E1 a E24)\n"
+         "  --c            imprime o programa em C (com a biblioteca de execução)\n"
+         "  --build [-o x] gera o executável (via gcc); sem -o, usa o nome do arquivo\n"
+         "  --run          gera o executável, roda e apaga\n"
          "  -h, --help     mostra esta mensagem\n");
 }
 
@@ -55,12 +60,81 @@ static int list_tokens(void) {
   return error_count > 0;
 }
 
+/* O nome do executável: o do arquivo sem a extensão, na pasta atual. */
+static char *default_exe_name(const char *file) {
+  if (!file)
+    return strdup("a.out");
+  const char *base = strrchr(file, '/');
+  base = base ? base + 1 : file;
+  char *name = strdup(base);
+  char *dot = strrchr(name, '.');
+  if (dot && dot != name)
+    *dot = '\0';
+  return name;
+}
+
+/* --c, --build e --run. `program` é NULL se o programa tem erros (já impressos). */
+static int run_codegen(Program *program, int c_mode, int build_mode, const char *outfile,
+                       const char *file) {
+  if (!program) {
+    fprintf(stderr, "Programa rejeitado.\n");
+    return 1;
+  }
+  if (c_mode) {
+    generate_c(program, stdout);
+    return 0;
+  }
+
+  const char *tmpdir = getenv("TMPDIR");
+  char c_path[512], exe_path[512];
+  snprintf(c_path, sizeof c_path, "%s/fluxXXXXXX", tmpdir ? tmpdir : "/tmp");
+  int fd = mkstemp(c_path);
+  if (fd < 0) {
+    perror(c_path);
+    return 3;
+  }
+  FILE *c_file = fdopen(fd, "w");
+  generate_c(program, c_file);
+  fclose(c_file);
+
+  if (build_mode) {
+    snprintf(exe_path, sizeof exe_path, "%s", outfile ? outfile : default_exe_name(file));
+  } else { /* --run: um executável temporário */
+    snprintf(exe_path, sizeof exe_path, "%s/fluxexeXXXXXX", tmpdir ? tmpdir : "/tmp");
+    int exe_fd = mkstemp(exe_path);
+    if (exe_fd < 0) {
+      perror(exe_path);
+      unlink(c_path);
+      return 3;
+    }
+    close(exe_fd);
+  }
+
+  if (compile_c(c_path, exe_path) != 0) {
+    fprintf(stderr, "Erro interno: o gcc não conseguiu compilar o C gerado (guardado em %s).\n",
+            c_path);
+    if (!build_mode)
+      unlink(exe_path);
+    return 3;
+  }
+  unlink(c_path);
+  if (build_mode) {
+    printf("Executável gerado: %s\n", exe_path);
+    return 0;
+  }
+  int code = execute_program(exe_path);
+  unlink(exe_path);
+  return code;
+}
+
 int main(int argc, char **argv) {
   int token_mode = 0;
   int tree_mode = 0;
   int json_mode = 0;
   int ast_mode = 0;
   int semantic_mode = 0;
+  int c_mode = 0, build_mode = 0, run_mode = 0;
+  const char *outfile = NULL;
   const char *file = NULL;
 
   for (int i = 1; i < argc; i++) {
@@ -70,6 +144,14 @@ int main(int argc, char **argv) {
       json_mode = 1;
     } else if (strcmp(argv[i], "--semantic") == 0) {
       semantic_mode = 1;
+    } else if (strcmp(argv[i], "--c") == 0) {
+      c_mode = 1;
+    } else if (strcmp(argv[i], "--build") == 0) {
+      build_mode = 1;
+    } else if (strcmp(argv[i], "--run") == 0) {
+      run_mode = 1;
+    } else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
+      outfile = argv[++i];
     } else if (strcmp(argv[i], "--ast") == 0) {
       ast_mode = 1;
     } else if (strcmp(argv[i], "--tree") == 0) {
@@ -103,6 +185,11 @@ int main(int argc, char **argv) {
     json_enable();
   int parsed = yyparse();
 
+  /* Gerar código exige o programa conferido pela análise semântica. */
+  int codegen = c_mode || build_mode || run_mode;
+  if (codegen)
+    semantic_mode = 1;
+
   /* A análise semântica só roda depois de um parse sem erros. */
   Program *program = NULL;
   if ((ast_mode || semantic_mode) && parsed == 0 && error_count == 0)
@@ -115,6 +202,8 @@ int main(int argc, char **argv) {
     json_print(stdout, accepted, source_lines());
     return accepted ? 0 : 1;
   }
+  if (codegen)
+    return run_codegen(accepted ? program : NULL, c_mode, build_mode, outfile, file);
   if (tree_mode)
     print_tree(parse_root, stdout);
   if (ast_mode && program)

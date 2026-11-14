@@ -1,0 +1,15 @@
+ab
+12.5true
+null
+[1, 2, 3]
+["a", "b"]
+[[1], [2, 3]]
+[3.0]
+{a: 1, b: {c: [true]}}
+com "aspas" e \ barra
+43
+3
+-3
+3.5
+true
+[código 0]

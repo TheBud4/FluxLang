@@ -12,6 +12,14 @@ const char *token_name(int tok); /* parser.y: nome do token, ex: "IDENTIFIER" */
 struct Program;
 int semantic_check(struct Program *program);
 
+/* codegen_c.c: gerador de C. generate_c escreve o programa C (com a biblioteca
+   de execução embutida); compile_c roda o gcc nele; execute_program roda o
+   executável. Os dois últimos devolvem o código de saída. */
+struct Program;
+int generate_c(const struct Program *program, FILE *out);
+int compile_c(const char *c_path, const char *exe_path);
+int execute_program(const char *exe_path);
+
 /* json.c: modo --json. Tokens e erros são registrados durante a análise e
    impressos no fim junto com a árvore de derivação. */
 void json_enable(void);

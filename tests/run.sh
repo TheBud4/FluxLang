@@ -6,7 +6,8 @@
 #   tests/arvore/*.flux     Runs: ./flux --tree (parse tree, plus the accept/reject line)
 #   tests/json/*.flux       Runs: ./flux --json (tokens, errors and tree as JSON)
 #   tests/ast/*.flux        Runs: ./flux --ast (the AST)
-#   tests/semantico/*.flux  Runs: ./flux --semantic (semantic errors E1-E22)
+#   tests/semantico/*.flux  Runs: ./flux --semantic (semantic errors E1-E24)
+#   tests/exec/*.flux       Runs: ./flux --run (compiles to C, runs the program)
 #
 #   Usage:
 #   tests/run.sh             Compare all the cases
@@ -15,14 +16,14 @@
 cd "$(dirname "$0")/.." || exit 2
 
 run_case() {
-  ./flux $1 "$2" 2>&1
+  ./flux $1 "$2" 2>&1 </dev/null
   echo "[código $?]"
 }
 
 passed=0
 failed=0
 
-for dir in lexico sintatico arvore json ast semantico; do
+for dir in lexico sintatico arvore json ast semantico exec; do
   [ -d "tests/$dir" ] || continue
   flags=""
   [ "$dir" = lexico ] && flags="-t"
@@ -30,6 +31,7 @@ for dir in lexico sintatico arvore json ast semantico; do
   [ "$dir" = json ] && flags="--json"
   [ "$dir" = ast ] && flags="--ast"
   [ "$dir" = semantico ] && flags="--semantic"
+  [ "$dir" = exec ] && flags="--run"
 
   for src in tests/$dir/*.flux; do
     [ -e "$src" ] || continue
