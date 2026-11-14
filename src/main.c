@@ -26,6 +26,7 @@ static void help(void) {
          "\n"
          "Opções:\n"
          "  -t, --tokens   lista os tokens reconhecidos (só o lexer)\n"
+         "  --bison        usa o parser do Bison (referência, temporário)\n"
          "  -h, --help     mostra esta mensagem\n");
 }
 
@@ -42,11 +43,14 @@ static int list_tokens(void) {
 
 int main(int argc, char **argv) {
   int token_mode = 0;
+  int use_bison = 0;
   const char *file = NULL;
 
   for (int i = 1; i < argc; i++) {
     if (strcmp(argv[i], "--tokens") == 0 || strcmp(argv[i], "-t") == 0) {
       token_mode = 1;
+    } else if (strcmp(argv[i], "--bison") == 0) {
+      use_bison = 1;
     } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
       help();
       return 0;
@@ -70,7 +74,7 @@ int main(int argc, char **argv) {
   if (token_mode)
     return list_tokens();
 
-  if (yyparse() == 0) {
+  if ((use_bison ? yyparse() : rd_parse()) == 0) {
     printf("Programa aceito.\n");
     return 0;
   }

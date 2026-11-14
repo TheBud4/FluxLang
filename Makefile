@@ -4,6 +4,7 @@
 #   make parser    só o parser: src/parser.y -> build/parser.tab.o
 #   make lexer     só o lexer:  src/lexer.l  -> build/lex.yy.o
 #   make main      só o main:   src/main.c   -> build/main.o
+#   make rdparser  só o parser descendente: src/rdparser.c -> build/rdparser.o
 #   make clean     apaga o que foi gerado
 #   make test      compila e roda os casos de tests/ (tests/run.sh)
 #   make bear      recompila tudo e gera compile_commands.json (para o clangd)
@@ -16,9 +17,10 @@ all: flux
 parser: build/parser.tab.o
 lexer:  build/lex.yy.o
 main:   build/main.o
+rdparser: build/rdparser.o
 
 # Ligação: junta as três partes no executável
-flux: build/parser.tab.o build/lex.yy.o build/main.o
+flux: build/parser.tab.o build/lex.yy.o build/main.o build/rdparser.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Parser: o bison gera o .c e o .h (lista de tokens) de uma vez só
@@ -49,4 +51,4 @@ clean:
 bear:
 	bear -- $(MAKE) -B all
 
-.PHONY: all parser lexer main test clean bear
+.PHONY: all parser lexer main rdparser test clean bear
