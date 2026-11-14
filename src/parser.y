@@ -43,19 +43,33 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
 
 %%
 
+  /* Modo pânico (docs/ERROS.md, seção 6): as alternativas com o token
+     "error" são os pontos de recuperação, um por construção, como no código
+     de sala (try/catch + consumeUntil). Ao achar um erro, o Bison desempilha
+     estados até um que aceite "error", empilha "error" e descarta tokens
+     até um que a regra aceite: ';' (consome e segue) ou '{' (lê o bloco
+     inteiro, o que evita erros em cascata em "else if" e "if x > 5 {"). O
+     yyerrok volta a permitir mensagens: sem ele, o Bison só reportaria o
+     próximo erro depois de 3 tokens lidos com sucesso. Um erro léxico chega
+     como o token YYerror: entra em recuperação sem segunda mensagem. */
+
   program
   : before_main;
   before_main
   : global_no_func before_main | FUNC after_func;
 
   after_func
-  : MAIN LPAREN RPAREN block after_main | IDENTIFIER function_rest before_main;
+  : MAIN LPAREN RPAREN block after_main
+  | MAIN error block after_main { yyerrok; }
+  | IDENTIFIER function_rest before_main;
 
   after_main
   : global_no_func after_main | FUNC IDENTIFIER function_rest after_main | %empty;
 
   global_no_func
-  : variable_declaration | constant_declaration | workflow;
+  : variable_declaration | constant_declaration | workflow
+  | error SEMICOLON { yyerrok; }
+  | error block { yyerrok; };
 
   variable_declaration
   : VAR identifier_list variable_rest SEMICOLON;
@@ -111,7 +125,9 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
   : command commands | %empty;
 
   command
-  : variable_declaration | constant_declaration | command_if | command_while | command_for | command_return | command_break | command_continue | command_error | command_expression;
+  : variable_declaration | constant_declaration | command_if | command_while | command_for | command_return | command_break | command_continue | command_error | command_expression
+  | error SEMICOLON { yyerrok; }
+  | error block { yyerrok; };
 
   command_if
   : IF LPAREN expression RPAREN block else_part;
@@ -148,7 +164,6 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
   if ($2 != 0 && (!$1 || $2 == 2)) {
   report_error("sintático", assign_loc.first_line, assign_loc.first_column,
   "Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é variável, campo ou índice)");
-  YYABORT;
   }
   };
 

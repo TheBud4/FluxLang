@@ -1,0 +1,21 @@
+Erro sintático [linha 3, coluna 20]:
+Token encontrado: ';'
+Esperado: '='
+Erro sintático [linha 15, coluna 5]:
+Token encontrado: palavra reservada 'stop'
+Esperado: ';'
+Erro léxico [linha 20, coluna 24]:
+Caractere não reconhecido: '@'
+Erro léxico [linha 21, coluna 9]:
+Número malformado: '2itens'
+Erro sintático [linha 26, coluna 12]:
+Token encontrado: palavra reservada 'if'
+Esperado: '{'
+Erro sintático [linha 30, coluna 5]:
+Token encontrado: palavra reservada 'call'
+Esperado: comando ou '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)
+Erro sintático [linha 31, coluna 16]:
+Token encontrado: '='
+Esperado: ';' (o lado esquerdo não é variável, campo ou índice)
+Programa rejeitado.
+[código 1]

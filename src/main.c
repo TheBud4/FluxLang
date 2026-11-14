@@ -70,7 +70,9 @@ int main(int argc, char **argv) {
   if (token_mode)
     return list_tokens();
 
-  if (yyparse() == 0) {
+  /* Com o modo pânico o yyparse() termina com 0 mesmo depois de erros
+     recuperados: o programa só é aceito se nenhum erro foi reportado. */
+  if (yyparse() == 0 && error_count == 0) {
     printf("Programa aceito.\n");
     return 0;
   }
