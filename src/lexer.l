@@ -5,16 +5,24 @@
 #include <limits.h>
 #include <stdlib.h>
 #include "fluxc.h"
+#include "tree.h"
 
     static int line = 1, column = 1;
     static void next(const char *s, int n);
     static int count_chars(const char *s, int n);
     static int comment_line, comment_column;
 
+    /* Devolve o token t com um nó-folha (nome do token, lexema, posição) como
+       valor semântico: é o que vira folha da árvore de derivação. */
+    #define RET(t) do { \
+        yylval.node = token_node(#t, yytext, yylloc.first_line, yylloc.first_column); \
+        return t; \
+    } while (0)
+
     #define YY_USER_ACTION                                  \
         yylloc.first_line = yylloc.last_line = line;       \
         yylloc.first_column = column;                       \
-        yylval.text = NULL;                                      \
+        yylval.node = NULL;                                      \
         next(yytext, yyleng);
 %}
 
@@ -48,40 +56,40 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 }
 
  /* Keywords */
-"var"           { return VAR; }
-"const"         { return CONST; }
-"func"          {return FUNC; }
-"workflow"      {return WORKFLOW; }
-"main"          {return MAIN; }
-"return"        {return RETURN; }
-"if"            {return IF; }
-"else"          {return ELSE; }
-"while"         {return WHILE; }
-"for"           {return FOR; }
-"in"            {return IN; }
-"break"         {return BREAK; }
-"continue"      {return CONTINUE; }
-"call"          {return CALL; }
-"run"           {return RUN; }
-"stop"          {return STOP; }
-"abort"         {return ABORT; }
-"proceed"       { return PROCEED; }
+"var"           { RET(VAR); }
+"const"         { RET(CONST); }
+"func"          { RET(FUNC); }
+"workflow"      { RET(WORKFLOW); }
+"main"          { RET(MAIN); }
+"return"        { RET(RETURN); }
+"if"            { RET(IF); }
+"else"          { RET(ELSE); }
+"while"         { RET(WHILE); }
+"for"           { RET(FOR); }
+"in"            { RET(IN); }
+"break"         { RET(BREAK); }
+"continue"      { RET(CONTINUE); }
+"call"          { RET(CALL); }
+"run"           { RET(RUN); }
+"stop"          { RET(STOP); }
+"abort"         { RET(ABORT); }
+"proceed"       { RET(PROCEED); }
 
  /* Type keywords */
-"int"           { return TYPE_INT; }
-"float"         { return TYPE_FLOAT; }
-"string"        { return TYPE_STRING; }
-"bool"          { return TYPE_BOOL; }
-"object"        { return TYPE_OBJECT; }
-"list"          { return TYPE_LIST; }
+"int"           { RET(TYPE_INT); }
+"float"         { RET(TYPE_FLOAT); }
+"string"        { RET(TYPE_STRING); }
+"bool"          { RET(TYPE_BOOL); }
+"object"        { RET(TYPE_OBJECT); }
+"list"          { RET(TYPE_LIST); }
 
  /* Literals */
-"true"          { return TRUE; }
-"false"         { return FALSE; }
-"null"          { return NULL_LITERAL; }
+"true"          { RET(TRUE); }
+"false"         { RET(FALSE); }
+"null"          { RET(NULL_LITERAL); }
 
  /* Numbers */
-{DIG}+"."{DIG}+ { yylval.text = strdup(yytext); return FLOAT_LITERAL; }
+{DIG}+"."{DIG}+ { RET(FLOAT_LITERAL); }
 
 {DIG}+ {
     errno = 0;
@@ -91,8 +99,7 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
                      "Número inteiro fora do intervalo: '%s'", yytext);
         return YYerror;
     }
-    yylval.text = strdup(yytext);
-    return INT_LITERAL;
+    RET(INT_LITERAL);
 }
 
 {DIG}+"."                                  |
@@ -120,8 +127,7 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
         }
         i++;
     }
-    yylval.text = strdup(yytext);
-    return STRING_LITERAL;
+    RET(STRING_LITERAL);
 }
 
 \"([^"\\\n]|\\[^\n])*\\? {
@@ -131,37 +137,37 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 }
 
  /* Operators */
-"="             { return ASSIGN; }
-"=="            { return EQUAL; }
-"!="            { return NOT_EQUAL; }
-"<"             { return LOWER_THAN; }
-"<="            { return LOWER_THAN_EQUAL; }
-">"             { return GREATER_THAN; }
-">="            { return GREATER_THAN_EQUAL; }
-"+"             { return PLUS; }
-"-"             { return MINUS; }
-"*"             { return MUL; }
-"/"             { return DIV; }
-"%"             { return MOD; }
-"&&"            { return AND; }
-"||"            { return OR; }
-"!"             { return NOT; }
+"="             { RET(ASSIGN); }
+"=="            { RET(EQUAL); }
+"!="            { RET(NOT_EQUAL); }
+"<"             { RET(LOWER_THAN); }
+"<="            { RET(LOWER_THAN_EQUAL); }
+">"             { RET(GREATER_THAN); }
+">="            { RET(GREATER_THAN_EQUAL); }
+"+"             { RET(PLUS); }
+"-"             { RET(MINUS); }
+"*"             { RET(MUL); }
+"/"             { RET(DIV); }
+"%"             { RET(MOD); }
+"&&"            { RET(AND); }
+"||"            { RET(OR); }
+"!"             { RET(NOT); }
 
 
  /* Punctuation */
-"("             { return LPAREN; }
-")"             { return RPAREN; }
-"{"             { return LBRACE; }
-"}"             { return RBRACE; }
-"["             { return LBRACKET; }
-"]"             { return RBRACKET; }
-","             { return COMMA; }
-":"             { return COLON; }
-";"             { return SEMICOLON; }
-"."             { return DOT; }
+"("             { RET(LPAREN); }
+")"             { RET(RPAREN); }
+"{"             { RET(LBRACE); }
+"}"             { RET(RBRACE); }
+"["             { RET(LBRACKET); }
+"]"             { RET(RBRACKET); }
+","             { RET(COMMA); }
+":"             { RET(COLON); }
+";"             { RET(SEMICOLON); }
+"."             { RET(DOT); }
 
  /* Identifier */
-{ID}            { yylval.text = strdup(yytext); return IDENTIFIER; }
+{ID}            { RET(IDENTIFIER); }
 
  /* End of file: the position is where the input ends */
 <<EOF>> {

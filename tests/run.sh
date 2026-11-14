@@ -3,6 +3,7 @@
 #
 #   tests/lexico/*.flux     Runs: ./flux -t (lexer)
 #   tests/sintatico/*.flux  Runs: ./flux    (lexer + parser)
+#   tests/arvore/*.flux     Runs: ./flux --tree (parse tree, plus the accept/reject line)
 #
 #   Usage:
 #   tests/run.sh             Compare all the cases
@@ -18,10 +19,11 @@ run_case() {
 passed=0
 failed=0
 
-for dir in lexico sintatico; do
+for dir in lexico sintatico arvore; do
   [ -d "tests/$dir" ] || continue
   flags=""
   [ "$dir" = lexico ] && flags="-t"
+  [ "$dir" = arvore ] && flags="--tree"
 
   for src in tests/$dir/*.flux; do
     [ -e "$src" ] || continue
