@@ -20,6 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
@@ -105,6 +106,29 @@ FX_FN void *fx_alloc(size_t n) {
     exit(2);
   }
   return p;
+}
+
+/* ---------- Pilha (R7) ----------
+ * Uma recursão sem fim estouraria a pilha do processo e o programa morreria com
+ * uma falha de segmentação. Cada função confere, ao entrar, quanto da pilha já
+ * usou e, perto do limite, encerra com um erro de execução claro. */
+
+static const char *fx_stack_base;
+static size_t fx_stack_limit;
+
+FX_FN void fx_stack_init(void) {
+  struct rlimit rl;
+  size_t limit = 8u << 20;
+  if (getrlimit(RLIMIT_STACK, &rl) == 0 && rl.rlim_cur != RLIM_INFINITY)
+    limit = (size_t)rl.rlim_cur;
+  fx_stack_limit = limit > (512u << 10) ? limit - (256u << 10) : limit / 2;
+  fx_stack_base = __builtin_frame_address(0);
+}
+
+FX_FN void fx_check_stack(void) {
+  const char *here = __builtin_frame_address(0);
+  if ((size_t)(fx_stack_base - here) > fx_stack_limit)
+    fx_die("Estouro de pilha: recursão profunda demais."); /* R7 */
 }
 
 /* ---------- Construtores ---------- */

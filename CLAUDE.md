@@ -18,6 +18,7 @@ make                  # builds ./flux (bison + flex + gcc)
 make parser|lexer|main  # build a single piece into build/*.o
 make test             # builds and runs tests/run.sh over all cases
 make clean
+./flux --run file.flux    # semantic check, generate C, compile with gcc and run
 make web              # web UI (Vite + React + Tailwind in web/, needs Node 20+): http://127.0.0.1:5173
 make bear             # full rebuild that regenerates compile_commands.json (clangd)
 
@@ -32,7 +33,7 @@ Tests live in `tests/lexico/` (run with `-t`) and `tests/sintatico/` (run plain)
 
 ## Architecture
 
-Source files in `src/`: `lexer.l`, `parser.y`, `main.c`, `tree.c`, `json.c`, and the semantic side (`types.c`, `ast.c`, `ast_build.c`, `sema.c`), linked into one binary; `build/` holds the generated `lex.yy.c`, `parser.tab.{c,h}` and objects.
+Source files in `src/`: `lexer.l`, `parser.y`, `main.c`, `tree.c`, `json.c`, the semantic side (`types.c`, `ast.c`, `ast_build.c`, `sema.c`) and the C backend (`codegen_c.c` plus `runtime/flux_rt.h`, which the Makefile turns into `build/runtime_src.c` so the generated program is a single self-contained file; warnings from gcc are off by default, `FLUX_CC_WARN=1` turns them on), linked into one binary; `build/` holds the generated `lex.yy.c`, `parser.tab.{c,h}` and objects.
 
 - `src/lexer.l` (Flex): tracks `line`/`column` itself in `YY_USER_ACTION`, filling `yylloc`; every returned token goes through `RET(TOKEN)`, which sets `yylval.node` to a leaf `Node` (token name, lexeme, position). Lexical errors L1–L6 are reported from here via `report_error` and returned as `YYerror`.
 - `src/parser.y` (Bison, `%locations`, `%union { struct Node *node; }`: every token and non-terminal carries a `Node *`): a direct transcription of `docs/BNF.txt`, rule by rule, so it is deliberately **LL(1)-shaped** (right-recursive `*_rest`/`*_list_rest` rules, left factoring) rather than idiomatic LALR. The reason: Trabalho 2 requires showing the transformation to LL(1). Keep new rules in that style and with no Bison conflicts. Every alternative has the same action shape, `$$ = mknode("rule_name", n, $1, ..., $n);` (`empty_node()` for ε, `error_node(@k.first_line, @k.first_column)` for the `error` token), so the derivation tree stays faithful to the BNF; `./flux --tree` prints it (`src/tree.c`, `tests/arvore/`).
@@ -45,7 +46,7 @@ Two parser mechanisms span several places:
 
 The parser stays in Bison (decided 2026-11-14: the assignment does not require a hand-written parser). Panic mode is done in `parser.y` as `error` rules (`command`, `global_no_func`, `after_func`; simple version, see docs/ERROS.md section 6); the derivation tree (`--tree`) and `--json` (`src/json.c`; tokens are recorded by `RET` in the lexer, errors by `report_error`, which in JSON mode prints nothing to stderr) are done; semantic analysis is optional (`./flux --semantic`): `ast_build.c` converts the derivation tree into a lean AST (`./flux --ast`) and `sema.c` runs three passes (declare globals, check global initializers, check function bodies) with a scope stack, expression types and a control-flow state for E3/E20; the GUI is `web/` (Vite + React + Tailwind; its Vite plugin `server/flux-api.ts` serves `POST /api/compile` by piping the code into `./flux --json`).
 
-Lexing, parsing, the derivation tree, `--json`, the AST and semantic analysis (E1–E24) exist; there is no codegen yet. Panic mode (simple `error` rules) and file reading are done; the derivation tree, AST and the GUI are Trabalho 2.
+Lexing, parsing, the derivation tree, `--json`, the AST and semantic analysis (E1–E24) exist, and so does code generation (`./flux --c|--build|--run`). Panic mode (simple `error` rules) and file reading are done; the derivation tree, AST and the GUI are Trabalho 2.
 
 ## Docs that must stay consistent
 

@@ -307,8 +307,7 @@ versão simples (regras `error` + bloco lido inteiro) foi mantida.
 
 ## 7. Erros em tempo de execução
 
-Só aparecem quando o programa é executado, depois que existir geração de
-código. São de dois tipos.
+Só aparecem quando o programa é executado (`./flux --run`, com o código C gerado). São de dois tipos.
 
 **Erros tratáveis:** só `run` e `call` devolvem erro, no par
 `(resultado, erro)`, e ele deve ser tratado com `stop if`, `abort if` ou
@@ -328,6 +327,17 @@ a mensagem na saída de erro e código de saída 1.
 | R4 | Divisão inteira por zero | `10 / 0`, `10 % 0` | `Divisão por zero.` |
 | R5 | Valor de campo com tipo diferente do esperado | `var n:int = user.name;` com `name` valendo uma string; `user.name.x` | `Esperado int, encontrado string.` |
 | R6 | Estouro de `int` (32 bits) | `2147483647 + 1`, `-x` com `x` valendo -2147483648 | `Estouro de inteiro.` |
+| R7 | Estouro de pilha (recursão sem fim ou funda demais) | `func f(n:int):int { return f(n + 1); }` | `Estouro de pilha: recursão profunda demais.` |
+
+**Comportamentos de execução** que a especificação não dizia e a
+implementação fixou (14/11; podem ser mudados): `terminal.log` e `info` vão
+para a saída padrão e `warn` e `error` para a de erro, sem prefixo; um
+`float` aparece na forma mais curta que volta ao mesmo número, com `.0` se for
+inteiro (`3.0`, `0.30000000000000004`), e `inf`/`nan` nos casos do IEEE;
+`terminal.input` devolve `""` no fim da entrada; o `run` devolve a saída
+padrão inteira (inclusive o `\n` final) e, quando o comando não pode ser
+iniciado, o erro é `comando 'x' não pôde ser iniciado: <motivo>`; listas e
+objetos aparecem como `[1, 2]` e `{a: 1}`, com as strings entre aspas.
 
 ```text
 Erro de execução [linha 12]:

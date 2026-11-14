@@ -371,9 +371,11 @@ Bison, versão simples). A árvore de derivação (`--tree`) sai com um nó por 
 
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes; uma tabulação conta como uma coluna).
-- A geração de código ainda não existe. A representação dos tipos na
-  execução será definida junto com ela (o alvo planejado é x86-64
-  nativo, sem passar por C).
+- A geração de código converte a AST em um programa C e chama o `gcc`
+  (`./flux --c`, `--build` e `--run`). Todo valor em tempo de execução é um
+  `FxValue` com etiqueta (null, int, float, bool, string, list, object), e
+  uma biblioteca de execução (`runtime/flux_rt.h`) faz as operações e dá os
+  erros R1 a R7; ela é embutida no `.c` gerado, que compila sozinho.
 - Mensagens de erro em português, citando o token encontrado e o
   esperado, na saída de erro. Formato, catálogo e modo pânico estão em
   [`ERROS.md`](docs/ERROS.md).
@@ -401,13 +403,18 @@ make                            # gera ./flux
 ./flux --json programa.flux    # tokens, erros e árvore em JSON (para a interface)
 ./flux --ast programa.flux     # a AST (a árvore de derivação sem a burocracia da gramática)
 ./flux --semantic programa.flux # confere também os erros semânticos (E1 a E24)
+./flux --c programa.flux        # imprime o programa em C (a biblioteca de execução vai junto)
+./flux --build programa.flux    # gera o executável ./programa (via gcc); -o escolhe o nome
+./flux --run programa.flux      # gera, executa e apaga o executável
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
 ```
 
 A saída deve terminar com `Programa aceito.` (código de saída 0) ou
-`Programa rejeitado.` (código 1); com `--json` a saída é só o JSON (mesmo
+`Programa rejeitado.` (código 1); com `--c`, `--build` e `--run` o programa
+precisa passar pela análise semântica, e `--run` termina com o código de saída
+do próprio programa FluxLang; com `--json` a saída é só o JSON (mesmo
 código de saída), e os erros não vão para o stderr. Opção desconhecida ou arquivo que não
 pode ser lido dão código 2. O compilador segue depois dos erros
 (modo pânico) e reporta todos. O modo `--tokens` roda só o lexer, continua após erros léxicos e
@@ -420,11 +427,12 @@ sai com código 1 se encontrou algum.
 | `src/tree.c`, `src/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
 | `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
 | `src/types.c`, `src/ast.c`, `src/ast_build.c` | Tipos da linguagem, a AST e a conversão da árvore de derivação em AST |
+| `src/codegen_c.c`, `runtime/flux_rt.h` | Gerador de código C e a biblioteca de execução que ele embute (os valores, os operadores, `run`, `terminal` e os erros R1 a R7) |
 | `src/sema.c` | Análise semântica (E1 a E24): tabela de símbolos, tipos e análise de fluxo |
 | `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
 | `src/main.c` | Leitura da entrada, modos `--tokens`, `--tree` e `--json` e resultado |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
-| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`, `tests/ast/` com `--ast`, `tests/semantico/` com `--semantic`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
+| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`, `tests/ast/` com `--ast`, `tests/semantico/` com `--semantic`, `tests/exec/` com `--run`: compila para C e confere a saída do programa); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
 `src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.

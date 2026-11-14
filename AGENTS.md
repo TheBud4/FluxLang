@@ -14,7 +14,7 @@ em `docs/ENUNCIADO.md`.
 |---|---|---|
 | Trabalho 1 | 01/10/2026 | Artigo SBC (compiladores, análises léxica/sintática/semântica, BNF, exemplo válido e inválido com a definição dos erros); lexer + parser com mensagens em português citando token encontrado e esperado; mínimo de 2 laços, 1 condicional, declarações únicas e em lista com e sem valor, 3 tipos; entrada padrão; apresentação |
 | Trabalho 2 | 26/11/2026 | Leitura de arquivo, interface gráfica (código, contagem de linhas, tokens, aceito/rejeitado, erros, árvore sintática), modo pânico, AST; apresentação mostrando a transformação para LL(1), o modo pânico e a interface |
-| Extras | — | Realce das linhas com erro; geração de código C + `gcc` |
+| Extras | — | Realce das linhas com erro; geração de código C + `gcc` (feitos) |
 
 Implementação: C, lexer em Flex, parser em GNU Bison 3.6+, binário
 `./flux`. Lexer e parser do T1 prontos: erros L1–L6, mensagens
@@ -101,9 +101,10 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
 
 ## Plano até o T2
 
-Compilador completo (front, middle, back end; alvo x86-64; sem transpilar
-para C). Até 26/11: modo pânico no Bison, árvore de
-derivação, `--json` e interface web.
+Compilador completo até a execução. Decisão de 14/11: o backend gera **C**
+e chama o `gcc` (o x86-64 nativo, sem passar por C, ficou como possível
+etapa futura). Feito: front end, modo pânico, árvore, `--json`, interface web,
+AST, análise semântica e o gerador de C.
 
 ## A linguagem em uma página
 
@@ -210,9 +211,15 @@ de uma categoria cabem, a lista vira uma palavra: `Esperado: expressão`,
 simples (regras `error`: sincroniza em `;` ou lendo um bloco `{ }` inteiro).
 O refinamento da seção 6 do ERROS.md foi medido e descartado.
 
-**Geração de código:** ainda não existe. O alvo planejado é x86-64
-nativo, sem passar por C; a representação dos tipos na execução será
-definida junto com o backend (decisões de 14/11: `int` de 32 bits com teste de estouro, `list`/`object` por referência).
+**Geração de código:** `./flux --c` imprime um programa C, `--build [-o x]`
+gera o executável e `--run` roda (via `gcc`). Todo valor é um `FxValue` com
+etiqueta; a biblioteca `runtime/flux_rt.h` (embutida no `.c`) faz os operadores
+e dá os erros de execução R1 a R7 (R7 é o estouro de pilha). Cada subexpressão
+vai para um temporário, para a ordem de avaliação ser da esquerda para a
+direita. `terminal.log` e `info` vão para a saída padrão, `warn` e `error` para
+a de erro, sem prefixo; `toString` de float usa a forma mais curta com `.0`
+(`3.0`); `terminal.input` devolve `""` no fim da entrada; `run` devolve a saída
+padrão sem cortar o `\n` final.
 
 **Fora da v1:** HTTP, formas tipadas de `object` e outros recursos
 avançados.

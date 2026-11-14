@@ -453,6 +453,7 @@ static void gen_func(const Func *f) {
   signature(f, 0);
   emit("{");
   depth++;
+  emit("fx_check_stack();");
   for (int i = 0; i < f->body->n_stmts; i++)
     gen_stmt(f->body->stmts[i]);
   /* o fim do corpo: func devolve null; workflow devolve (null, null) */
@@ -490,6 +491,7 @@ int generate_c(const Program *program, FILE *file) {
   next_tmp = 0;
   fputs("int main(void) {\n", out);
   depth = 1;
+  emit("fx_stack_init();");
   for (int i = 0; i < program->n_decls; i++) {
     Stmt *v = program->decls[i].var;
     if (!v)
@@ -524,11 +526,12 @@ static int run_program(char *const argv[]) {
 }
 
 int compile_c(const char *c_path, const char *exe_path) {
+  /* Os avisos do gcc falam do C gerado, não da FluxLang, então ficam desligados
+   * (-w). FLUX_CC_WARN=1 os liga, para depurar o gerador; FLUX_CC troca o gcc. */
   const char *cc = getenv("FLUX_CC");
-  char *argv[] = {(char *)(cc ? cc : "gcc"), "-x", "c", "-O1", "-Wall",
-                  "-Wno-unused-function", "-Wno-unused-variable",
-                  "-Wno-unused-but-set-variable", "-o", (char *)exe_path,
-                  (char *)c_path, "-lm", NULL};
+  const char *warn = getenv("FLUX_CC_WARN") ? "-Wall" : "-w";
+  char *argv[] = {(char *)(cc ? cc : "gcc"), "-x", "c", "-O1", (char *)warn, "-o",
+                  (char *)exe_path, (char *)c_path, "-lm", NULL};
   return run_program(argv);
 }
 
