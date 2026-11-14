@@ -9,7 +9,7 @@
 #   make ast       só a AST: src/ast.c, ast_build.c e types.c
 #   make clean     apaga o que foi gerado
 #   make test      compila e roda os casos de tests/ (tests/run.sh)
-#   make asan      recompila com AddressSanitizer + UBSan, roda os testes e volta ao build normal
+#   make asan      compilador e programas gerados com AddressSanitizer + UBSan, roda os testes e volta ao build normal
 #   make web       sobe a interface web (npm, Vite): http://127.0.0.1:5173
 #   make bear      recompila tudo e gera compile_commands.json (para o clangd)
 
@@ -69,7 +69,8 @@ asan:
 	$(MAKE) clean
 	@status=0; \
 	$(MAKE) CFLAGS='-Wall -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Ibuild' flux \
-	  && ASAN_OPTIONS=detect_leaks=0 bash tests/run.sh || status=1; \
+	  && FLUX_CC_FLAGS='-g -fsanitize=address,undefined -fno-omit-frame-pointer' \
+     ASAN_OPTIONS=detect_leaks=0 bash tests/run.sh || status=1; \
 	$(MAKE) clean; $(MAKE) flux; exit $$status
 
 web: flux

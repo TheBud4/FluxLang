@@ -1061,7 +1061,8 @@ int semantic_check(Program *program) {
 
   scope_pop(); /* E9 em nível global não existe: o call/run global já é E18 */
 
-  qsort(diags, n_diags, sizeof *diags, by_position);
+  if (n_diags > 1) /* qsort não aceita NULL, nem com zero elementos */
+    qsort(diags, n_diags, sizeof *diags, by_position);
   for (int i = 0; i < n_diags; i++)
     report_error("semântico", diags[i].line, diags[i].column, "%s", diags[i].message);
   return n_diags;

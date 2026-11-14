@@ -530,8 +530,22 @@ int compile_c(const char *c_path, const char *exe_path) {
    * (-w). FLUX_CC_WARN=1 os liga, para depurar o gerador; FLUX_CC troca o gcc. */
   const char *cc = getenv("FLUX_CC");
   const char *warn = getenv("FLUX_CC_WARN") ? "-Wall" : "-w";
-  char *argv[] = {(char *)(cc ? cc : "gcc"), "-x", "c", "-O1", (char *)warn, "-o",
-                  (char *)exe_path, (char *)c_path, "-lm", NULL};
+  char *argv[64];
+  int n = 0;
+  argv[n++] = (char *)(cc ? cc : "gcc");
+  argv[n++] = "-x";
+  argv[n++] = "c";
+  argv[n++] = "-O1";
+  argv[n++] = (char *)warn;
+  /* FLUX_CC_FLAGS: flags extras para o gcc (ex.: -fsanitize=address no make asan) */
+  char *extra = getenv("FLUX_CC_FLAGS") ? strdup(getenv("FLUX_CC_FLAGS")) : NULL;
+  for (char *tok = extra ? strtok(extra, " ") : NULL; tok && n < 56; tok = strtok(NULL, " "))
+    argv[n++] = tok;
+  argv[n++] = "-o";
+  argv[n++] = (char *)exe_path;
+  argv[n++] = (char *)c_path;
+  argv[n++] = "-lm";
+  argv[n] = NULL;
   return run_program(argv);
 }
 
