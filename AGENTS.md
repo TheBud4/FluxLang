@@ -76,7 +76,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
   simples está pronto (regras `error` em `command`, `global_no_func` e
   `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Falta
   retomar em `}`/palavras de comando e em `func`/`workflow` (ver ERROS.md,
-  seção 6). A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`, `make web`) estão prontos. Faltam: a demonstração da transformação para LL(1), os slides e, se der tempo, o refinamento do pânico.
+  seção 6). A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`, `make web`) estão prontos. Faltam: os slides (linguagem, pânico, interface), o ensaio e, se der tempo, o refinamento do pânico. A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem
@@ -88,9 +88,9 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
   foram reconferidas com o `flux` em 02/10 (o erro 1 está em 3:20). Os
   casos `tests/sintatico/invalido_erroN.flux` ainda usam a versão antiga,
   com uma linha a mais (pendência do usuário em `docs/TAREFAS.md`).
-- Pendentes para o T2: a seção da interface gráfica no README e a
-  demonstração da transformação para LL(1). O histórico git tem o antes e
-  o depois reais da BNF (7c94f9c → e9a06e3).
+- A demonstração da transformação para LL(1) foi dispensada (a linguagem
+  nasceu LL(1)). Se o professor exigir, o histórico git tem o antes e o
+  depois reais da BNF (7c94f9c → e9a06e3).
 - Auditoria do projeto (02/10): os pendentes estão em `docs/TAREFAS.md`.
 - Lexer e parser implementados e testados: 57 casos (`tests/lexico/`: 19,
   cobrindo os 56 tokens e L1–L6; `tests/sintatico/`: 38, com cada linha da

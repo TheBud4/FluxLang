@@ -72,7 +72,7 @@
 Auditoria de 02/10 (a pasta foi removida em 12/11; a lista abaixo é o que sobrou). A parte de
 documentação já foi feita; o que envolve código ou BNF fica com você.
 
-- [ ] Perguntar ao professor: o pânico "análogo ao código feito em sala", o que ele entende por "árvore sintática" e o formato da demonstração LL(1)
+- [ ] Perguntar ao professor: o pânico "análogo ao código feito em sala", o que ele entende por "árvore sintática" e se a demonstração da transformação para LL(1) é mesmo dispensável, já que a linguagem nasceu LL(1)
 - [ ] Alinhar `tests/sintatico/invalido_erroN.flux` ao `invalido.flux` atual (eles têm uma linha vazia a mais) e conferir os `.out` com as posições da seção 5 do ERROS.md
 - [ ] Testes positivos que faltam: declarações depois da `main`, `var` global, `[]`, `{}`, função sem parâmetros, `return;` e o operador `>`
 - [ ] Alvo `make asan` e `-g` no `Makefile`
@@ -104,11 +104,10 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 
 ### 8. LL(1)
 
-- [ ] Escrever a demonstração da transformação para LL(1) (pares antes/depois)
+- [x] Dispensada: a linguagem foi escrita LL(1) desde o início (decisão do usuário, 14/11). Se o professor exigir, o material está no histórico git da BNF (7c94f9c → e9a06e3)
 
 ### 9. Apresentação
 
-- [ ] Slides da transformação para LL(1)
 - [ ] Slides do modo pânico (código)
 - [ ] Slides da interface
 - [ ] Demonstração da interface
