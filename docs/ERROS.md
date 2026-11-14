@@ -140,9 +140,11 @@ Cada linha desta tabela e da tabela de erros léxicos tem um caso em
 
 ## 4. Erros semânticos
 
-Verificados só depois de um parse sem erros. No Trabalho 1 eles entram
-no artigo (etapa de análise semântica), mas não precisam estar
-implementados.
+Verificados só depois de um parse sem erros. Estão implementados em
+`src/sema.c` e rodam com `./flux --semantic` (a interface web tem a chave
+"Análise semântica", ligada por padrão). Todos os erros são coletados e
+impressos ordenados por linha e coluna, no formato
+`Erro semântico [linha L, coluna C]:` e a mensagem.
 
 | Código | Regra | Exemplo inválido | Mensagem |
 |---|---|---|---|
@@ -176,6 +178,29 @@ reusa o nome de um global declarado depois; para E3 e E20, um caminho que
 termina em `return`, `break` ou `continue` conta, e código inalcançável não
 é erro; `toInt`, `toFloat` e `toBool` só aceitam as entradas da seção 4 do
 README (outro tipo de argumento é E4).
+
+**Mensagens além das do catálogo.** Cada regra tem variantes, para dizer o
+que exatamente deu errado:
+
+- E1: `'b' só é declarado depois deste ponto.` (um inicializador de global usa um global declarado abaixo, D3).
+- E4: `Operador '-' não aceita string.`; `'soma' é uma função, não um valor.` (também para `terminal.log`); os argumentos e os elementos de um literal de lista são conferidos um a um.
+- E7: no plural e no singular (`1 variável e 2 valores.`).
+- E12: `A função 'f' não retorna valor.` e `A função 'g' deve retornar um valor int.`
+- E14: `'run' tem o campo 'command' repetido.`, `'run' não aceita o campo 'extra'.`, `O campo 'flags' de 'run' deve ser list<string>, encontrado string.`
+- E15: `'soma' é uma função e deve ser chamada sem 'call'.` e `'x' não é um workflow.`
+- E17: `O segundo valor de 'run' deve ir para uma variável de erro.`
+- E19: `Chave de object deve ser string, encontrado int.` e `'idade' não é uma lista nem um object e não aceita [ ].`
+- E22: `'x' não é uma função.` e `Isso não é uma função e não pode ser chamado.`
+
+**Escolhas de implementação** (não vieram das decisões D1 a D8; podem ser
+mudadas): um literal de lista é conferido elemento a elemento contra o tipo
+esperado (`var l:list<float> = [1, 2];` vale) e, sem tipo esperado, os
+elementos `int` e `float` se unem em `list<float>`; o E3 não vale para
+globais (não dá para saber o que o `main` já atribuiu); um valor que já teve
+erro não gera uma segunda mensagem (o E9 também não sai para um `run` fora de
+lugar); um comando que é só uma expressão (`x + 1;`) é permitido;
+`terminal.input` aceita 0 ou 1 argumento; as posições são a do nome, a do
+operador ou a do valor errado.
 
 Sobre E7: `call` e `run` produzem **dois** valores (resultado, erro), então
 exigem exatamente duas variáveis: `var r, e = call build(x);`. Que eles

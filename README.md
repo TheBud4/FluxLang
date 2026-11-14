@@ -362,7 +362,7 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
 Bison**. O lexer e o parser do Trabalho 1 estão prontos: o compilador
 reporta todos os erros do programa (modo pânico com as regras `error` do
-Bison, versão simples). A árvore de derivação (`--tree`) sai com um nó por não-terminal da BNF.
+Bison, versão simples). A árvore de derivação (`--tree`) sai com um nó por não-terminal da BNF. A análise semântica (`--semantic`) roda sobre uma AST enxuta.
 
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes; uma tabulação conta como uma coluna).
@@ -394,6 +394,8 @@ make                            # gera ./flux
 ./flux -t programa.flux        # --tokens: lista os tokens reconhecidos
 ./flux --tree programa.flux    # imprime a árvore de derivação
 ./flux --json programa.flux    # tokens, erros e árvore em JSON (para a interface)
+./flux --ast programa.flux     # a AST (a árvore de derivação sem a burocracia da gramática)
+./flux --semantic programa.flux # confere também os erros semânticos (E1 a E22)
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
@@ -412,10 +414,12 @@ sai com código 1 se encontrou algum.
 | `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
 | `src/tree.c`, `src/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
 | `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
+| `src/types.c`, `src/ast.c`, `src/ast_build.c` | Tipos da linguagem, a AST e a conversão da árvore de derivação em AST |
+| `src/sema.c` | Análise semântica (E1 a E22): tabela de símbolos, tipos e análise de fluxo |
 | `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
 | `src/main.c` | Leitura da entrada, modos `--tokens`, `--tree` e `--json` e resultado |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
-| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
+| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`, `tests/ast/` com `--ast`, `tests/semantico/` com `--semantic`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
 `src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.
@@ -437,7 +441,7 @@ reconhecidos, a árvore sintática, o resultado (`Programa aceito` ou
 Clicar num erro, token ou nó da árvore seleciona o trecho no código. A
 árvore é a de derivação, fiel à gramática LL(1); a opção "ocultar `*_rest`"
 remove os nós criados na fatoração e sobe os filhos deles para o pai. O
-código recompila sozinho 400 ms depois de parar de digitar, e há botões
+código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E22, e há botões
 para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
 `invalido.flux`.
 

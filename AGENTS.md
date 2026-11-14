@@ -24,7 +24,7 @@ modo `-t`/`--tokens`, árvore de derivação (`--tree`, `src/tree.c`: um nó
 por não-terminal da BNF, inclusive `*_rest`, mais folhas de token, ε e
 `error`), `--json` (`src/json.c`: tokens, erros e árvore; formato no
 README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
-`tests/sintatico/`, `tests/arvore/` (com `--tree`) e `tests/json/` (`tests/run.sh`; `--generate` cria os
+`tests/sintatico/`, `tests/arvore/` (com `--tree`), `tests/json/`, `tests/ast/` e `tests/semantico/` (`tests/run.sh`; `--generate` cria os
 `.out` que faltam, que devem ser conferidos à mão).
 
 ## Mapa do repositório
@@ -77,7 +77,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
   `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Retomar em `}`/palavras de comando/`func` foi
   testado e piora as cascatas (medição em ERROS.md, seção 6): não repetir.
   A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`,
-  `make web`) estão prontos. Fora do código, faltam os slides e o ensaio (outras pessoas). A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
+  `make web`) estão prontos. A análise semântica (E1 a E22, `src/sema.c`, só com `--semantic`; a interface a liga por padrão) também. Fora do código, faltam os slides e o ensaio (outras pessoas). A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem
