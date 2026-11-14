@@ -67,11 +67,10 @@ que faltam, que devem ser conferidos à mão).
 
 ## Estado atual (03/10/2026)
 
-- Trabalho 1 entregue em 01/10. O parser descendente recursivo
-  (`src/rdparser.c`) e o modo pânico estão prontos (14/11): o `./flux` usa
-  o novo parser e reporta os 7 erros do `invalido.flux` sem cascata. O
-  parser do Bison continua no repositório só como referência (`--bison`).
-  Próximos passos: tirar o Bison, árvore de derivação, `--json`, interface.
+- Trabalho 1 entregue em 01/10. O parser continua em Bison (decisão de
+  14/11: o enunciado não exige parser escrito à mão). Próximos passos:
+  modo pânico com as regras `error`, árvore de derivação, `--json` e
+  interface.
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem
@@ -96,7 +95,7 @@ que faltam, que devem ser conferidos à mão).
 ## Plano até o T2
 
 Compilador completo (front, middle, back end; alvo x86-64; sem transpilar
-para C). Até 26/11: parser descendente recursivo com pânico, árvore de
+para C). Até 26/11: modo pânico no Bison, árvore de
 derivação, `--json` e interface web.
 
 ## A linguagem em uma página

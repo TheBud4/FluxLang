@@ -194,9 +194,8 @@ em cascata.
 
 Os tokens de sincronização vêm dos conjuntos FOLLOW da BNF: `;` e `}`
 fecham comandos e blocos, e as palavras reservadas abaixo iniciam um
-comando ou elemento global. `stop`, `abort` e `proceed` estão entre elas,
-então o `if` de `stop if` nunca é visto como início de um `if`: o comando
-`stop if e;` é retomado desde o `stop`.
+comando ou elemento global. A exceção é o `if` de `stop if`, `abort if` e
+`proceed if`, que vem logo depois da palavra que abre o comando.
 
 **Erro léxico:** o lexer reporta o erro, descarta o caractere ou lexema
 inválido e entrega ao parser um token de erro. O parser entra em modo
@@ -230,8 +229,8 @@ o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 
 No Bison, esses pontos viram regras com o token `error`, por exemplo
 `command: error SEMICOLON` e `declaration: error SEMICOLON`, com
-`yyerrok` na ação. Num parser descendente recursivo, cada função de
-`<commands>`, `<before_main>` e `<after_main>` recebe o conjunto de sincronização acima.
+`yyerrok` na ação. Essas regras ficam em `<commands>`, `<before_main>` e
+`<after_main>` e seguem o conjunto de sincronização acima.
 
 ## 7. Erros em tempo de execução
 
