@@ -367,13 +367,15 @@ make                            # gera ./flux
 ./flux programa.flux           # lê de um arquivo (Trabalho 2)
 ./flux -t programa.flux        # --tokens: lista os tokens reconhecidos
 ./flux --tree programa.flux    # imprime a árvore de derivação
+./flux --json programa.flux    # tokens, erros e árvore em JSON (para a interface)
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
 ```
 
 A saída deve terminar com `Programa aceito.` (código de saída 0) ou
-`Programa rejeitado.` (código 1); opção desconhecida ou arquivo que não
+`Programa rejeitado.` (código 1); com `--json` a saída é só o JSON (mesmo
+código de saída), e os erros não vão para o stderr. Opção desconhecida ou arquivo que não
 pode ser lido dão código 2. O compilador segue depois dos erros
 (modo pânico) e reporta todos. O modo `--tokens` roda só o lexer, continua após erros léxicos e
 sai com código 1 se encontrou algum.
@@ -383,12 +385,30 @@ sai com código 1 se encontrou algum.
 | `src/lexer.l` | Analisador léxico (Flex) |
 | `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
 | `src/tree.c`, `src/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
-| `src/main.c` | Leitura da entrada, modos `--tokens` e `--tree` e resultado |
+| `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
+| `src/main.c` | Leitura da entrada, modos `--tokens`, `--tree` e `--json` e resultado |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
-| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
+| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
 `src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.
+
+**Formato do `--json`** (a interface lê este objeto):
+
+```json
+{
+"accepted": false,
+"lines": 5,
+"tokens": [ {"line":2,"column":3,"type":"VAR","text":"var"}, ... ],
+"errors": [ {"kind":"sintático","line":3,"column":11,"message":"Token encontrado: ';'\nEsperado: ..."}, ... ],
+"tree": {"kind":"rule","label":"program","line":1,"column":1,"children":[ ... ]}
+}
+```
+
+`kind` do erro é `léxico` ou `sintático`. Cada nó da árvore tem `kind`
+(`rule` para não-terminal, `token`, `empty` para ε, `error` para o trecho
+descartado pelo modo pânico), `label` e, quando há token, `text`, `line` e
+`column`; `children` só existe se o nó tem filhos.
 
 ## 10. Exemplo integrado
 

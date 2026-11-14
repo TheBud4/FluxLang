@@ -91,7 +91,7 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 - [x] Lexer entregando token de erro sem segunda mensagem
 - [x] Conferir que `invalido.flux` reporta os 7 erros sem cascata
 - [x] Árvore de derivação (nós = não-terminais da BNF; `./flux --tree`)
-- [ ] `./flux --json` com tokens, erros e árvore
+- [x] `./flux --json` com tokens, erros e árvore
 
 ### 7. Interface
 

@@ -22,8 +22,9 @@ sintáticas em português (`parse.error custom`, `yyreport_syntax_error` no
 fim do `src/parser.y`), checagem S3 nas ações (campo `flag` dos nós),
 modo `-t`/`--tokens`, árvore de derivação (`--tree`, `src/tree.c`: um nó
 por não-terminal da BNF, inclusive `*_rest`, mais folhas de token, ε e
-`error`). `make test` roda `tests/lexico/` (com `-t`), `tests/sintatico/`
-e `tests/arvore/` (com `--tree`) (`tests/run.sh`; `--generate` cria os
+`error`), `--json` (`src/json.c`: tokens, erros e árvore; formato no
+README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
+`tests/sintatico/`, `tests/arvore/` (com `--tree`) e `tests/json/` (`tests/run.sh`; `--generate` cria os
 `.out` que faltam, que devem ser conferidos à mão).
 
 ## Mapa do repositório
@@ -74,7 +75,7 @@ e `tests/arvore/` (com `--tree`) (`tests/run.sh`; `--generate` cria os
   simples está pronto (regras `error` em `command`, `global_no_func` e
   `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Falta
   retomar em `}`/palavras de comando e em `func`/`workflow` (ver ERROS.md,
-  seção 6). A árvore de derivação está pronta (`--tree`). Próximos passos: `--json` e interface.
+  seção 6). A árvore de derivação (`--tree`) e o `--json` estão prontos. Próximo passo: a interface web.
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem
