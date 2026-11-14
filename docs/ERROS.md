@@ -53,7 +53,11 @@ obrigatório. Por isso um `;` esquecido gera `Esperado: ';'` em vez de uma
 lista com todos os operadores possíveis.
 
 Pela mesma regra, `call` ou `run` fora do lugar geram só o próximo
-terminal obrigatório (`'}'`, `')'`...). Como isso sozinho não explica o
+terminal obrigatório (`')'`...). A exceção são os pontos de recuperação do
+modo pânico (seção 6): neles o Bison não reduz o vazio por padrão, e a
+lista inclui o que inicia um comando (`Esperado: comando ou '}'`) ou, depois
+da `main`, um item global (`Esperado: fim do arquivo, 'var', 'const', 'func'
+ou 'workflow'`). Como isso sozinho não explica o
 erro, quando o token encontrado é `call` ou `run` a mensagem ganha a
 explicação `(call e run só aparecem logo depois do '=' de um var ou de uma
 atribuição)`.
@@ -94,7 +98,7 @@ caracteres, e uma tabulação conta como uma coluna.
 | Código | Erro | Mensagem |
 |---|---|---|
 | S1 | Token inesperado | `Token encontrado: X` / `Esperado: Y` |
-| S2 | Fim de arquivo inesperado | `Token encontrado: fim do arquivo` / `Esperado: '}'` |
+| S2 | Fim de arquivo inesperado | `Token encontrado: fim do arquivo` / `Esperado: comando ou '}'` |
 | S3 | Alvo de atribuição inválido | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` |
 
 S1 e S2 saem direto da gramática. S3 é verificado pelo parser na ação da
@@ -183,12 +187,12 @@ erro por vez (com os outros seis corrigidos):
 | 3 | 20:24 | Léxico | `Caractere não reconhecido: '@'` | `@` não pertence ao alfabeto da linguagem |
 | 4 | 21:9 | Léxico | `Número malformado: '2itens'` | Identificador não pode começar com dígito |
 | 5 | 26:12 | Sintático | `Token encontrado: palavra reservada 'if'` / `Esperado: '{'` | Não existe `else if`: aninhe o `if` dentro do bloco do `else` |
-| 6 | 30:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
+| 6 | 30:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: comando ou '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
 | 7 | 31:16 | Sintático (S3) | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` | Chamada de função não pode receber atribuição |
 
-No Trabalho 1, o compilador reporta só o erro 1 (o primeiro da entrada).
-Com o modo pânico do Trabalho 2, ele deverá reportar os sete, sem erros
-em cascata.
+No Trabalho 1, o compilador reportava só o erro 1 (o primeiro da entrada).
+Com o modo pânico (seção 6), ele reporta os sete, sem erros em cascata
+(caso `tests/sintatico/invalido_completo.flux`).
 
 ## 6. Recuperação de erros (modo pânico)
 
@@ -227,10 +231,29 @@ o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 **Fim do arquivo:** se ainda falta fechar um bloco, reporta
 `Token encontrado: fim do arquivo` / `Esperado: '}'` e encerra.
 
-No Bison, esses pontos viram regras com o token `error`, por exemplo
-`command: error SEMICOLON` e `declaration: error SEMICOLON`, com
-`yyerrok` na ação. Essas regras ficam em `<commands>`, `<before_main>` e
-`<after_main>` e seguem o conjunto de sincronização acima.
+**Como está implementado (versão simples, `src/parser.y`):** as regras
+com o token `error` são os pontos de recuperação, um por construção, como
+no código feito em sala (`try/catch` + `consumeUntil`):
+
+```
+command:        error SEMICOLON | error block
+global_no_func: error SEMICOLON | error block
+after_func:     MAIN error block after_main      // main com o cabeçalho quebrado
+```
+
+Ao achar um erro, o Bison desempilha estados até um que aceite `error` e
+descarta tokens até `;` (que é consumido) ou `{` (o bloco é lido inteiro,
+o que evita cascata em `else if (...) { }` e em `if x > 5 { }`). O
+`yyerrok` de cada regra libera a mensagem do próximo erro; sem ele o Bison
+só reportaria de novo depois de 3 tokens lidos com sucesso. Um erro léxico
+entra como o token `YYerror`, sem segunda mensagem. O erro S3 só reporta
+(o comando já terminou) e o programa fica rejeitado.
+
+O que a versão simples ainda **não** faz, em relação ao texto acima:
+retomar a análise em `}` e nas palavras que iniciam comando (ela descarta
+até o próximo `;` ou bloco) e voltar ao nível global em `func`/`workflow`.
+Por isso um bloco de função aberto engole as funções seguintes e gera
+erros extras no fim do arquivo.
 
 ## 7. Erros em tempo de execução
 

@@ -42,9 +42,9 @@ Two parser mechanisms span several places:
 - **Syntax error messages** are produced entirely by `yyreport_syntax_error` at the end of `parser.y`. It takes Bison's expected-token list and collapses complete groups (`EXPRESSION_START`, `TYPE_START`, `COMMAND_KEYWORDS`) into the words `expressão`, `tipo`, `comando`. When adding tokens that begin expressions, types or commands, update those arrays or the messages will silently degrade. `token_name`, `found_name`, `spelling` and `is_keyword` also live there.
 - **S3 check** (invalid assignment target) is done in the grammar actions using the `assignable` semantic value (`%type <assignable>` on the expression rules) and `assign_loc`, not in the grammar itself.
 
-The parser stays in Bison (decided 2026-11-14: the assignment does not require a hand-written parser). Panic mode (`error` rules), the derivation tree and `--json` are added to `parser.y`.
+The parser stays in Bison (decided 2026-11-14: the assignment does not require a hand-written parser). Panic mode is done in `parser.y` as `error` rules (`command`, `global_no_func`, `after_func`; simple version, see docs/ERROS.md section 6); the derivation tree and `--json` come next.
 
-Only lexing and parsing exist so far; there is no AST, semantic analysis (E1–E22) or codegen yet. The T1 compiler stops at the first error; panic mode, file reading UI, AST and the GUI are Trabalho 2.
+Only lexing and parsing exist so far; there is no AST, semantic analysis (E1–E22) or codegen yet. Panic mode (simple `error` rules) and file reading are done; the derivation tree, AST and the GUI are Trabalho 2.
 
 ## Docs that must stay consistent
 

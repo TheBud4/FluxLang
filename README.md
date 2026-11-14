@@ -335,8 +335,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 
 O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
 Bison**. O lexer e o parser do Trabalho 1 estão prontos: o compilador
-para no primeiro erro. No Trabalho 2, o parser ganha modo pânico (regras
-`error` do Bison) e árvore sintática.
+reporta todos os erros do programa (modo pânico com as regras `error` do
+Bison, versão simples). A árvore sintática ainda será feita.
 
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes; uma tabulação conta como uma coluna).
@@ -373,8 +373,8 @@ make bear                       # gera compile_commands.json (para o clangd)
 
 A saída deve terminar com `Programa aceito.` (código de saída 0) ou
 `Programa rejeitado.` (código 1); opção desconhecida ou arquivo que não
-pode ser lido dão código 2. No Trabalho 1, o compilador para no primeiro
-erro. O modo `--tokens` roda só o lexer, continua após erros léxicos e
+pode ser lido dão código 2. O compilador segue depois dos erros
+(modo pânico) e reporta todos. O modo `--tokens` roda só o lexer, continua após erros léxicos e
 sai com código 1 se encontrou algum.
 
 | Arquivo | Conteúdo |
