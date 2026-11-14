@@ -90,7 +90,7 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 - [ ] Refinar o pânico: retomar em `}` e nas palavras de comando, e voltar ao nível global em `func`/`workflow` (opcional)
 - [x] Lexer entregando token de erro sem segunda mensagem
 - [x] Conferir que `invalido.flux` reporta os 7 erros sem cascata
-- [ ] Árvore de derivação (nós = não-terminais da BNF)
+- [x] Árvore de derivação (nós = não-terminais da BNF; `./flux --tree`)
 - [ ] `./flux --json` com tokens, erros e árvore
 
 ### 7. Interface

@@ -31,18 +31,18 @@ Tests live in `tests/lexico/` (run with `-t`) and `tests/sintatico/` (run plain)
 
 ## Architecture
 
-Three source files in `src/`, linked into one binary; `build/` holds the generated `lex.yy.c`, `parser.tab.{c,h}` and objects.
+Four source files in `src/` (`lexer.l`, `parser.y`, `main.c`, `tree.c`), linked into one binary; `build/` holds the generated `lex.yy.c`, `parser.tab.{c,h}` and objects.
 
-- `src/lexer.l` (Flex): tracks `line`/`column` itself in `YY_USER_ACTION`, filling `yylloc` and setting `yylval.text` (NULL except for identifiers/literals). Lexical errors L1–L6 are reported from here via `report_error` and returned as `YYerror`.
-- `src/parser.y` (Bison, `%locations`, `%union { char *text; int assignable; }`): a direct transcription of `docs/BNF.txt`, rule by rule, so it is deliberately **LL(1)-shaped** (right-recursive `*_rest`/`*_list_rest` rules, left factoring) rather than idiomatic LALR. The reason: Trabalho 2 requires showing the transformation to LL(1). Keep new rules in that style and with no Bison conflicts.
+- `src/lexer.l` (Flex): tracks `line`/`column` itself in `YY_USER_ACTION`, filling `yylloc`; every returned token goes through `RET(TOKEN)`, which sets `yylval.node` to a leaf `Node` (token name, lexeme, position). Lexical errors L1–L6 are reported from here via `report_error` and returned as `YYerror`.
+- `src/parser.y` (Bison, `%locations`, `%union { struct Node *node; }`: every token and non-terminal carries a `Node *`): a direct transcription of `docs/BNF.txt`, rule by rule, so it is deliberately **LL(1)-shaped** (right-recursive `*_rest`/`*_list_rest` rules, left factoring) rather than idiomatic LALR. The reason: Trabalho 2 requires showing the transformation to LL(1). Keep new rules in that style and with no Bison conflicts. Every alternative has the same action shape, `$$ = mknode("rule_name", n, $1, ..., $n);` (`empty_node()` for ε, `error_node(@k.first_line, @k.first_column)` for the `error` token), so the derivation tree stays faithful to the BNF; `./flux --tree` prints it (`src/tree.c`, `tests/arvore/`).
 - `src/main.c`: option parsing, `report_error` (the single formatter for all `Erro <categoria> [linha L, coluna C]:` messages, shared by lexer and parser through `src/fluxc.h`), and the accept/reject driver.
 
 Two parser mechanisms span several places:
 
 - **Syntax error messages** are produced entirely by `yyreport_syntax_error` at the end of `parser.y`. It takes Bison's expected-token list and collapses complete groups (`EXPRESSION_START`, `TYPE_START`, `COMMAND_KEYWORDS`) into the words `expressão`, `tipo`, `comando`. When adding tokens that begin expressions, types or commands, update those arrays or the messages will silently degrade. `token_name`, `found_name`, `spelling` and `is_keyword` also live there.
-- **S3 check** (invalid assignment target) is done in the grammar actions using the `assignable` semantic value (`%type <assignable>` on the expression rules) and `assign_loc`, not in the grammar itself.
+- **S3 check** (invalid assignment target) is done in the grammar actions using the `flag` field of the expression nodes (1 = can receive an assignment; in `*_rest` nodes it means "an operator appeared") and `assign_loc`, not in the grammar itself.
 
-The parser stays in Bison (decided 2026-11-14: the assignment does not require a hand-written parser). Panic mode is done in `parser.y` as `error` rules (`command`, `global_no_func`, `after_func`; simple version, see docs/ERROS.md section 6); the derivation tree and `--json` come next.
+The parser stays in Bison (decided 2026-11-14: the assignment does not require a hand-written parser). Panic mode is done in `parser.y` as `error` rules (`command`, `global_no_func`, `after_func`; simple version, see docs/ERROS.md section 6); the derivation tree (`--tree`) is done; `--json` and the GUI come next.
 
 Only lexing and parsing exist so far; there is no AST, semantic analysis (E1–E22) or codegen yet. Panic mode (simple `error` rules) and file reading are done; the derivation tree, AST and the GUI are Trabalho 2.
 

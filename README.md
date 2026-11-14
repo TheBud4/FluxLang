@@ -336,7 +336,7 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
 Bison**. O lexer e o parser do Trabalho 1 estão prontos: o compilador
 reporta todos os erros do programa (modo pânico com as regras `error` do
-Bison, versão simples). A árvore sintática ainda será feita.
+Bison, versão simples). A árvore de derivação (`--tree`) sai com um nó por não-terminal da BNF.
 
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes; uma tabulação conta como uma coluna).
@@ -366,6 +366,7 @@ make                            # gera ./flux
 ./flux < programa.flux         # lê da entrada padrão (Trabalho 1)
 ./flux programa.flux           # lê de um arquivo (Trabalho 2)
 ./flux -t programa.flux        # --tokens: lista os tokens reconhecidos
+./flux --tree programa.flux    # imprime a árvore de derivação
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
@@ -381,9 +382,10 @@ sai com código 1 se encontrou algum.
 |---|---|
 | `src/lexer.l` | Analisador léxico (Flex) |
 | `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
-| `src/main.c` | Leitura da entrada, modo `--tokens` e resultado |
+| `src/tree.c`, `src/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
+| `src/main.c` | Leitura da entrada, modos `--tokens` e `--tree` e resultado |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
-| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
+| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
 `src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.
