@@ -19,8 +19,11 @@
  * token. É por isso que as mensagens coincidem com as do Bison (que também
  * adia o erro por causa das reduções ε).
  *
- * Neste estágio o parser para no primeiro erro (como o Trabalho 1). O modo
- * pânico entra depois, trocando o longjmp de fail() por uma recuperação. */
+ * Modo pânico (docs/ERROS.md, seção 6): ao achar um erro, fail() o reporta e
+ * salta (longjmp) para o ponto de recuperação mais interno, que descarta
+ * tokens até um token de sincronização e segue a análise. Há pontos de
+ * recuperação em cada comando de um bloco e em cada declaração global; ver
+ * guarded(), sync_in_block() e sync_global(). */
 
 #include "fluxc.h"
 #include "parser.tab.h" /* só os códigos dos tokens, yylval, yylloc e YYerror */
@@ -33,15 +36,16 @@
 static int tok;          /* o lookahead: token que ainda não foi consumido */
 static YYLTYPE tok_loc;  /* onde ele começa (linha e coluna) */
 static char *tok_text;   /* texto de identificadores e literais, senão NULL */
-static jmp_buf on_error; /* para onde fail() salta ao achar um erro */
+static int tok_index;    /* quantos tokens já foram lidos (posição do lookahead) */
+static int last_error_index = -1; /* posição do último erro reportado */
 
-/* Consome o lookahead e lê o próximo token do lexer. Se o lexer devolver
- * YYerror, ele já imprimiu o erro léxico: só abandonamos o parse, sem
- * segunda mensagem. */
+/* Consome o lookahead e lê o próximo token do lexer. Um erro léxico chega
+ * aqui como o token YYerror: o lexer já imprimiu a mensagem, e o parser o
+ * trata como um token que nada aceita, o que dispara o modo pânico em
+ * fail() sem segunda mensagem. */
 static void advance(void) {
   tok = yylex();
-  if (tok == YYerror)
-    longjmp(on_error, 1);
+  tok_index++;
   tok_loc = yylloc;
   tok_text = yylval.text;
 }
@@ -128,18 +132,45 @@ static void expected_name(int t, char *buf, size_t size) {
 
 /* ---------- Erros ---------- */
 
+/* Pontos de recuperação: handler aponta para o jmp_buf do mais interno
+ * (guarded() empilha e desempilha). */
+static jmp_buf *handler;
+
 /* Erro sintático: "Token encontrado: X / Esperado: Y". Não volta: salta para
- * rd_parse(). */
+ * o ponto de recuperação mais interno. Duas situações não imprimem nada:
+ *  - o lookahead é YYerror: o erro léxico já foi reportado;
+ *  - já houve erro neste mesmo token: seria cascata (ocorre, por exemplo,
+ *    com vários blocos abertos no fim do arquivo). */
 static void fail(const char *expected) {
-  char found[256];
-  found_name(found, sizeof found);
-  const char *hint = "";
-  if (tok == CALL || tok == RUN)
-    hint = " (call e run só aparecem logo depois do '=' de um var ou de uma "
-           "atribuição)";
-  report_error("sintático", tok_loc.first_line, tok_loc.first_column,
-               "Token encontrado: %s\nEsperado: %s%s", found, expected, hint);
-  longjmp(on_error, 1);
+  if (tok != YYerror && tok_index != last_error_index) {
+    char found[256];
+    found_name(found, sizeof found);
+    const char *hint = "";
+    if (tok == CALL || tok == RUN)
+      hint = " (call e run só aparecem logo depois do '=' de um var ou de uma "
+             "atribuição)";
+    report_error("sintático", tok_loc.first_line, tok_loc.first_column,
+                 "Token encontrado: %s\nEsperado: %s%s", found, expected, hint);
+  }
+  last_error_index = tok_index;
+  longjmp(*handler, 1);
+}
+
+/* Roda f() sob um ponto de recuperação. Devolve 1 se f() terminou sem erro e
+ * 0 se algum fail() saltou para cá (o erro já foi impresso): quem chamou
+ * deve então sincronizar. Só globais são alteradas depois do setjmp, então
+ * nada precisa de volatile. */
+static int guarded(void (*f)(void)) {
+  jmp_buf here;
+  jmp_buf *outer = handler;
+  handler = &here;
+  if (setjmp(here) == 0) {
+    f();
+    handler = outer;
+    return 1;
+  }
+  handler = outer;
+  return 0;
 }
 
 /* Consome o token t ou acusa o erro "Esperado: t". */
@@ -175,6 +206,75 @@ static int starts_command(void) {
     return 1;
   default:
     return starts_expression();
+  }
+}
+
+/* ---------- Modo pânico: descartar tokens até poder continuar ---------- */
+
+/* Pula um bloco { ... } inteiro, contando as chaves (chamada com tok == '{').
+ * Sem isso, em "if x > 5 { ... }" o '}' do if fecharia o bloco da função e
+ * geraria erros em cascata. Para no fim do arquivo. */
+static void skip_braces(void) {
+  int depth = 0;
+  do {
+    if (tok == LBRACE)
+      depth++;
+    else if (tok == RBRACE)
+      depth--;
+    advance();
+  } while (depth > 0 && tok != 0);
+}
+
+/* Sincronização dentro de um bloco: chamada depois de um erro num comando.
+ * Descarta tokens até um ponto onde o bloco possa seguir:
+ *   ';'                       consome e segue para o próximo comando
+ *   '}'                       não consome: o bloco termina normalmente
+ *   var const if while for    início de comando: segue a partir dele
+ *   return break continue
+ *   stop abort proceed
+ *   func workflow, fim        o bloco ficou aberto: o erro sobe, sem
+ *                             consumir, até o nível global (rethrow)
+ * IDENTIFIER, literais, '(' e '[' também iniciam comandos, mas aparecem no
+ * meio de expressões e não servem. Como stop, abort e proceed são pontos de
+ * retomada, o 'if' que vem depois deles é consumido pelo próprio comando e
+ * nunca é visto aqui como início de um if. */
+static void sync_in_block(void) {
+  for (;;) {
+    switch (tok) {
+    case SEMICOLON:
+      advance();
+      return;
+    case RBRACE:
+    case VAR: case CONST: case IF: case WHILE: case FOR: case RETURN:
+    case BREAK: case CONTINUE: case STOP: case ABORT: case PROCEED:
+      return;
+    case FUNC: case WORKFLOW: case 0:
+      longjmp(*handler, 1); /* silencioso: o erro já foi reportado */
+    case LBRACE:
+      skip_braces();
+      continue;
+    default:
+      advance();
+    }
+  }
+}
+
+/* Sincronização no nível global: descarta até func, workflow, var, const ou
+ * o fim do arquivo; um ';' é consumido e a análise segue depois dele. */
+static void sync_global(void) {
+  for (;;) {
+    switch (tok) {
+    case FUNC: case WORKFLOW: case VAR: case CONST: case 0:
+      return;
+    case SEMICOLON:
+      advance();
+      return;
+    case LBRACE:
+      skip_braces();
+      continue;
+    default:
+      advance();
+    }
   }
 }
 
@@ -504,14 +604,27 @@ static void constant_declaration(void) {
 
 /* ---------- 5. Comandos ---------- */
 
-/* <commands> ::= <command> <commands> | ε, dentro de <block>. */
 static void command(void);
 
-/* <block> ::= LBRACE <commands> RBRACE */
-static void block(void) {
-  expect(LBRACE);
+/* <commands> ::= <command> <commands> | ε
+ * Roda comandos enquanto o token iniciar um. Se parou em algo que não é '}',
+ * o bloco está quebrado: "Esperado: '}'" (é o que o Bison também diz, ver o
+ * comentário no início do arquivo). */
+static void commands(void) {
   while (starts_command())
     command();
+  if (tok != RBRACE)
+    fail("'}'");
+}
+
+/* <block> ::= LBRACE <commands> RBRACE
+ * O ponto de recuperação dos comandos: se um comando falha, sync_in_block()
+ * descarta tokens e o laço recomeça no próximo comando do MESMO bloco. Erros
+ * dentro de um bloco aninhado são tratados pelo laço do bloco aninhado. */
+static void block(void) {
+  expect(LBRACE);
+  while (!guarded(commands))
+    sync_in_block();
   expect(RBRACE);
 }
 
@@ -521,7 +634,8 @@ static void block(void) {
  * Chamada, atribuição e atribuição múltipla começam todas por uma expressão,
  * então lê-se a expressão primeiro e o token seguinte decide. A checagem S3
  * (alvo inválido) fica para depois do ';', como no Bison: um erro de sintaxe
- * mais adiante no mesmo comando tem prioridade. */
+ * mais adiante no mesmo comando tem prioridade (e, com o pânico, o S3 desse
+ * comando nem chega a ser reportado). */
 static void command_expression(void) {
   int assignable = expression();
   int has_assign = 0;
@@ -542,12 +656,12 @@ static void command_expression(void) {
   }
   expect(SEMICOLON);
 
-  if (has_assign && !assignable) {
+  /* O comando já terminou (o ';' foi consumido), então não há o que
+   * sincronizar: reporta e segue para o próximo. */
+  if (has_assign && !assignable)
     report_error("sintático", assign_loc.first_line, assign_loc.first_column,
                  "Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é "
                  "variável, campo ou índice)");
-    longjmp(on_error, 1);
-  }
 }
 
 /* <command> ::= declarações | if | while | for | return | break | continue
@@ -662,19 +776,25 @@ static int global_no_func(void) {
   }
 }
 
+static int main_seen; /* já passou pelo "func main"? */
+static int at_end;    /* já chegou ao fim do arquivo depois da main? */
+
 /* <after_main> ::= <global_no_func> <after_main>
  *                | FUNC IDENTIFIER <function_rest> <after_main> | ε
- * Depois da main, MAIN não é mais aceito: é isso que a torna única. */
-static void after_main(void) {
-  for (;;) {
-    if (global_no_func())
-      continue;
-    if (tok != FUNC)
-      return; /* ε: quem chamou confere o fim do arquivo */
+ * Depois da main, MAIN não é mais aceito: é isso que a torna única. Uma
+ * chamada processa um item; o ε (fim do arquivo) marca at_end. */
+static void after_main_item(void) {
+  if (global_no_func())
+    return;
+  if (tok == FUNC) {
     advance();
     expect(IDENTIFIER);
     function_rest();
+    return;
   }
+  if (tok != 0)
+    fail("fim do arquivo"); /* <program> ::= <before_main> EOF */
+  at_end = 1;
 }
 
 /* <before_main> ::= <global_no_func> <before_main> | FUNC <after_func>
@@ -682,37 +802,56 @@ static void after_main(void) {
  *                 | IDENTIFIER <function_rest> <before_main>
  *
  * O FUNC é fatorado: sozinho, ele não diz se vem uma função ou a main. O
- * token depois dele decide (MAIN ou IDENTIFIER). Um laço só cobre
- * <before_main> e <after_func>, que se chamam em círculo até achar a main. */
-static void before_main(void) {
-  for (;;) {
-    if (global_no_func())
-      continue;
-    if (tok != FUNC)
-      fail(EXPECT_GLOBAL);
+ * token depois dele decide (MAIN ou IDENTIFIER). <before_main> e <after_func>
+ * se chamam em círculo até achar a main; uma chamada processa um item. */
+static void before_main_item(void) {
+  if (global_no_func())
+    return;
+  if (tok != FUNC)
+    fail(EXPECT_GLOBAL);
+  advance();
+  if (tok == MAIN) {
+    main_seen = 1; /* mesmo se a main tiver erro, o resto vem depois dela */
     advance();
-    if (tok == MAIN) {
-      advance();
-      expect(LPAREN);
-      expect(RPAREN);
-      block();
-      return;
+    expect(LPAREN);
+    expect(RPAREN);
+    block();
+    return;
+  }
+  if (tok != IDENTIFIER)
+    fail(EXPECT_MAIN_OR_NAME);
+  advance();
+  function_rest();
+}
+
+/* O ponto de recuperação global: cada item (declaração, função, workflow)
+ * roda sob guarded(); se falha, sync_global() descarta até o próximo item. */
+static void globals(void) {
+  while (!main_seen) {
+    if (!guarded(before_main_item)) {
+      sync_global();
+      if (tok == 0)
+        return; /* acabou sem main: o erro já foi reportado */
     }
-    if (tok != IDENTIFIER)
-      fail(EXPECT_MAIN_OR_NAME);
-    advance();
-    function_rest();
+  }
+  while (!at_end) {
+    if (!guarded(after_main_item)) {
+      sync_global();
+      if (tok == 0)
+        return;
+    }
   }
 }
 
-/* <program> ::= <before_main> EOF */
+/* <program> ::= <before_main> EOF
+ * Devolve 0 se o programa foi aceito e 1 se houve algum erro (léxico ou
+ * sintático): o parser segue até o fim do arquivo para reportar todos. */
 int rd_parse(void) {
-  if (setjmp(on_error))
-    return 1; /* fail() ou o lexer já imprimiram o erro */
+  jmp_buf top; /* rede de segurança: todo fail() cai num guarded() antes */
+  handler = &top;
+  if (setjmp(top))
+    return 1;
   advance();
-  before_main();
-  after_main();
-  if (tok != 0)
-    fail("fim do arquivo");
-  return 0;
+  globals();
+  return error_total() > 0;
 }

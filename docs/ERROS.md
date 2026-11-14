@@ -194,8 +194,9 @@ em cascata.
 
 Os tokens de sincronização vêm dos conjuntos FOLLOW da BNF: `;` e `}`
 fecham comandos e blocos, e as palavras reservadas abaixo iniciam um
-comando ou elemento global. A exceção é o `if` de `stop if`, `abort if` e
-`proceed if`, que vem logo depois da palavra que abre o comando.
+comando ou elemento global. `stop`, `abort` e `proceed` estão entre elas,
+então o `if` de `stop if` nunca é visto como início de um `if`: o comando
+`stop if e;` é retomado desde o `stop`.
 
 **Erro léxico:** o lexer reporta o erro, descarta o caractere ou lexema
 inválido e entrega ao parser um token de erro. O parser entra em modo

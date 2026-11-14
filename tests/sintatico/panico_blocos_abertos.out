@@ -1,0 +1,5 @@
+Erro sintático [linha 4, coluna 1]:
+Token encontrado: fim do arquivo
+Esperado: '}'
+Programa rejeitado.
+[código 1]

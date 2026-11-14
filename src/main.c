@@ -20,6 +20,8 @@ void report_error(const char *kind, int line, int column, const char *fmt,
   error_count++;
 }
 
+int error_total(void) { return error_count; }
+
 static void help(void) {
   printf("Uso: ./flux [opções] [arquivo.flux]\n"
          "Sem arquivo, lê o programa da entrada padrão.\n"

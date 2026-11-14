@@ -1,0 +1,8 @@
+Erro sintático [linha 1, coluna 12]:
+Token encontrado: ';'
+Esperado: '='
+Erro sintático [linha 2, coluna 9]:
+Token encontrado: ';'
+Esperado: expressão, 'call' ou 'run'
+Programa rejeitado.
+[código 1]
