@@ -58,8 +58,8 @@ erro, quando o token encontrado é `call` ou `run` a mensagem ganha a
 explicação `(call e run só aparecem logo depois do '=' de um var ou de uma
 atribuição)`.
 
-No Bison, as mensagens padrão são em inglês. O `src/parser.y` vai usar
-`%define parse.error custom` e escrever as mensagens em
+No Bison, as mensagens padrão são em inglês. O `src/parser.y` usa
+`%define parse.error custom` e escreve as mensagens em
 `yyreport_syntax_error`, com a lista de tokens esperados vinda de
 `yypcontext_expected_tokens`. A ordem da lista segue a ordem das
 declarações `%token`.
@@ -131,8 +131,8 @@ Casos comuns (mensagens esperadas):
 | Tipo faltando | `var x: = 1;` | `'='` | `tipo` |
 | Palavra reservada como nome | `var list:int;` | `palavra reservada 'list'` | `identificador` |
 
-Cada linha desta tabela e da tabela de erros léxicos deve virar um caso
-em `tests/casos/`, conferido com `make test`.
+Cada linha desta tabela e da tabela de erros léxicos tem um caso em
+`tests/sintatico/` ou `tests/lexico/`, conferido com `make test`.
 
 ## 4. Erros semânticos
 
@@ -172,20 +172,19 @@ estejam sozinhos do lado direito do `=` já é garantido pela gramática.
 ## 5. Erros do exemplo inválido
 
 [`exemplos/invalido.flux`](exemplos/invalido.flux) tem sete erros, cada
-um numa linha marcada com comentário. As posições foram calculadas a
-partir do arquivo, e as mensagens seguem as seções 1 a 3. Quando o
-`flux` existir, elas devem ser conferidas isolando um erro por vez (com
-os outros seis corrigidos):
+um numa linha marcada com comentário. As mensagens seguem as seções 1 a
+3, e as posições foram conferidas com o `flux` em 02/10/2026, isolando um
+erro por vez (com os outros seis corrigidos):
 
 | # | Linha:coluna | Classe | Mensagem | Causa |
 |---|---|---|---|---|
-| 1 | 4:20 | Sintático | `Token encontrado: ';'` / `Esperado: '='` | `const` exige valor inicial |
-| 2 | 16:5 | Sintático | `Token encontrado: palavra reservada 'stop'` / `Esperado: ';'` | Falta `;` depois do `}` do `run` (linha 15): a instrução que contém `run` termina com `;` |
-| 3 | 21:24 | Léxico | `Caractere não reconhecido: '@'` | `@` não pertence ao alfabeto da linguagem |
-| 4 | 22:9 | Léxico | `Número malformado: '2itens'` | Identificador não pode começar com dígito |
-| 5 | 27:12 | Sintático | `Token encontrado: palavra reservada 'if'` / `Esperado: '{'` | Não existe `else if`: aninhe o `if` dentro do bloco do `else` |
-| 6 | 31:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
-| 7 | 32:16 | Sintático (S3) | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` | Chamada de função não pode receber atribuição |
+| 1 | 3:20 | Sintático | `Token encontrado: ';'` / `Esperado: '='` | `const` exige valor inicial |
+| 2 | 15:5 | Sintático | `Token encontrado: palavra reservada 'stop'` / `Esperado: ';'` | Falta `;` depois do `}` do `run` (linha 14): a instrução que contém `run` termina com `;` |
+| 3 | 20:24 | Léxico | `Caractere não reconhecido: '@'` | `@` não pertence ao alfabeto da linguagem |
+| 4 | 21:9 | Léxico | `Número malformado: '2itens'` | Identificador não pode começar com dígito |
+| 5 | 26:12 | Sintático | `Token encontrado: palavra reservada 'if'` / `Esperado: '{'` | Não existe `else if`: aninhe o `if` dentro do bloco do `else` |
+| 6 | 30:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
+| 7 | 31:16 | Sintático (S3) | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` | Chamada de função não pode receber atribuição |
 
 No Trabalho 1, o compilador reporta só o erro 1 (o primeiro da entrada).
 Com o modo pânico do Trabalho 2, ele deverá reportar os sete, sem erros
@@ -217,7 +216,7 @@ aparecem no meio de expressões, então não servem para sincronizar. `call`
 e `run` só aparecem depois de um `=`, no meio do comando, e também não
 servem.
 
-**Erro sintático no nível global** (`<declaration_list>`): descarta tokens até
+**Erro sintático no nível global** (`<before_main>` e `<after_main>`): descarta tokens até
 `func`, `workflow`, `var`, `const` ou fim do arquivo. Se encontrar `;`,
 consome e continua.
 
@@ -231,12 +230,12 @@ o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 No Bison, esses pontos viram regras com o token `error`, por exemplo
 `command: error SEMICOLON` e `declaration: error SEMICOLON`, com
 `yyerrok` na ação. Num parser descendente recursivo, cada função de
-`<commands>` e `<declaration_list>` recebe o conjunto de sincronização acima.
+`<commands>`, `<before_main>` e `<after_main>` recebe o conjunto de sincronização acima.
 
 ## 7. Erros em tempo de execução
 
-Só aparecem quando o programa é executado, por exemplo com a geração de
-código C (ponto extra do Trabalho 2). São de dois tipos.
+Só aparecem quando o programa é executado, depois que existir geração de
+código. São de dois tipos.
 
 **Erros tratáveis:** só `run` e `call` devolvem erro, no par
 `(resultado, erro)`, e ele deve ser tratado com `stop if`, `abort if` ou

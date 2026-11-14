@@ -334,12 +334,15 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 ## 9. Implementação
 
 O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
-Bison**. O lexer está pronto; o parser ainda só declara os tokens.
+Bison**. O lexer e o parser do Trabalho 1 estão prontos: o compilador
+para no primeiro erro. No Trabalho 2, o parser será reescrito como
+descendente recursivo, com modo pânico e árvore sintática.
 
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes; uma tabulação conta como uma coluna).
-- Mapeamento de tipos: `int` → `int`, `float` → `double`,
-  `bool` → `int` (`1`/`0`), `string` → `char *`.
+- A geração de código ainda não existe. A representação dos tipos na
+  execução será definida junto com ela (o alvo planejado é x86-64
+  nativo, sem passar por C).
 - Mensagens de erro em português, citando o token encontrado e o
   esperado, na saída de erro. Formato, catálogo e modo pânico estão em
   [`ERROS.md`](docs/ERROS.md).
@@ -355,7 +358,8 @@ Esperado: '='
 
 ### Compilar e usar
 
-Exige `gcc` (ou `clang`), `flex`, `bison` 3.6+ e `make`.
+Exige `gcc` (ou `clang`), `flex`, `bison` 3.6+ e GNU `make` 4.3+ (o
+`Makefile` usa alvos agrupados, `&:`).
 
 ```sh
 make                            # gera ./flux

@@ -65,29 +65,40 @@
 - [x] Slides da linguagem
 - [x] Slides da implementação
 - [x] Demonstração com `valido.flux` e `invalido.flux`
-- [ ] Ensaio com o grupo
+- [x] Ensaio com o grupo
+
+## Pendências da auditoria (02/10)
+
+Auditoria de 02/10 (a pasta foi removida em 12/11; a lista abaixo é o que sobrou). A parte de
+documentação já foi feita; o que envolve código ou BNF fica com você.
+
+- [ ] Perguntar ao professor: o pânico "análogo ao código feito em sala", o que ele entende por "árvore sintática" e o formato da demonstração LL(1)
+- [ ] Alinhar `tests/sintatico/invalido_erroN.flux` ao `invalido.flux` atual (eles têm uma linha vazia a mais) e conferir os `.out` com as posições da seção 5 do ERROS.md
+- [ ] Testes positivos que faltam: declarações depois da `main`, `var` global, `[]`, `{}`, função sem parâmetros, `return;` e o operador `>`
+- [ ] Alvo `make asan` e `-g` no `Makefile`
+- [ ] Decidir se `build/`, `flux` e `compile_commands.json` continuam versionados (hoje estão também no `.gitignore`)
+- [ ] Decidir se as decisões da spec viram um `docs/DECISOES.md` versionado
+- [ ] Antes da análise semântica: decisões D1 a D8 (seção 4 da auditoria)
 
 ## Trabalho 2 (26/11/2026)
 
 ### 6. Compilador
 
-- [ ] Leitura de arquivo (`./flux programa.flux`)
-- [ ] Lexer entregando token de erro sem segunda mensagem
+- [x] Leitura de arquivo (`./flux programa.flux`)
+- [ ] Parser descendente recursivo escrito à mão (substitui o Bison; `parser.y` fica de referência até passar nos mesmos testes)
 - [ ] Modo pânico no parser (seção 6 do ERROS.md)
 - [ ] Pular blocos `{ ... }` com chaves balanceadas ao descartar tokens
+- [ ] Lexer entregando token de erro sem segunda mensagem
 - [ ] Conferir que `invalido.flux` reporta os 7 erros sem cascata
-- [ ] Definir a forma dos nós da AST
-- [ ] Construir a AST nas ações do parser
-- [ ] Definir como a interface recebe tokens, erros e AST do compilador
+- [ ] Árvore de derivação (nós = não-terminais da BNF)
+- [ ] `./flux --json` com tokens, erros e árvore
 
 ### 7. Interface
 
-- [ ] Escolher a tecnologia
-- [ ] Exibir o código
-- [ ] Contagem de linhas
+- [ ] Interface web local que chama o `./flux --json`
+- [ ] Exibir o código e a contagem de linhas
 - [ ] Tokens reconhecidos
-- [ ] Aceito / rejeitado
-- [ ] Mensagens de erro
+- [ ] Aceito / rejeitado e mensagens de erro
 - [ ] Árvore sintática
 - [ ] Documentar a interface no README
 
