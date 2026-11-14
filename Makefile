@@ -5,6 +5,7 @@
 #   make lexer     só o lexer:  src/lexer.l  -> build/lex.yy.o
 #   make main      só o main:   src/main.c   -> build/main.o
 #   make tree      só a árvore: src/tree.c   -> build/tree.o
+#   make json      só o --json: src/json.c   -> build/json.o
 #   make clean     apaga o que foi gerado
 #   make test      compila e roda os casos de tests/ (tests/run.sh)
 #   make bear      recompila tudo e gera compile_commands.json (para o clangd)
@@ -18,9 +19,10 @@ parser: build/parser.tab.o
 lexer:  build/lex.yy.o
 main:   build/main.o
 tree:   build/tree.o
+json:   build/json.o
 
 # Ligação: junta as três partes no executável
-flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o
+flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o build/json.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Parser: o bison gera o .c e o .h (lista de tokens) de uma vez só
@@ -51,4 +53,4 @@ clean:
 bear:
 	bear -- $(MAKE) -B all
 
-.PHONY: all parser lexer main tree test clean bear
+.PHONY: all parser lexer main tree json test clean bear

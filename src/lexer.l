@@ -16,6 +16,7 @@
        valor semântico: é o que vira folha da árvore de derivação. */
     #define RET(t) do { \
         yylval.node = token_node(#t, yytext, yylloc.first_line, yylloc.first_column); \
+        json_record_token(#t, yytext, yylloc.first_line, yylloc.first_column); \
         return t; \
     } while (0)
 
@@ -204,4 +205,11 @@ static int count_chars(const char *s, int n) {
         if ((s[i] & 0xC0) != 0x80)
             count++;
     return count;
+}
+
+/* Depois de ler tudo: line é a linha do fim; se o código termina em '\n',
+   o fim está na coluna 1 de uma linha que não tem nada. */
+int source_lines(void) {
+    if (line == 1 && column == 1) return 0;
+    return column == 1 ? line - 1 : line;
 }
