@@ -1,5 +1,6 @@
 #include "fluxc.h"
 #include "parser.tab.h"
+#include "ast.h"
 #include "tree.h"
 #include <stdarg.h>
 #include <stdio.h>
@@ -35,6 +36,7 @@ static void help(void) {
          "  -t, --tokens   lista os tokens reconhecidos (só o lexer)\n"
          "  --tree         imprime a árvore de derivação\n"
          "  --json         imprime tokens, erros e árvore em JSON\n"
+         "  --ast          imprime a AST (a árvore sem a burocracia da gramática)\n"
          "  -h, --help     mostra esta mensagem\n");
 }
 
@@ -56,6 +58,7 @@ int main(int argc, char **argv) {
   int token_mode = 0;
   int tree_mode = 0;
   int json_mode = 0;
+  int ast_mode = 0;
   const char *file = NULL;
 
   for (int i = 1; i < argc; i++) {
@@ -63,6 +66,8 @@ int main(int argc, char **argv) {
       token_mode = 1;
     } else if (strcmp(argv[i], "--json") == 0) {
       json_mode = 1;
+    } else if (strcmp(argv[i], "--ast") == 0) {
+      ast_mode = 1;
     } else if (strcmp(argv[i], "--tree") == 0) {
       tree_mode = 1;
     } else if (strcmp(argv[i], "--help") == 0 || strcmp(argv[i], "-h") == 0) {
@@ -100,6 +105,11 @@ int main(int argc, char **argv) {
   }
   if (tree_mode)
     print_tree(parse_root, stdout);
+  if (ast_mode && parsed == 0 && error_count == 0) {
+    Program *program = build_ast(parse_root);
+    if (program)
+      ast_print(program, stdout);
+  }
   if (parsed == 0 && error_count == 0) {
     printf("Programa aceito.\n");
     return 0;

@@ -6,6 +6,7 @@
 #   make main      só o main:   src/main.c   -> build/main.o
 #   make tree      só a árvore: src/tree.c   -> build/tree.o
 #   make json      só o --json: src/json.c   -> build/json.o
+#   make ast       só a AST: src/ast.c, ast_build.c e types.c
 #   make clean     apaga o que foi gerado
 #   make test      compila e roda os casos de tests/ (tests/run.sh)
 #   make asan      recompila com AddressSanitizer + UBSan, roda os testes e volta ao build normal
@@ -22,9 +23,10 @@ lexer:  build/lex.yy.o
 main:   build/main.o
 tree:   build/tree.o
 json:   build/json.o
+ast:    build/ast.o build/ast_build.o build/types.o
 
 # Ligação: junta as três partes no executável
-flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o build/json.o
+flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o build/json.o build/types.o build/ast.o build/ast_build.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Parser: o bison gera o .c e o .h (lista de tokens) de uma vez só
@@ -39,7 +41,7 @@ build/lex.yy.c: src/lexer.l build/parser.tab.h | build
 build/%.o: build/%.c build/parser.tab.h src/fluxc.h src/tree.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-build/%.o: src/%.c build/parser.tab.h src/fluxc.h src/tree.h | build
+build/%.o: src/%.c build/parser.tab.h src/fluxc.h src/tree.h src/ast.h src/types.h | build
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 build:
@@ -71,4 +73,4 @@ web: flux
 bear:
 	bear -- $(MAKE) -B all
 
-.PHONY: all parser lexer main tree json test clean bear web asan
+.PHONY: all parser lexer main tree json ast test clean bear web asan

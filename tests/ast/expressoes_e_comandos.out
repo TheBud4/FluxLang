@@ -1,0 +1,76 @@
+Program
+  Func main()
+    Block
+      Var x
+        Values
+          Binary -
+            Binary +
+              Int 1
+              Binary *
+                Int 2
+                Int 3
+            Int 4
+      Var b
+        Values
+          Binary ||
+            Binary &&
+              Unary !
+                Ident a
+              Binary <
+                Unary -
+                  Ident c
+                Int 2
+            Field f
+              Call
+                Index
+                  Field e
+                    Ident d
+                  Int 0
+                Int 1
+                Int 2
+      Var l
+        Values
+          List
+            Int 1
+            List
+              Int 2
+              Int 3
+      Var o
+        Values
+          Object
+            Key a
+              Int 1
+            Key b-c
+              Object
+                Key d
+                  Null
+      Var r e
+        Run
+          Object
+            Key command
+              String "ls"
+            Key flags
+              List
+                String "-l"
+      Var s t
+        CallWorkflow build
+          String "x"
+          Int 2
+      For item
+        Ident l
+        Block
+          If
+            Binary ==
+              Ident item
+              Int 1
+            Block
+              Break
+            Else
+              Block
+                Continue
+      While
+        Bool true
+        Block
+          Stop if e
+Programa aceito.
+[código 0]

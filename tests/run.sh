@@ -5,6 +5,7 @@
 #   tests/sintatico/*.flux  Runs: ./flux    (lexer + parser)
 #   tests/arvore/*.flux     Runs: ./flux --tree (parse tree, plus the accept/reject line)
 #   tests/json/*.flux       Runs: ./flux --json (tokens, errors and tree as JSON)
+#   tests/ast/*.flux        Runs: ./flux --ast (the AST)
 #
 #   Usage:
 #   tests/run.sh             Compare all the cases
@@ -20,12 +21,13 @@ run_case() {
 passed=0
 failed=0
 
-for dir in lexico sintatico arvore json; do
+for dir in lexico sintatico arvore json ast; do
   [ -d "tests/$dir" ] || continue
   flags=""
   [ "$dir" = lexico ] && flags="-t"
   [ "$dir" = arvore ] && flags="--tree"
   [ "$dir" = json ] && flags="--json"
+  [ "$dir" = ast ] && flags="--ast"
 
   for src in tests/$dir/*.flux; do
     [ -e "$src" ] || continue
