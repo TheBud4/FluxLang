@@ -249,11 +249,24 @@ só reportaria de novo depois de 3 tokens lidos com sucesso. Um erro léxico
 entra como o token `YYerror`, sem segunda mensagem. O erro S3 só reporta
 (o comando já terminou) e o programa fica rejeitado.
 
-O que a versão simples ainda **não** faz, em relação ao texto acima:
-retomar a análise em `}` e nas palavras que iniciam comando (ela descarta
-até o próximo `;` ou bloco) e voltar ao nível global em `func`/`workflow`.
-Por isso um bloco de função aberto engole as funções seguintes e gera
-erros extras no fim do arquivo.
+O que a versão simples **não** faz, em relação ao texto acima: retomar a
+análise em `}` e nas palavras que iniciam comando (ela descarta até o
+próximo `;` ou bloco) e voltar ao nível global em `func`/`workflow`. Por
+isso um bloco de função aberto engole as funções seguintes e gera erros
+extras no fim do arquivo, e um `;` esquecido antes de um `}` também.
+
+Isso foi tentado e medido em 14/11/2026, e **não compensa**. Um filtro de
+tokens entre o lexer e o parser (entregava um `;` falso ao parser, depois o
+token verdadeiro, e os `}` que faltavam ao achar `func`) resolvia os dois
+casos acima, mas, em 3.950 programas obtidos por mutação de um programa
+válido, reportou mais erros que a versão simples em todos os tipos de
+mutação (esquecer um token: 983 contra 1.180; token repetido: 932 contra
+1.253; troca por palavra reservada: 1.029 contra 2.251). Retomar em palavra
+de comando ou em `}` falha quando o erro está dentro de uma expressão com
+chaves, como um literal de objeto (`run { command: "npm", ... }`): o resto
+do objeto passa a ser lido como comandos e o `}` do objeto fecha o bloco
+errado. Restringir a retomada a `}` e `func`/`workflow` não ajudou. A
+versão simples (regras `error` + bloco lido inteiro) foi mantida.
 
 ## 7. Erros em tempo de execução
 

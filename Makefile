@@ -8,11 +8,12 @@
 #   make json      só o --json: src/json.c   -> build/json.o
 #   make clean     apaga o que foi gerado
 #   make test      compila e roda os casos de tests/ (tests/run.sh)
+#   make asan      recompila com AddressSanitizer + UBSan, roda os testes e volta ao build normal
 #   make web       sobe a interface web (npm, Vite): http://127.0.0.1:5173
 #   make bear      recompila tudo e gera compile_commands.json (para o clangd)
 
 CC     = gcc
-CFLAGS = -Wall -Isrc -Ibuild
+CFLAGS = -Wall -g -Isrc -Ibuild
 
 all: flux
 
@@ -50,6 +51,18 @@ test: flux
 clean:
 	rm -f build/* flux
 
+# AddressSanitizer e UBSan pegam acesso fora dos limites, uso depois de liberar
+# e comportamento indefinido. A árvore de derivação nunca é liberada (vive até
+# o fim do processo), então a detecção de vazamento fica desligada.
+# Precisa dos pacotes libasan e libubsan (Fedora: sudo dnf install libasan libubsan).
+# Mesmo que o build ou os testes falhem, o build normal é restaurado no fim.
+asan:
+	$(MAKE) clean
+	@status=0; \
+	$(MAKE) CFLAGS='-Wall -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Ibuild' flux \
+	  && ASAN_OPTIONS=detect_leaks=0 bash tests/run.sh || status=1; \
+	$(MAKE) clean; $(MAKE) flux; exit $$status
+
 web: flux
 	npm --prefix web install
 	npm --prefix web run dev
@@ -58,4 +71,4 @@ web: flux
 bear:
 	bear -- $(MAKE) -B all
 
-.PHONY: all parser lexer main tree json test clean bear web
+.PHONY: all parser lexer main tree json test clean bear web asan

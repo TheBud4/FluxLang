@@ -1,4 +1,4 @@
-Erro sintático [linha 32, coluna 16]:
+Erro sintático [linha 31, coluna 16]:
 Token encontrado: '='
 Esperado: ';' (o lado esquerdo não é variável, campo ou índice)
 Programa rejeitado.

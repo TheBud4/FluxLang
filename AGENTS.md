@@ -74,9 +74,10 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
 - Trabalho 1 entregue em 01/10. O parser continua em Bison (decisão de
   14/11: o enunciado não exige parser escrito à mão). O modo pânico
   simples está pronto (regras `error` em `command`, `global_no_func` e
-  `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Falta
-  retomar em `}`/palavras de comando e em `func`/`workflow` (ver ERROS.md,
-  seção 6). A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`, `make web`) estão prontos. Faltam: os slides (linguagem, pânico, interface), o ensaio e, se der tempo, o refinamento do pânico. A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
+  `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Retomar em `}`/palavras de comando/`func` foi
+  testado e piora as cascatas (medição em ERROS.md, seção 6): não repetir.
+  A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`,
+  `make web`) estão prontos. Fora do código, faltam os slides e o ensaio (outras pessoas). A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem
@@ -193,9 +194,8 @@ vão até 2147483647. `&` e `|` sozinhos são erro. Pelo maior casamento,
 seguido de `Token encontrado: X` / `Esperado: Y`. Quando todos os tokens
 de uma categoria cabem, a lista vira uma palavra: `Esperado: expressão`,
 `tipo` ou `comando`. O T1 parava no primeiro erro; hoje há modo pânico
-simples (regras `error`: sincroniza em `;` ou lendo um bloco `{ }` inteiro;
-o refinamento com `}`, palavras de comando e `func`/`workflow` está em
-ERROS.md, seção 6).
+simples (regras `error`: sincroniza em `;` ou lendo um bloco `{ }` inteiro).
+O refinamento da seção 6 do ERROS.md foi medido e descartado.
 
 **Geração de código:** ainda não existe. O alvo planejado é x86-64
 nativo, sem passar por C; a representação dos tipos na execução será

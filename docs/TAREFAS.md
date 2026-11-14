@@ -87,7 +87,7 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 - [x] Leitura de arquivo (`./flux programa.flux`)
 - [x] Modo pânico no parser, com regras `error` do Bison (seção 6 do ERROS.md; versão simples)
 - [x] Pular blocos `{ ... }` ao descartar tokens (`error block`: o bloco é lido inteiro)
-- [ ] Refinar o pânico: retomar em `}` e nas palavras de comando, e voltar ao nível global em `func`/`workflow` (opcional)
+- [x] Refinar o pânico (retomar em `}`, palavras de comando e `func`): testado, aumenta os erros em cascata; versão simples mantida (medição em ERROS.md, seção 6)
 - [x] Lexer entregando token de erro sem segunda mensagem
 - [x] Conferir que `invalido.flux` reporta os 7 erros sem cascata
 - [x] Árvore de derivação (nós = não-terminais da BNF; `./flux --tree`)
