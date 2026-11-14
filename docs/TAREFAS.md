@@ -78,7 +78,7 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 - [x] Alvo `make asan` e `-g` no `Makefile` (o `asan` precisa de `sudo dnf install libasan libubsan`; ainda não rodou neste computador)
 - [ ] Decidir se `build/`, `flux` e `compile_commands.json` continuam versionados (hoje estão também no `.gitignore`)
 - [ ] Decidir se as decisões da spec viram um `docs/DECISOES.md` versionado
-- [ ] Antes da análise semântica: decisões D1 a D8 (seção 4 da auditoria)
+- [x] Antes da análise semântica: decisões D1 a D8 (as originais da auditoria se perderam; as oito foram refeitas e decididas em 14/11, ver README e AGENTS.md)
 
 ## Trabalho 2 (26/11/2026)
 
@@ -118,4 +118,4 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 - [x] Realce das linhas com erro na interface
 - [ ] Análise semântica (E1–E22)
 - [ ] Geração de código C e chamada do `gcc`
-- [ ] Checagens de execução R1–R5 no código gerado
+- [ ] Checagens de execução R1–R6 no código gerado

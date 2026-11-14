@@ -49,4 +49,4 @@ Only lexing and parsing exist so far; there is no AST, semantic analysis (E1–E
 
 ## Docs that must stay consistent
 
-A language decision must appear in `README.md` (the language spec), `docs/ERROS.md` (error catalog: L1–L6 lexical, S1–S3 syntactic, E1–E22 semantic, R1–R5 runtime, with the 7-error `invalido.flux` described in section 5), `docs/exemplos/*.flux`, and as a `[pendente]` in the BNF. README links use the `docs/` prefix; ERROS.md links are relative to `docs/`. `docs/TAREFAS.md` is the checklist to the deadlines.
+A language decision must appear in `README.md` (the language spec), `docs/ERROS.md` (error catalog: L1–L6 lexical, S1–S3 syntactic, E1–E22 semantic, R1–R6 runtime, with the 7-error `invalido.flux` described in section 5), `docs/exemplos/*.flux`, and as a `[pendente]` in the BNF. README links use the `docs/` prefix; ERROS.md links are relative to `docs/`. `docs/TAREFAS.md` is the checklist to the deadlines.

@@ -169,6 +169,14 @@ implementados.
 | E21 | Número de argumentos errado | `soma(1)` para `func soma(a:int, b:int)` | `'soma' espera 2 argumentos, recebeu 1.` |
 | E22 | Chamada de algo que não é função nem método | `idade.push(1)` (int), `terminal.foo()`, `user.name()` | `'idade' não tem o método 'push'.` |
 
+Decisões de 14/11 que afetam esta tabela (detalhes na seção 8 do README):
+valor de campo de `object` é dinâmico e passa em E4 e E5 (conferido em R5);
+globais valem em todo o arquivo, então E2 também vale para um local que
+reusa o nome de um global declarado depois; para E3 e E20, um caminho que
+termina em `return`, `break` ou `continue` conta, e código inalcançável não
+é erro; `toInt`, `toFloat` e `toBool` só aceitam as entradas da seção 4 do
+README (outro tipo de argumento é E4).
+
 Sobre E7: `call` e `run` produzem **dois** valores (resultado, erro), então
 exigem exatamente duas variáveis: `var r, e = call build(x);`. Que eles
 estejam sozinhos do lado direito do `=` já é garantido pela gramática.
@@ -290,6 +298,7 @@ a mensagem na saída de erro e código de saída 1.
 | R3 | Uso inválido de `null` | `user.name` com `user` valendo `null` | `Uso de valor null.` |
 | R4 | Divisão inteira por zero | `10 / 0`, `10 % 0` | `Divisão por zero.` |
 | R5 | Valor de campo com tipo diferente do esperado | `var n:int = user.name;` com `name` valendo uma string; `user.name.x` | `Esperado int, encontrado string.` |
+| R6 | Estouro de `int` (32 bits) | `2147483647 + 1`, `-x` com `x` valendo -2147483648 | `Estouro de inteiro.` |
 
 ```text
 Erro de execução [linha 12]:

@@ -110,8 +110,9 @@ headers["Authorization"] = "Bearer abc";
 
 - Os campos são dinâmicos: guardam valores de qualquer tipo, e o
   compilador não conhece o tipo de `user.age`. Um valor lido de um campo
-  pode ser usado onde qualquer tipo é esperado, e o tipo real é conferido
-  na execução. Por isso, `var x = user.age;` não serve: declare o tipo
+  é *dinâmico*: pode ser usado onde qualquer tipo é esperado (operadores,
+  condições, argumentos), o resultado de uma operação com ele também é
+  dinâmico, e o tipo real é conferido na execução. Por isso, `var x = user.age;` não serve: declare o tipo
   (`var x:int = user.age;`).
 - Atribuir a um campo que não existe cria o campo; ler um campo que não
   existe devolve `null`.
@@ -120,6 +121,10 @@ headers["Authorization"] = "Bearer abc";
   sem quebrar o código existente.
 
 Em listas e objetos, a vírgula após o último elemento é opcional.
+
+`list` e `object` são **referências**: `var b = a;` e passar `a` a uma
+função não copiam nada, então mudar um muda o outro (`b.push(1)` também
+altera `a`). `int`, `float`, `bool` e `string` são por valor.
 
 ## 3. Controle de fluxo e expressões
 
@@ -150,8 +155,13 @@ Tipos aceitos pelos operadores:
 | `%` | `int` | `int` |
 | `-` (unário) | `int` ou `float` | o mesmo tipo |
 | `<` `>` `<=` `>=` | `int` ou `float` | `bool` |
-| `==` `!=` | dois valores do mesmo tipo, ou qualquer valor e `null`; `list` e `object` só com `null` | `bool` |
+| `==` `!=` | dois valores do mesmo tipo (`int` e `float` também, promovendo o `int`: `1 == 1.0` é `true`), ou qualquer valor e `null`; `list` e `object` só com `null` | `bool` |
 | `&&` `\|\|` `!` | `bool` | `bool` |
+
+O `int` tem 32 bits (o `int` do C) e um resultado que estoura o intervalo
+encerra o programa com erro de execução (`2147483647 + 1`). O `float` segue
+o padrão IEEE: `1.0 / 0.0` é infinito e `0.0 / 0.0` é NaN, sem erro.
+Divisão e resto inteiros por zero encerram o programa.
 
 A única conversão implícita é de `int` para `float`, em operadores e em
 atribuições: `1 + 2.5` é `float` e `var f:float = 3;` é aceito, mas
@@ -173,9 +183,15 @@ while (ativo) {
 ## 4. Terminal e conversões
 
 - `terminal` concentra entrada e saída: `log`, `info`, `warn`, `error` e `input`.
+- `terminal.log`, `info`, `warn` e `error` aceitam um valor de qualquer
+  tipo e o imprimem como o `toString` faria.
 - `terminal.input(...)` sempre retorna `string`.
-- Conversões explícitas: `toString`, `toInt`, `toFloat` e `toBool`. Uma conversão
-  impossível (`toInt("abc")`) encerra o programa com erro.
+- Conversões explícitas, com estas entradas: `toString(qualquer tipo)`,
+  `toInt(string ou float)` (o `float` é truncado), `toFloat(string ou int)`
+  e `toBool(string)`, que só aceita `"true"` e `"false"`. Entrada de outro
+  tipo (`toInt(true)`) é erro de tipo na compilação; entrada do tipo certo
+  mas impossível (`toInt("abc")`, `toBool("sim")`) encerra o programa com
+  erro de execução.
 
 ```flux
 terminal.info("Iniciando processo");
@@ -273,6 +289,11 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   bloco onde foi declarada; a variável do `for` existe só dentro do laço.
   Não há shadowing: é proibido declarar um nome já visível, seja no mesmo
   escopo ou num escopo externo. Blocos irmãos podem reutilizar o mesmo nome.
+  Os nomes globais (`var`, `const`, `func`, `workflow`) são visíveis em todo
+  o arquivo, também dentro de funções declaradas antes deles; por isso uma
+  variável local não pode reutilizar o nome de um global declarado depois.
+  Só o inicializador de um global segue a ordem do arquivo: ele usa apenas
+  globais declarados acima.
   Os nomes da biblioteca (`terminal`, `toString`, `toInt`, `toFloat`,
   `toBool`) já existem no escopo global, então também não podem ser
   redeclarados.
@@ -284,7 +305,10 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   padrão); usar antes de atribuir é erro. Ela só conta como inicializada
   num ponto se for atribuída em todos os caminhos até ele: um `if` com
   `else` em que os dois lados atribuem garante; um `if` sem `else` ou um
-  laço, não.
+  laço, não. Um caminho que termina em `return`, `break` ou `continue` não
+  precisa atribuir: `if (c) { x = 1; } else { return; }` deixa `x`
+  inicializada depois. Código escrito depois de `return`, `break` ou
+  `continue` é permitido (não há erro de código inalcançável).
 - **Inferência:** em `var` ou `const` sem `:tipo`, cada variável recebe o tipo do
   valor correspondente. `null` e `[]` sozinhos não permitem inferir. Ao
   receber o resultado de um workflow sem `:tipo`, a variável só aceita `null`.
@@ -299,7 +323,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   inválidos de `null` são detectados em tempo de execução na v1.
 - **Erros de execução:** fora `run` e `call`, que devolvem erro tratável,
   todo erro em tempo de execução (conversão impossível, índice fora da
-  lista, uso de `null`, divisão inteira por zero, campo com tipo errado)
+  lista, uso de `null`, divisão inteira por zero, campo com tipo errado,
+  estouro de `int`)
   encerra o programa como o `abort`. Ver [`ERROS.md`](docs/ERROS.md#7-erros-em-tempo-de-execução).
 - **Operadores:** os operandos seguem a tabela da seção 3; a única
   conversão implícita é `int` → `float`.
@@ -314,7 +339,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   `chave` deve ser `string`.
 - **Funções:** com `:tipo`, retornam com `return valor;`, que precisa
   existir em todos os caminhos (`if` com `else` em que os dois lados
-  retornam garante; laço não). Sem `:tipo`, só
+  retornam garante; laço não; um caminho que termina em `break` ou
+  `continue` sai do laço e não conta como retorno). Sem `:tipo`, só
   `return;` é permitido e a chamada não pode ser usada como valor. Podem
   ser recursivas, mas não podem usar `call` nem `run`.
 - **Workflows:** retornam com `return resultado, erro;`. São chamados só

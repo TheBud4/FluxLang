@@ -32,7 +32,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
 | Caminho | Papel | Quem edita |
 |---|---|---|
 | `README.md` | Especificação da linguagem (seções 1–10, Gramática, Escopo da v1, Em aberto) | Agente, com revisão do usuário |
-| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E22, exemplo inválido, modo pânico, execução R1–R5 | Agente, com revisão do usuário |
+| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E22, exemplo inválido, modo pânico, execução R1–R6 | Agente, com revisão do usuário |
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
 | `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` | Agente, com revisão do usuário |
@@ -151,7 +151,7 @@ Nada acontece se `e` for `null`. O operando precisa ser uma variável de
 erro (a segunda variável de um `call`/`run`). Um workflow cria um erro
 próprio com `return null, "mensagem";`. Os outros erros de execução
 (conversão impossível, índice fora da lista, uso de `null`, divisão
-inteira por zero, tipo errado de campo) são fatais: R1–R5.
+inteira por zero, tipo errado de campo, estouro de `int`) são fatais: R1–R6.
 
 **Controle de fluxo:** `if (cond) { } else { }` sem `else if` (o `else`
 é seguido de bloco); `while (cond) { }`; `for item in lista { }`, sem
@@ -160,28 +160,39 @@ bloco `{ }` cria escopo; a variável do `for` vive só no laço.
 
 **Escopo:** é proibido declarar um nome já visível (não há shadowing).
 Blocos irmãos podem reutilizar nomes. Os nomes da biblioteca (`terminal`,
-`toString`, `toInt`, `toFloat`, `toBool`) são globais pré-declarados. Uma
+`toString`, `toInt`, `toFloat`, `toBool`) são globais pré-declarados. Os
+globais (`var`, `const`, `func`, `workflow`) valem em todo o arquivo, mas o
+inicializador de um global só usa globais declarados acima (D3). Uma
 variável sem valor precisa ser atribuída em todos os caminhos antes do
-uso (regra do Java).
+uso (regra do Java); um caminho que termina em `return`, `break` ou
+`continue` conta, e código depois deles é permitido (D8).
 
 **Operadores:** 8 níveis de precedência (seção 3 do README). A única
 conversão implícita é `int` → `float`. `int / int` é divisão inteira.
 `+` concatena só `string + string` (use `toString`). `%` só com `int`. `==`
-e `!=` funcionam entre valores do mesmo tipo ou com `null`; `list` e
-`object` só se comparam com `null`.
+e `!=` funcionam entre valores do mesmo tipo (`int` e `float` se comparam
+promovendo o `int`, D6) ou com `null`; `list` e `object` só se comparam
+com `null`. Estouro de `int` (32 bits) é erro de execução R6; `float` segue
+o IEEE (`1.0 / 0.0` é infinito) (D7).
 
 **Objetos** (preparando para HTTP): são dinâmicos, como JSON. Chaves são
 identificadores ou strings (`{ "Content-Type": "x" }`), com acesso por
 `obj.campo` ou `obj["chave"]`. Atribuir a um campo novo cria o campo, e
 ler um campo ausente devolve `null`. O tipo de um campo é conferido na
 execução (R5), então um valor de campo não serve para inferir o tipo de
-um `var` (E8). As formas tipadas (`object{...}`) ficam para depois.
+um `var` (E8). Um valor de campo é *dinâmico*: serve em operadores,
+condições e argumentos, com resultado dinâmico (D1). `list` e `object` são
+referências: `var b = a;` e passar `a` a uma função não copiam (D2); o
+resto é por valor. As formas tipadas (`object{...}`) ficam para depois.
 
 **Listas:** `l.length()`, `l.push(v)` e `l.remove(i)`; `push` e `remove`
 não devolvem valor.
 
 **Biblioteca:** `terminal.log/info/warn/error/input` (`input` devolve
-`string`) e as conversões `toString/toInt/toFloat/toBool`. Nenhum desses
+`string`) e as conversões `toString/toInt/toFloat/toBool`. `terminal.log`
+e os irmãos aceitam qualquer tipo (D4); `toString(qualquer)`,
+`toInt(string|float)`, `toFloat(string|int)`, `toBool(string)` só com
+`"true"`/`"false"` (D5). Nenhum desses
 nomes é palavra reservada: todos são `IDENTIFIER` no lexer.
 
 **Léxico:** case-sensitive; strings só com aspas duplas, em uma linha,
@@ -199,7 +210,7 @@ O refinamento da seção 6 do ERROS.md foi medido e descartado.
 
 **Geração de código:** ainda não existe. O alvo planejado é x86-64
 nativo, sem passar por C; a representação dos tipos na execução será
-definida junto com o backend (veja as decisões D2 e D7 da auditoria).
+definida junto com o backend (decisões de 14/11: `int` de 32 bits com teste de estouro, `list`/`object` por referência).
 
 **Fora da v1:** HTTP, formas tipadas de `object` e outros recursos
 avançados.
