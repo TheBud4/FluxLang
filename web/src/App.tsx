@@ -16,9 +16,9 @@ const SAMPLES = [
   { label: 'Exemplo inválido', text: invalid },
 ]
 
-const checkbox = 'size-4 accent-accent'
+const checkbox = 'size-6 accent-accent'
 const smallButton =
-  'rounded border border-line px-2 py-0.5 text-xs hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent'
+  'min-h-6 rounded border border-line px-2 text-xs hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent'
 
 export default function App() {
   const [source, setSource] = useState(invalid)

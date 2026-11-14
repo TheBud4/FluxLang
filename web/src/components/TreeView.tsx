@@ -23,7 +23,7 @@ export function TreeView({ root, hideRest, expandKey, expandAll, onSelect }: Tre
   }
   // Trocar a key recria os nós, então todos nascem abertos ou fechados.
   return (
-    <ul className="p-2 font-mono text-xs" key={`${expandKey}-${hideRest}`}>
+    <ul className="w-max min-w-full p-2 font-mono text-xs" key={`${expandKey}-${hideRest}`}>
       {roots.map((node, i) => (
         <Node key={i} node={node} depth={0} expandAll={expandAll} expandKey={expandKey} onSelect={onSelect} />
       ))}
@@ -65,18 +65,18 @@ function Node({ node, depth, expandAll, expandKey, onSelect }: NodeProps) {
             aria-label={open ? 'Recolher' : 'Expandir'}
             aria-expanded={open}
             onClick={() => setOpen(!open)}
-            className="w-4 shrink-0 text-muted focus-visible:outline-2 focus-visible:outline-accent"
+            className="size-6 shrink-0 text-muted focus-visible:outline-2 focus-visible:outline-accent"
           >
             {open ? '▾' : '▸'}
           </button>
         ) : (
-          <span className="w-4 shrink-0" />
+          <span className="size-6 shrink-0" />
         )}
         <button
           type="button"
           disabled={!node.line}
           onClick={() => node.line && onSelect(node.line, node.column ?? 1, node.kind === 'token' ? [...(node.text ?? '')].length : undefined)}
-          className={`min-w-0 truncate text-left enabled:cursor-pointer focus-visible:outline-2 focus-visible:outline-accent ${tone}`}
+          className={`min-h-6 shrink-0 text-left whitespace-nowrap enabled:cursor-pointer focus-visible:outline-2 focus-visible:outline-accent ${tone}`}
         >
           {node.label}
           {node.kind === 'token' && <span className="text-ink"> {node.text}</span>}

@@ -17,7 +17,7 @@ export function TokenList({ tokens, onSelect }: TokenListProps) {
           <button
             type="button"
             onClick={() => onSelect(t.line, t.column, [...t.text].length)}
-            className="grid w-full grid-cols-[4rem_9.5rem_1fr] gap-2 px-3 py-0.5 text-left hover:bg-bg focus-visible:bg-bg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+            className="grid min-h-6 w-full grid-cols-[4rem_9.5rem_1fr] items-center gap-2 px-3 text-left hover:bg-bg focus-visible:bg-bg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
           >
             <span className="text-muted">
               {t.line}:{t.column}
