@@ -24,8 +24,9 @@ export default function App() {
   const [source, setSource] = useState(invalid)
   const [focus, setFocus] = useState<Focus | null>(null)
   const [hideRest, setHideRest] = useState(false)
+  const [semantic, setSemantic] = useState(true)
   const [expand, setExpand] = useState({ key: 0, all: true })
-  const { result, loading, failure, compileNow } = useCompile(source)
+  const { result, loading, failure, compileNow } = useCompile(source, semantic)
 
   const errorLines = useMemo(() => new Set(result?.errors.map((e) => e.line) ?? []), [result])
 
@@ -41,6 +42,8 @@ export default function App() {
         onCompile={compileNow}
         samples={SAMPLES}
         onSample={setSource}
+        semantic={semantic}
+        onSemantic={setSemantic}
       />
 
       {failure && (

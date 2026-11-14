@@ -48,7 +48,10 @@ export function fluxApi(): Plugin {
         return fail(503, 'O compilador ./flux não foi encontrado. Rode `make` na raiz do projeto.')
       }
 
-      const child = spawn(fluxPath, ['--json'], { stdio: ['pipe', 'pipe', 'pipe'] })
+      // ?semantic=1 liga a análise semântica (E1 a E22) do compilador
+      const semantic = new URL(req.url ?? '', 'http://localhost').searchParams.get('semantic') === '1'
+      const args = semantic ? ['--json', '--semantic'] : ['--json']
+      const child = spawn(fluxPath, args, { stdio: ['pipe', 'pipe', 'pipe'] })
       const out: Buffer[] = []
       const err: Buffer[] = []
       const timer = setTimeout(() => {

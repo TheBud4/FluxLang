@@ -19,7 +19,7 @@ export interface Token {
 }
 
 export interface CompileError {
-  kind: 'léxico' | 'sintático'
+  kind: 'léxico' | 'sintático' | 'semântico'
   line: number
   column: number
   message: string

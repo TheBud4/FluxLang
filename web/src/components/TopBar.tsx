@@ -8,12 +8,23 @@ interface TopBarProps {
   onCompile: () => void
   samples: { label: string; text: string }[]
   onSample: (text: string) => void
+  semantic: boolean
+  onSemantic: (on: boolean) => void
 }
 
 const button =
   'rounded-md border border-line bg-panel px-3 py-1 text-sm hover:bg-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
 
-export function TopBar({ result, loading, onOpenFile, onCompile, samples, onSample }: TopBarProps) {
+export function TopBar({
+  result,
+  loading,
+  onOpenFile,
+  onCompile,
+  samples,
+  onSample,
+  semantic,
+  onSemantic,
+}: TopBarProps) {
   const fileInput = useRef<HTMLInputElement>(null)
 
   async function handleFile(file: File | undefined) {
@@ -46,6 +57,15 @@ export function TopBar({ result, loading, onOpenFile, onCompile, samples, onSamp
             {s.label}
           </button>
         ))}
+        <label className="flex min-h-6 items-center gap-1.5 text-sm whitespace-nowrap">
+          <input
+            type="checkbox"
+            className="size-6 accent-accent"
+            checked={semantic}
+            onChange={(e) => onSemantic(e.target.checked)}
+          />
+          Análise semântica
+        </label>
       </div>
 
       <div className="ml-auto flex items-center gap-3 text-sm" role="status" aria-live="polite">

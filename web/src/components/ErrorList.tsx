@@ -19,7 +19,7 @@ export function ErrorList({ errors, onSelect }: ErrorListProps) {
             onClick={() => onSelect(e.line, e.column)}
             className="flex w-full items-baseline gap-3 px-3 py-1.5 text-left hover:bg-bg focus-visible:bg-bg focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
           >
-            <span className="w-24 shrink-0 font-mono text-xs font-semibold text-bad">
+            <span className="w-32 shrink-0 font-mono text-xs font-semibold text-bad">
               {e.kind} {e.line}:{e.column}
             </span>
             <span className="min-w-0 whitespace-pre-wrap text-ink">{e.message}</span>
