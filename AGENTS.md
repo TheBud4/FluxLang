@@ -67,8 +67,11 @@ que faltam, que devem ser conferidos à mão).
 
 ## Estado atual (03/10/2026)
 
-- Trabalho 1 entregue em 01/10. Próximo passo: parser descendente
-  recursivo.
+- Trabalho 1 entregue em 01/10. O parser descendente recursivo
+  (`src/rdparser.c`) e o modo pânico estão prontos (14/11): o `./flux` usa
+  o novo parser e reporta os 7 erros do `invalido.flux` sem cascata. O
+  parser do Bison continua no repositório só como referência (`--bison`).
+  Próximos passos: tirar o Bison, árvore de derivação, `--json`, interface.
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem

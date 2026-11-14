@@ -42,7 +42,7 @@ Two parser mechanisms span several places:
 - **Syntax error messages** are produced entirely by `yyreport_syntax_error` at the end of `parser.y`. It takes Bison's expected-token list and collapses complete groups (`EXPRESSION_START`, `TYPE_START`, `COMMAND_KEYWORDS`) into the words `expressão`, `tipo`, `comando`. When adding tokens that begin expressions, types or commands, update those arrays or the messages will silently degrade. `token_name`, `found_name`, `spelling` and `is_keyword` also live there.
 - **S3 check** (invalid assignment target) is done in the grammar actions using the `assignable` semantic value (`%type <assignable>` on the expression rules) and `assign_loc`, not in the grammar itself.
 
-The parser will be rewritten as hand-written recursive descent; until then parser.y is the reference.
+`src/rdparser.c` is the hand-written recursive descent parser the binary actually uses (with panic mode); `parser.y` stays only as a reference (`./flux --bison`) until Bison is removed.
 
 Only lexing and parsing exist so far; there is no AST, semantic analysis (E1–E22) or codegen yet. The T1 compiler stops at the first error; panic mode, file reading UI, AST and the GUI are Trabalho 2.
 

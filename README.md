@@ -333,10 +333,11 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 
 ## 9. Implementação
 
-O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
-Bison**. O lexer e o parser do Trabalho 1 estão prontos: o compilador
-para no primeiro erro. No Trabalho 2, o parser será reescrito como
-descendente recursivo, com modo pânico e árvore sintática.
+O compilador é escrito em C, com lexer em **Flex** e parser descendente
+recursivo escrito à mão (`src/rdparser.c`), com modo pânico: ele reporta
+todos os erros do programa, sem cascata. O parser do Trabalho 1, em **GNU
+Bison**, continua no repositório como referência (`./flux --bison`). A
+árvore sintática ainda será feita.
 
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes; uma tabulação conta como uma coluna).
