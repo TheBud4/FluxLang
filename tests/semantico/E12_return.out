@@ -1,0 +1,12 @@
+Erro semântico [linha 1, coluna 13]:
+A função 'f' não retorna valor.
+Erro semântico [linha 2, coluna 17]:
+A função 'g' deve retornar um valor int.
+Erro semântico [linha 3, coluna 24]:
+Workflow deve retornar (resultado, erro).
+Erro semântico [linha 4, coluna 24]:
+Tipo incompatível: esperado null, encontrado int.
+Erro semântico [linha 5, coluna 16]:
+A função 'main' não retorna valor.
+Programa rejeitado.
+[código 1]

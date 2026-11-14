@@ -1,0 +1,6 @@
+Erro semântico [linha 2, coluna 3]:
+'break' fora de um laço.
+Erro semântico [linha 3, coluna 3]:
+'continue' fora de um laço.
+Programa rejeitado.
+[código 1]

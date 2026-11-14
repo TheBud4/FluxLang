@@ -23,10 +23,10 @@ lexer:  build/lex.yy.o
 main:   build/main.o
 tree:   build/tree.o
 json:   build/json.o
-ast:    build/ast.o build/ast_build.o build/types.o
+ast:    build/ast.o build/ast_build.o build/types.o build/sema.o
 
 # Ligação: junta as três partes no executável
-flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o build/json.o build/types.o build/ast.o build/ast_build.o
+flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o build/json.o build/types.o build/ast.o build/ast_build.o build/sema.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Parser: o bison gera o .c e o .h (lista de tokens) de uma vez só

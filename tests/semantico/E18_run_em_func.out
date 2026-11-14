@@ -1,0 +1,10 @@
+Erro semântico [linha 2, coluna 14]:
+'run' só pode ser usado em workflow ou na main.
+Erro semântico [linha 3, coluna 12]:
+'e' não é uma variável de erro.
+Erro semântico [linha 7, coluna 14]:
+'call' só pode ser usado em workflow ou na main.
+Erro semântico [linha 8, coluna 12]:
+'e' não é uma variável de erro.
+Programa rejeitado.
+[código 1]

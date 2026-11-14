@@ -8,6 +8,10 @@
 int yylex(void); /* lexer.l: devolve o próximo token (0 no fim) */
 const char *token_name(int tok); /* parser.y: nome do token, ex: "IDENTIFIER" */
 
+/* sema.c: análise semântica (E1 a E22). Devolve quantos erros reportou. */
+struct Program;
+int semantic_check(struct Program *program);
+
 /* json.c: modo --json. Tokens e erros são registrados durante a análise e
    impressos no fim junto com a árvore de derivação. */
 void json_enable(void);

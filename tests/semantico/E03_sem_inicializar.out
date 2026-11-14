@@ -1,0 +1,6 @@
+Erro semântico [linha 3, coluna 16]:
+Variável 'idade' utilizada antes de ser inicializada.
+Erro semântico [linha 6, coluna 16]:
+Variável 'n' utilizada antes de ser inicializada.
+Programa rejeitado.
+[código 1]

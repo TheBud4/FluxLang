@@ -131,7 +131,7 @@ typedef struct {
   Func *func;  /* func/workflow/main, ou NULL */
 } Decl;
 
-typedef struct {
+typedef struct Program {
   Decl *decls;
   int n_decls;
   Func *main;

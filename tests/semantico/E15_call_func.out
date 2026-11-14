@@ -1,0 +1,6 @@
+Erro semântico [linha 4, coluna 19]:
+'soma' é uma função e deve ser chamada sem 'call'.
+Erro semântico [linha 5, coluna 11]:
+'build' é um workflow e deve ser chamado com 'call'.
+Programa rejeitado.
+[código 1]

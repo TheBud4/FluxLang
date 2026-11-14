@@ -1,0 +1,10 @@
+Erro semântico [linha 3, coluna 9]:
+'idade' não tem o método 'push'.
+Erro semântico [linha 4, coluna 12]:
+'terminal' não tem o método 'foo'.
+Erro semântico [linha 6, coluna 8]:
+'user' não tem o método 'name'.
+Erro semântico [linha 8, coluna 5]:
+'l' não tem o método 'pop'.
+Programa rejeitado.
+[código 1]

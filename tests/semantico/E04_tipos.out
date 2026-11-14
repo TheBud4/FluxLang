@@ -1,0 +1,14 @@
+Erro semântico [linha 3, coluna 19]:
+Tipo incompatível: esperado int, encontrado string.
+Erro semântico [linha 4, coluna 15]:
+Operador '+' não aceita string e int.
+Erro semântico [linha 5, coluna 18]:
+Tipo incompatível: esperado string, encontrado int.
+Erro semântico [linha 5, coluna 26]:
+Tipo incompatível: esperado int, encontrado string.
+Erro semântico [linha 7, coluna 15]:
+Tipo incompatível: esperado int, encontrado float.
+Erro semântico [linha 9, coluna 22]:
+Tipo incompatível: esperado int, encontrado string.
+Programa rejeitado.
+[código 1]

@@ -37,6 +37,7 @@ static void help(void) {
          "  --tree         imprime a árvore de derivação\n"
          "  --json         imprime tokens, erros e árvore em JSON\n"
          "  --ast          imprime a AST (a árvore sem a burocracia da gramática)\n"
+         "  --semantic     confere também os erros semânticos (E1 a E22)\n"
          "  -h, --help     mostra esta mensagem\n");
 }
 
@@ -59,6 +60,7 @@ int main(int argc, char **argv) {
   int tree_mode = 0;
   int json_mode = 0;
   int ast_mode = 0;
+  int semantic_mode = 0;
   const char *file = NULL;
 
   for (int i = 1; i < argc; i++) {
@@ -66,6 +68,8 @@ int main(int argc, char **argv) {
       token_mode = 1;
     } else if (strcmp(argv[i], "--json") == 0) {
       json_mode = 1;
+    } else if (strcmp(argv[i], "--semantic") == 0) {
+      semantic_mode = 1;
     } else if (strcmp(argv[i], "--ast") == 0) {
       ast_mode = 1;
     } else if (strcmp(argv[i], "--tree") == 0) {
@@ -98,19 +102,24 @@ int main(int argc, char **argv) {
   if (json_mode)
     json_enable();
   int parsed = yyparse();
+
+  /* A análise semântica só roda depois de um parse sem erros. */
+  Program *program = NULL;
+  if ((ast_mode || semantic_mode) && parsed == 0 && error_count == 0)
+    program = build_ast(parse_root);
+  if (semantic_mode && program)
+    semantic_check(program);
+  int accepted = parsed == 0 && error_count == 0;
+
   if (json_mode) {
-    int accepted = parsed == 0 && error_count == 0;
     json_print(stdout, accepted, source_lines());
     return accepted ? 0 : 1;
   }
   if (tree_mode)
     print_tree(parse_root, stdout);
-  if (ast_mode && parsed == 0 && error_count == 0) {
-    Program *program = build_ast(parse_root);
-    if (program)
-      ast_print(program, stdout);
-  }
-  if (parsed == 0 && error_count == 0) {
+  if (ast_mode && program)
+    ast_print(program, stdout);
+  if (accepted) {
     printf("Programa aceito.\n");
     return 0;
   }

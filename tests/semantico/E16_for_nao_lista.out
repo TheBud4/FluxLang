@@ -1,0 +1,4 @@
+Erro semântico [linha 2, coluna 12]:
+'for' exige uma lista, encontrado string.
+Programa rejeitado.
+[código 1]

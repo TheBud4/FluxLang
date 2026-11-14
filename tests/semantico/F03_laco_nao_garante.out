@@ -1,0 +1,6 @@
+Erro semântico [linha 5, coluna 16]:
+Variável 'y' utilizada antes de ser inicializada.
+Erro semântico [linha 8, coluna 16]:
+Variável 'z' utilizada antes de ser inicializada.
+Programa rejeitado.
+[código 1]

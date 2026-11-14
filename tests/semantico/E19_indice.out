@@ -1,0 +1,8 @@
+Erro semântico [linha 5, coluna 17]:
+Índice de lista deve ser int, encontrado string.
+Erro semântico [linha 6, coluna 16]:
+Chave de object deve ser string, encontrado int.
+Erro semântico [linha 7, coluna 16]:
+'idade' não é uma lista nem um object e não aceita [ ].
+Programa rejeitado.
+[código 1]
