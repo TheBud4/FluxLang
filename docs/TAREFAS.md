@@ -73,9 +73,9 @@ Auditoria de 02/10 (a pasta foi removida em 12/11; a lista abaixo é o que sobro
 documentação já foi feita; o que envolve código ou BNF fica com você.
 
 - [ ] Perguntar ao professor: o pânico "análogo ao código feito em sala", o que ele entende por "árvore sintática" e se a demonstração da transformação para LL(1) é mesmo dispensável, já que a linguagem nasceu LL(1)
-- [ ] Alinhar `tests/sintatico/invalido_erroN.flux` ao `invalido.flux` atual (eles têm uma linha vazia a mais) e conferir os `.out` com as posições da seção 5 do ERROS.md
-- [ ] Testes positivos que faltam: declarações depois da `main`, `var` global, `[]`, `{}`, função sem parâmetros, `return;` e o operador `>`
-- [ ] Alvo `make asan` e `-g` no `Makefile`
+- [x] Alinhar `tests/sintatico/invalido_erroN.flux` ao `invalido.flux` atual e conferir os `.out` com as posições da seção 5 do ERROS.md
+- [x] Testes positivos que faltam: declarações depois da `main`, `var` global, `[]`, `{}`, função sem parâmetros, `return;` e o operador `>`
+- [x] Alvo `make asan` e `-g` no `Makefile` (o `asan` precisa de `sudo dnf install libasan libubsan`; ainda não rodou neste computador)
 - [ ] Decidir se `build/`, `flux` e `compile_commands.json` continuam versionados (hoje estão também no `.gitignore`)
 - [ ] Decidir se as decisões da spec viram um `docs/DECISOES.md` versionado
 - [ ] Antes da análise semântica: decisões D1 a D8 (seção 4 da auditoria)
