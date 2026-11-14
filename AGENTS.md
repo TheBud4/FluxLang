@@ -219,7 +219,9 @@ vai para um temporário, para a ordem de avaliação ser da esquerda para a
 direita. `terminal.log` e `info` vão para a saída padrão, `warn` e `error` para
 a de erro, sem prefixo; `toString` de float usa a forma mais curta com `.0`
 (`3.0`); `terminal.input` devolve `""` no fim da entrada; `run` devolve a saída
-padrão sem cortar o `\n` final.
+padrão sem cortar o `\n` final. Com `FLUX_TAGGED=1` no ambiente a biblioteca
+marca cada impressão com o tipo (registros `\x1e<tipo><bytes>:<texto>`), que a
+interface lê para colorir a saída.
 
 **Fora da v1:** HTTP, formas tipadas de `object` e outros recursos
 avançados.

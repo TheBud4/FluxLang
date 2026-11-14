@@ -18,7 +18,15 @@ export function Panel({ title, actions, className = '', children }: PanelProps) 
         <h2 className="text-xs font-semibold tracking-wide whitespace-nowrap text-muted uppercase">{title}</h2>
         {actions}
       </header>
-      <div className="min-h-0 flex-1 overflow-auto">{children}</div>
+      {/* o corpo rola, então precisa ser alcançável pelo teclado (Tab, depois as setas) */}
+      <div
+        role="region"
+        aria-label={title}
+        tabIndex={0}
+        className="min-h-0 flex-1 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
+      >
+        {children}
+      </div>
     </section>
   )
 }

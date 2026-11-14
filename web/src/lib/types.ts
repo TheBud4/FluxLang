@@ -33,14 +33,23 @@ export interface CompileResult {
   tree: TreeNode | null
 }
 
+/** Quem imprimiu a linha: terminal.log/info/warn/error, um erro de execução (fatal) ou o prompt do input. */
+export type OutputKind = 'log' | 'info' | 'warn' | 'error' | 'fatal' | 'prompt' | 'raw' | 'stderr'
+
+export interface OutputLine {
+  kind: OutputKind
+  text: string
+}
+
 /** O que `POST /api/run` devolve: a saída do programa FluxLang executado. */
 export interface RunResult {
   /** ok: rodou; rejected: não passou na análise; timeout: passou do tempo. */
   status: 'ok' | 'rejected' | 'internal-error' | 'timeout'
   exitCode: number | null
-  stdout: string
-  stderr: string
+  /** A saída, em ordem, cada linha com o tipo de quem a imprimiu. */
+  output: OutputLine[]
   truncated: boolean
+  /** Rejeitado: as mensagens do compilador. Erro interno ou sinal: o motivo. */
   message?: string
 }
 

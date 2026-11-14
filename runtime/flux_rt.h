@@ -64,15 +64,45 @@ static int fx_line; /* a linha do comando em execução, para as mensagens */
 
 /* ---------- Erros de execução (R1 a R6) ---------- */
 
+/* Modo etiquetado: com FLUX_TAGGED=1 no ambiente, toda impressão do programa
+ * (terminal.log/info/warn/error, o prompt do input e o erro de execução) sai na
+ * saída padrão, na ordem, como um registro  \x1e <tipo> <tamanho> : <texto> .
+ * É o que a interface web usa para colorir cada linha pelo tipo, sem mudar o
+ * formato normal do programa no terminal. Tipos: L log, I info, W warn,
+ * E error, F erro de execução, P prompt do input. */
+static int fx_tagged;
+
+FX_FN void fx_emit(char kind, const char *text) {
+  size_t n = strlen(text);
+  fprintf(stdout, "\x1e%c%zu:", kind, n);
+  fwrite(text, 1, n, stdout);
+}
+
 FX_FN void fx_die(const char *fmt, ...) __attribute__((noreturn, format(printf, 1, 2)));
 FX_FN void fx_die(const char *fmt, ...) {
   va_list args;
-  fflush(stdout);
-  fprintf(stderr, "Erro de execução [linha %d]:\n", fx_line);
   va_start(args, fmt);
-  vfprintf(stderr, fmt, args);
+  int n = vsnprintf(NULL, 0, fmt, args);
   va_end(args);
-  fprintf(stderr, "\n");
+  char *msg = malloc((size_t)n + 1);
+  if (msg) {
+    va_start(args, fmt);
+    vsnprintf(msg, (size_t)n + 1, fmt, args);
+    va_end(args);
+  }
+  const char *text = msg ? msg : "erro de execução";
+  if (fx_tagged) { /* um registro só: o cabeçalho e a mensagem juntos */
+    size_t size = strlen(text) + 64;
+    char *full = malloc(size);
+    if (full) {
+      snprintf(full, size, "Erro de execução [linha %d]:\n%s", fx_line, text);
+      fx_emit('F', full);
+    }
+    fflush(stdout);
+    exit(1);
+  }
+  fflush(stdout);
+  fprintf(stderr, "Erro de execução [linha %d]:\n%s\n", fx_line, text);
   exit(1);
 }
 
@@ -123,6 +153,12 @@ FX_FN void fx_stack_init(void) {
     limit = (size_t)rl.rlim_cur;
   fx_stack_limit = limit > (512u << 10) ? limit - (256u << 10) : limit / 2;
   fx_stack_base = __builtin_frame_address(0);
+}
+
+/* Chamada no início do main: liga o modo etiquetado e guarda a base da pilha. */
+FX_FN void fx_init(void) {
+  fx_tagged = getenv("FLUX_TAGGED") != NULL;
+  fx_stack_init();
 }
 
 FX_FN void fx_check_stack(void) {
@@ -586,15 +622,31 @@ FX_FN FxValue fx_to_bool(FxValue v) {
 /* ---------- terminal ---------- */
 
 /* log e info vão para a saída padrão; warn e error, para a de erro. */
-FX_FN FxValue fx_log(FxValue v)   { fprintf(stdout, "%s\n", fx_repr(v, 0)); return fx_null(); }
-FX_FN FxValue fx_info(FxValue v)  { fprintf(stdout, "%s\n", fx_repr(v, 0)); return fx_null(); }
-FX_FN FxValue fx_warn(FxValue v)  { fflush(stdout); fprintf(stderr, "%s\n", fx_repr(v, 0)); return fx_null(); }
-FX_FN FxValue fx_error(FxValue v) { fflush(stdout); fprintf(stderr, "%s\n", fx_repr(v, 0)); return fx_null(); }
+FX_FN FxValue fx_print(char kind, int to_stderr, FxValue v) {
+  const char *text = fx_repr(v, 0);
+  if (fx_tagged) {
+    fx_emit(kind, text);
+  } else if (to_stderr) {
+    fflush(stdout);
+    fprintf(stderr, "%s\n", text);
+  } else {
+    fprintf(stdout, "%s\n", text);
+  }
+  return fx_null();
+}
+
+FX_FN FxValue fx_log(FxValue v)   { return fx_print('L', 0, v); }
+FX_FN FxValue fx_info(FxValue v)  { return fx_print('I', 0, v); }
+FX_FN FxValue fx_warn(FxValue v)  { return fx_print('W', 1, v); }
+FX_FN FxValue fx_error(FxValue v) { return fx_print('E', 1, v); }
 
 /* terminal.input(prompt): lê uma linha; no fim da entrada devolve "". */
 FX_FN FxValue fx_input(FxValue prompt) {
   if (prompt.tag == FX_STRING) {
-    fputs(prompt.as.s, stdout);
+    if (fx_tagged)
+      fx_emit('P', prompt.as.s);
+    else
+      fputs(prompt.as.s, stdout);
     fflush(stdout);
   } else if (prompt.tag != FX_NULL) {
     fx_type_err("string", prompt);

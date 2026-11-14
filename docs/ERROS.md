@@ -339,6 +339,15 @@ padrão inteira (inclusive o `\n` final) e, quando o comando não pode ser
 iniciado, o erro é `comando 'x' não pôde ser iniciado: <motivo>`; listas e
 objetos aparecem como `[1, 2]` e `{a: 1}`, com as strings entre aspas.
 
+**Saída etiquetada** (`FLUX_TAGGED=1`, usada pela interface web): para a
+interface colorir cada linha pelo tipo de quem a imprimiu, a biblioteca de
+execução, com essa variável no ambiente, escreve tudo na saída padrão, em
+ordem, como registros `\x1e <tipo> <bytes> : <texto>`. Os tipos são `L`
+(`log`), `I` (`info`), `W` (`warn`), `E` (`error`), `F` (erro de execução, com o
+cabeçalho e a mensagem juntos) e `P` (o prompt do `terminal.input`). Sem a
+variável, o formato é o normal, descrito acima. O teste `tests/exec_tagged/`
+confere os registros (o separador aparece como `<RS>`).
+
 ```text
 Erro de execução [linha 12]:
 Índice 5 fora da lista (tamanho 2).

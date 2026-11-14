@@ -8,6 +8,8 @@
 #   tests/ast/*.flux        Runs: ./flux --ast (the AST)
 #   tests/semantico/*.flux  Runs: ./flux --semantic (semantic errors E1-E24)
 #   tests/exec/*.flux       Runs: ./flux --run (compiles to C, runs the program)
+#   tests/exec_tagged/*.flux Runs: FLUX_TAGGED=1 ./flux --run (the tagged output the web UI reads;
+#                            the record separator \x1e is shown as <RS>)
 #
 #   Usage:
 #   tests/run.sh             Compare all the cases
@@ -16,14 +18,19 @@
 cd "$(dirname "$0")/.." || exit 2
 
 run_case() {
-  ./flux $1 "$2" 2>&1 </dev/null
-  echo "[código $?]"
+  if [ "$3" = tagged ]; then
+    FLUX_TAGGED=1 ./flux $1 "$2" 2>&1 </dev/null | sed 's/\x1e/<RS>/g'
+    echo "[código ${PIPESTATUS[0]}]"
+  else
+    ./flux $1 "$2" 2>&1 </dev/null
+    echo "[código $?]"
+  fi
 }
 
 passed=0
 failed=0
 
-for dir in lexico sintatico arvore json ast semantico exec; do
+for dir in lexico sintatico arvore json ast semantico exec exec_tagged; do
   [ -d "tests/$dir" ] || continue
   flags=""
   [ "$dir" = lexico ] && flags="-t"
@@ -32,6 +39,8 @@ for dir in lexico sintatico arvore json ast semantico exec; do
   [ "$dir" = ast ] && flags="--ast"
   [ "$dir" = semantico ] && flags="--semantic"
   [ "$dir" = exec ] && flags="--run"
+  mode=""
+  [ "$dir" = exec_tagged ] && flags="--run" && mode="tagged"
 
   for src in tests/$dir/*.flux; do
     [ -e "$src" ] || continue
@@ -39,7 +48,7 @@ for dir in lexico sintatico arvore json ast semantico exec; do
 
     if [ ! -f "$expected" ]; then
       if [ "$1" = "--generate" ]; then
-        run_case "$flags" "$src" > "$expected"
+        run_case "$flags" "$src" "$mode" > "$expected"
         echo "GERADO  $expected (confira se está certo!)"
       else
         echo "SEM .out  $src (rode tests/run.sh --generate)"
@@ -48,12 +57,12 @@ for dir in lexico sintatico arvore json ast semantico exec; do
       continue
     fi
 
-    if diff -u "$expected" <(run_case "$flags" "$src") > /dev/null; then
+    if diff -u "$expected" <(run_case "$flags" "$src" "$mode") > /dev/null; then
       echo "ok      $src"
       passed=$((passed + 1))
     else
       echo "FALHOU  $src"
-      diff -u "$expected" <(run_case "$flags" "$src") | tail -n +3 | sed 's/^/        /'
+      diff -u "$expected" <(run_case "$flags" "$src" "$mode") | tail -n +3 | sed 's/^/        /'
       failed=$((failed + 1))
     fi
   done

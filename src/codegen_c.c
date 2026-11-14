@@ -491,7 +491,7 @@ int generate_c(const Program *program, FILE *file) {
   next_tmp = 0;
   fputs("int main(void) {\n", out);
   depth = 1;
-  emit("fx_stack_init();");
+  emit("fx_init();");
   for (int i = 0; i < program->n_decls; i++) {
     Stmt *v = program->decls[i].var;
     if (!v)

@@ -1,0 +1,3 @@
+<RS>L6:um log<RS>I8:uma info<RS>W8:um aviso<RS>E7:um erro<RS>L13:linha1
+linha2<RS>P6:Nome: <RS>F48:Erro de execução [linha 9]:
+Divisão por zero.[código 1]
