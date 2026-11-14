@@ -8,6 +8,7 @@
 #   make json      só o --json: src/json.c   -> build/json.o
 #   make clean     apaga o que foi gerado
 #   make test      compila e roda os casos de tests/ (tests/run.sh)
+#   make web       sobe a interface web (npm, Vite): http://127.0.0.1:5173
 #   make bear      recompila tudo e gera compile_commands.json (para o clangd)
 
 CC     = gcc
@@ -49,8 +50,12 @@ test: flux
 clean:
 	rm -f build/* flux
 
+web: flux
+	npm --prefix web install
+	npm --prefix web run dev
+
 # -B força recompilar tudo: o bear só registra comandos que de fato rodam
 bear:
 	bear -- $(MAKE) -B all
 
-.PHONY: all parser lexer main tree json test clean bear
+.PHONY: all parser lexer main tree json test clean bear web
