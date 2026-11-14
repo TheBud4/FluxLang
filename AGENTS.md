@@ -35,6 +35,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
 | `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E22, exemplo inválido, modo pânico, execução R1–R5 | Agente, com revisão do usuário |
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
+| `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` | Agente, com revisão do usuário |
 | `docs/TAREFAS.md` | Checklist passo a passo até as entregas | Agente e usuário |
 | `docs/ENUNCIADO.md` | Texto original dos Trabalhos 1 e 2 | Ninguém (texto da disciplina) |
 
@@ -75,7 +76,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
   simples está pronto (regras `error` em `command`, `global_no_func` e
   `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Falta
   retomar em `}`/palavras de comando e em `func`/`workflow` (ver ERROS.md,
-  seção 6). A árvore de derivação (`--tree`) e o `--json` estão prontos. Próximo passo: a interface web.
+  seção 6). A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`, `make web`) estão prontos. Faltam: a demonstração da transformação para LL(1), os slides e, se der tempo, o refinamento do pânico.
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem

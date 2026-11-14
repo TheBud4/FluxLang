@@ -95,12 +95,12 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 
 ### 7. Interface
 
-- [ ] Interface web local que chama o `./flux --json`
-- [ ] Exibir o código e a contagem de linhas
-- [ ] Tokens reconhecidos
-- [ ] Aceito / rejeitado e mensagens de erro
-- [ ] Árvore sintática
-- [ ] Documentar a interface no README
+- [x] Interface web local que chama o `./flux --json`
+- [x] Exibir o código e a contagem de linhas
+- [x] Tokens reconhecidos
+- [x] Aceito / rejeitado e mensagens de erro
+- [x] Árvore sintática
+- [x] Documentar a interface no README
 
 ### 8. LL(1)
 
@@ -116,7 +116,7 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 
 ## Pontos extras
 
-- [ ] Realce das linhas com erro na interface
+- [x] Realce das linhas com erro na interface
 - [ ] Análise semântica (E1–E22)
 - [ ] Geração de código C e chamada do `gcc`
 - [ ] Checagens de execução R1–R5 no código gerado

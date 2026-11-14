@@ -386,12 +386,34 @@ sai com código 1 se encontrou algum.
 | `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
 | `src/tree.c`, `src/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
 | `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
+| `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
 | `src/main.c` | Leitura da entrada, modos `--tokens`, `--tree` e `--json` e resultado |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
 | `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
 `src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.
+
+### Interface web
+
+A pasta `web/` tem a interface gráfica (Vite + React + Tailwind). Ela não
+reimplementa nada: o servidor do Vite expõe `POST /api/compile`, que roda
+`./flux --json` com o código recebido.
+
+```sh
+make web        # compila o flux, instala as dependências e abre http://127.0.0.1:5173
+```
+
+Precisa de Node 20+ e npm. A tela mostra, ao mesmo tempo, o código com
+numeração de linhas (as linhas com erro ficam realçadas), os tokens
+reconhecidos, a árvore sintática, o resultado (`Programa aceito` ou
+`Programa rejeitado`, com a contagem de linhas) e as mensagens de erro.
+Clicar num erro, token ou nó da árvore seleciona o trecho no código. A
+árvore é a de derivação, fiel à gramática LL(1); a opção "ocultar `*_rest`"
+remove os nós criados na fatoração e sobe os filhos deles para o pai. O
+código recompila sozinho 400 ms depois de parar de digitar, e há botões
+para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
+`invalido.flux`.
 
 **Formato do `--json`** (a interface lê este objeto):
 
