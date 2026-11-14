@@ -35,7 +35,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
 | `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E24, exemplo inválido, modo pânico, execução R1–R6 | Agente, com revisão do usuário |
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
-| `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` | Agente, com revisão do usuário |
+| `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` (`/api/compile`) e executa programas (`/api/run`, botão Executar) | Agente, com revisão do usuário |
 | `docs/TAREFAS.md` | Checklist passo a passo até as entregas | Agente e usuário |
 | `docs/ENUNCIADO.md` | Texto original dos Trabalhos 1 e 2 | Ninguém (texto da disciplina) |
 

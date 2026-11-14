@@ -10,6 +10,8 @@ import { TreeView } from './components/TreeView'
 import { countNodes } from './lib/tree'
 import type { Focus } from './lib/types'
 import { useCompile } from './lib/useCompile'
+import { useRun } from './lib/useRun'
+import { OutputPanel } from './components/OutputPanel'
 
 const SAMPLES = [
   { label: 'Exemplo válido', text: valid },
@@ -27,6 +29,7 @@ export default function App() {
   const [semantic, setSemantic] = useState(true)
   const [expand, setExpand] = useState({ key: 0, all: true })
   const { result, loading, failure, compileNow } = useCompile(source, semantic)
+  const { state: runState, run } = useRun()
 
   const errorLines = useMemo(() => new Set(result?.errors.map((e) => e.line) ?? []), [result])
 
@@ -44,6 +47,8 @@ export default function App() {
         onSample={setSource}
         semantic={semantic}
         onSemantic={setSemantic}
+        running={runState.phase === 'running'}
+        onRun={() => run(source)}
       />
 
       {failure && (
@@ -93,8 +98,12 @@ export default function App() {
           />
         </Panel>
 
-        <Panel title={`Erros (${result?.errors.length ?? 0})`} className="lg:col-span-3">
+        <Panel title={`Erros (${result?.errors.length ?? 0})`} className="lg:col-span-2">
           <ErrorList errors={result?.errors ?? []} onSelect={goTo} />
+        </Panel>
+
+        <Panel title="Saída">
+          <OutputPanel state={runState} />
         </Panel>
       </main>
     </div>

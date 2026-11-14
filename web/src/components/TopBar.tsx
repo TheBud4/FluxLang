@@ -10,6 +10,8 @@ interface TopBarProps {
   onSample: (text: string) => void
   semantic: boolean
   onSemantic: (on: boolean) => void
+  running: boolean
+  onRun: () => void
 }
 
 const button =
@@ -24,6 +26,8 @@ export function TopBar({
   onSample,
   semantic,
   onSemantic,
+  running,
+  onRun,
 }: TopBarProps) {
   const fileInput = useRef<HTMLInputElement>(null)
 
@@ -51,6 +55,14 @@ export function TopBar({
         </label>
         <button type="button" className={button} onClick={onCompile}>
           Compilar
+        </button>
+        <button
+          type="button"
+          className="rounded-md border border-accent bg-accent px-3 py-1 text-sm font-semibold text-panel hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+          onClick={onRun}
+          disabled={running}
+        >
+          {running ? 'Executando...' : 'Executar'}
         </button>
         {samples.map((s) => (
           <button key={s.label} type="button" className={button} onClick={() => onSample(s.text)}>

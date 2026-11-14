@@ -33,6 +33,17 @@ export interface CompileResult {
   tree: TreeNode | null
 }
 
+/** O que `POST /api/run` devolve: a saída do programa FluxLang executado. */
+export interface RunResult {
+  /** ok: rodou; rejected: não passou na análise; timeout: passou do tempo. */
+  status: 'ok' | 'rejected' | 'internal-error' | 'timeout'
+  exitCode: number | null
+  stdout: string
+  stderr: string
+  truncated: boolean
+  message?: string
+}
+
 /** Pedido para o editor ir até um ponto do código (clique em erro, token ou nó). */
 export interface Focus {
   line: number

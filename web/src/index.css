@@ -38,3 +38,9 @@ body {
   color: var(--color-ink);
   font-family: var(--font-sans);
 }
+
+/* Código sempre como foi digitado: sem ligaduras, que desenhariam `<=` como um
+   só símbolo (e `->`, `!=`...) numa tela que mostra o código de um compilador. */
+.font-mono {
+  font-variant-ligatures: none;
+}

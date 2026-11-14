@@ -454,9 +454,16 @@ reconhecidos, a árvore sintática, o resultado (`Programa aceito` ou
 Clicar num erro, token ou nó da árvore seleciona o trecho no código. A
 árvore é a de derivação, fiel à gramática LL(1); a opção "ocultar `*_rest`"
 remove os nós criados na fatoração e sobe os filhos deles para o pai. O
-código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E24, e há botões
+código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E24, o botão **Executar** compila o programa para C e o roda (a saída padrão e a de erro aparecem no painel "Saída", com o código de saída; um programa que passa de 10 segundos é interrompido e a saída é cortada em 1 MB), e há botões
 para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
 `invalido.flux`.
+
+**Segurança do Executar.** Executar roda o programa de verdade neste computador,
+inclusive os comandos que ele pedir em `run`. O servidor só escuta em
+`127.0.0.1`, e a rota `POST /api/run` ainda confere o `Host`, o `Origin` e um
+cabeçalho próprio (`X-Flux-Run`), para que uma página qualquer aberta no
+navegador não consiga mandar um programa para ela. Use a interface só em
+computador seu e não a exponha na rede.
 
 **Formato do `--json`** (a interface lê este objeto):
 
