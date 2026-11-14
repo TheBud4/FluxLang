@@ -55,7 +55,8 @@ func main () {
 - Em `var` e `const`, o `:tipo` pode ser omitido quando há valor inicial: cada
   variável recebe o tipo do valor correspondente. `var x;` (sem tipo e
   sem valor) é inválido. `null` ou `[]` sozinhos também não servem,
-  porque não indicam um tipo.
+  porque não indicam um tipo. Um `var` **global** sempre precisa de valor
+  inicial (`var g:int;` só vale dentro de funções e blocos).
 
 ```flux
 var nome, telefone:string = "Andrew", "99999";
@@ -68,7 +69,8 @@ abort if err;
 nome, telefone = "Carlos", "88888";
 ```
 
-Listas são homogêneas, com índice a partir de 0, e têm três métodos:
+Listas são homogêneas, com índice a partir de 0 (num literal, `int` e `float`
+se unem: `[1, 2.5]` é `list<float>`), e têm três métodos:
 `length()` devolve o tamanho (`int`), `push(valor)` adiciona no fim e
 `remove(índice)` remove a posição indicada. `push` e `remove` não
 devolvem valor, então só podem ser usados como comando.
@@ -312,6 +314,9 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 - **Inferência:** em `var` ou `const` sem `:tipo`, cada variável recebe o tipo do
   valor correspondente. `null` e `[]` sozinhos não permitem inferir. Ao
   receber o resultado de um workflow sem `:tipo`, a variável só aceita `null`.
+- **Comandos:** uma expressão sozinha só vale como comando se for uma
+  chamada (`terminal.log(x);`, `f();`); `x + 1;` e `idade;` não fazem nada e
+  são erro.
 - **Quantidade de valores:** em declarações e atribuições múltiplas, o
   número de variáveis deve ser igual ao de valores. `call` e `run`
   produzem dois valores (resultado, erro) e exigem exatamente duas
@@ -395,7 +400,7 @@ make                            # gera ./flux
 ./flux --tree programa.flux    # imprime a árvore de derivação
 ./flux --json programa.flux    # tokens, erros e árvore em JSON (para a interface)
 ./flux --ast programa.flux     # a AST (a árvore de derivação sem a burocracia da gramática)
-./flux --semantic programa.flux # confere também os erros semânticos (E1 a E22)
+./flux --semantic programa.flux # confere também os erros semânticos (E1 a E24)
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
@@ -415,7 +420,7 @@ sai com código 1 se encontrou algum.
 | `src/tree.c`, `src/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
 | `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
 | `src/types.c`, `src/ast.c`, `src/ast_build.c` | Tipos da linguagem, a AST e a conversão da árvore de derivação em AST |
-| `src/sema.c` | Análise semântica (E1 a E22): tabela de símbolos, tipos e análise de fluxo |
+| `src/sema.c` | Análise semântica (E1 a E24): tabela de símbolos, tipos e análise de fluxo |
 | `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
 | `src/main.c` | Leitura da entrada, modos `--tokens`, `--tree` e `--json` e resultado |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
@@ -441,7 +446,7 @@ reconhecidos, a árvore sintática, o resultado (`Programa aceito` ou
 Clicar num erro, token ou nó da árvore seleciona o trecho no código. A
 árvore é a de derivação, fiel à gramática LL(1); a opção "ocultar `*_rest`"
 remove os nós criados na fatoração e sobe os filhos deles para o pai. O
-código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E22, e há botões
+código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E24, e há botões
 para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
 `invalido.flux`.
 

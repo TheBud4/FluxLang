@@ -116,6 +116,6 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 ## Pontos extras
 
 - [x] Realce das linhas com erro na interface
-- [x] Análise semântica (E1–E22): `./flux --semantic`, com a chave na interface
+- [x] Análise semântica (E1–E24): `./flux --semantic`, com a chave na interface
 - [ ] Geração de código C e chamada do `gcc`
 - [ ] Checagens de execução R1–R6 no código gerado

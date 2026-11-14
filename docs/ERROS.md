@@ -170,6 +170,8 @@ impressos ordenados por linha e coluna, no formato
 | E20 | `func` com `:tipo` sem `return` em todos os caminhos | `func f(x:int):int { if (x > 0) { return 1; } }` | `A função 'f' deve retornar int em todos os caminhos.` |
 | E21 | Número de argumentos errado | `soma(1)` para `func soma(a:int, b:int)` | `'soma' espera 2 argumentos, recebeu 1.` |
 | E22 | Chamada de algo que não é função nem método | `idade.push(1)` (int), `terminal.foo()`, `user.name()` | `'idade' não tem o método 'push'.` |
+| E23 | `var` global sem valor inicial | `var g:int;` no nível global | `A variável global 'g' precisa de valor inicial.` |
+| E24 | Expressão solta como comando | `x + 1;`, `idade;`, `l[0];` | `Esta expressão não faz nada: só chamadas podem ser usadas como comando.` |
 
 Decisões de 14/11 que afetam esta tabela (detalhes na seção 8 do README):
 valor de campo de `object` é dinâmico e passa em E4 e E5 (conferido em R5);
@@ -192,15 +194,17 @@ que exatamente deu errado:
 - E19: `Chave de object deve ser string, encontrado int.` e `'idade' não é uma lista nem um object e não aceita [ ].`
 - E22: `'x' não é uma função.` e `Isso não é uma função e não pode ser chamado.`
 
-**Escolhas de implementação** (não vieram das decisões D1 a D8; podem ser
-mudadas): um literal de lista é conferido elemento a elemento contra o tipo
-esperado (`var l:list<float> = [1, 2];` vale) e, sem tipo esperado, os
-elementos `int` e `float` se unem em `list<float>`; o E3 não vale para
-globais (não dá para saber o que o `main` já atribuiu); um valor que já teve
-erro não gera uma segunda mensagem (o E9 também não sai para um `run` fora de
-lugar); um comando que é só uma expressão (`x + 1;`) é permitido;
-`terminal.input` aceita 0 ou 1 argumento; as posições são a do nome, a do
-operador ou a do valor errado.
+**Decisões de 14/11 sobre esta tabela:** todo `var` global precisa de valor
+inicial (E23, então o E3 só existe para locais); um comando que é só uma
+expressão só vale se for uma chamada (E24); um literal de lista é conferido
+elemento a elemento contra o tipo esperado (`var l:list<float> = [1, 2];`
+vale) e, sem tipo esperado, os elementos `int` e `float` se unem em
+`list<float>`.
+
+**Escolhas de implementação** (estilo, podem ser mudadas): um valor que já
+teve erro não gera uma segunda mensagem (o E9 também não sai para um `run`
+fora de lugar); `terminal.input` aceita 0 ou 1 argumento; as posições são a
+do nome, a do operador ou a do valor errado.
 
 Sobre E7: `call` e `run` produzem **dois** valores (resultado, erro), então
 exigem exatamente duas variáveis: `var r, e = call build(x);`. Que eles

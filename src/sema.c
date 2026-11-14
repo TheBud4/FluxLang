@@ -891,6 +891,9 @@ static void check_stmt(Stmt *s) {
     break;
   case ST_EXPR:
     check_expr(s->exprs[0]); /* uma chamada que não devolve valor é permitida aqui */
+    /* só uma chamada faz alguma coisa sozinha: `x + 1;` não faz nada (E24) */
+    if (s->exprs[0]->kind != EX_CALL)
+      err(s->pos, "Esta expressão não faz nada: só chamadas podem ser usadas como comando.");
     break;
   case ST_BLOCK:
     check_block(s);
@@ -1040,6 +1043,10 @@ int semantic_check(Program *program) {
     Decl *d = &program->decls[i];
     if (!d->var)
       continue;
+    if (!d->var->rhs) /* todo var global precisa de valor inicial (E23) */
+      for (int k = 0; k < d->var->n_names; k++)
+        err(d->var->names[k]->pos, "A variável global '%s' precisa de valor inicial.",
+            d->var->names[k]->name);
     cur_func = NULL;
     in_global_init = 1;
     memset(&flow, 0, sizeof flow);

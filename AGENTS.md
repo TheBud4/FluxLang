@@ -32,7 +32,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
 | Caminho | Papel | Quem edita |
 |---|---|---|
 | `README.md` | Especificação da linguagem (seções 1–10, Gramática, Escopo da v1, Em aberto) | Agente, com revisão do usuário |
-| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E22, exemplo inválido, modo pânico, execução R1–R6 | Agente, com revisão do usuário |
+| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E24, exemplo inválido, modo pânico, execução R1–R6 | Agente, com revisão do usuário |
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
 | `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` | Agente, com revisão do usuário |
@@ -77,7 +77,7 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
   `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Retomar em `}`/palavras de comando/`func` foi
   testado e piora as cascatas (medição em ERROS.md, seção 6): não repetir.
   A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`,
-  `make web`) estão prontos. A análise semântica (E1 a E22, `src/sema.c`, só com `--semantic`; a interface a liga por padrão) também. Fora do código, faltam os slides e o ensaio (outras pessoas). A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
+  `make web`) estão prontos. A análise semântica (E1 a E24, `src/sema.c`, só com `--semantic`; a interface a liga por padrão) também. Fora do código, faltam os slides e o ensaio (outras pessoas). A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
 - README e ERROS.md revisados e coerentes com as decisões abaixo. Os
   blocos `.flux` do README passam pela gramática.
 - A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem
@@ -121,7 +121,7 @@ ir para qualquer tipo.
 nomes; com valor inicial, pode ser omitido (inferência), tanto em `var`
 quanto em `const`. `const` exige valor e é raso (o conteúdo de `object`/
 `list` pode mudar). `var x;`, `var x = null;` e `var x = [];` são
-inválidos. Existem atribuições múltiplas (`a, b = 1, 2;`).
+inválidos, e todo `var` global precisa de valor inicial (E23). Existem atribuições múltiplas (`a, b = 1, 2;`).
 
 **Funções:** `func f(a:int):int { }` retorna um único valor, com `return`
 obrigatório em todos os caminhos. Sem `:tipo`, não retorna valor (só
@@ -186,7 +186,9 @@ referências: `var b = a;` e passar `a` a uma função não copiam (D2); o
 resto é por valor. As formas tipadas (`object{...}`) ficam para depois.
 
 **Listas:** `l.length()`, `l.push(v)` e `l.remove(i)`; `push` e `remove`
-não devolvem valor.
+não devolvem valor. Num literal, `int` e `float` se unem (`[1, 2.5]` é
+`list<float>`). Uma expressão sozinha só vale como comando se for uma
+chamada (E24).
 
 **Biblioteca:** `terminal.log/info/warn/error/input` (`input` devolve
 `string`) e as conversões `toString/toInt/toFloat/toBool`. `terminal.log`
