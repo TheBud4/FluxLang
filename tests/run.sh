@@ -8,6 +8,8 @@
 #   tests/ast/*.flux        Runs: ./flux --ast (the AST)
 #   tests/semantico/*.flux  Runs: ./flux --semantic (semantic errors E1-E24)
 #   tests/exec/*.flux       Runs: ./flux --run (compiles to C, runs the program)
+#   tests/exec_color/*.flux  Runs: FORCE_COLOR=1 ./flux --run (ANSI colors; the ESC byte is shown as <ESC>)
+#   tests/exec_nocolor/*.flux Runs: FORCE_COLOR=1 NO_COLOR=1 ./flux --run (NO_COLOR wins: no colors)
 #   tests/exec_tagged/*.flux Runs: FLUX_TAGGED=1 ./flux --run (the tagged output the web UI reads;
 #                            the record separator \x1e is shown as <RS>)
 #
@@ -18,7 +20,13 @@
 cd "$(dirname "$0")/.." || exit 2
 
 run_case() {
-  if [ "$3" = tagged ]; then
+  if [ "$3" = color ]; then
+    FORCE_COLOR=1 ./flux $1 "$2" 2>&1 </dev/null | sed 's/\x1b/<ESC>/g'
+    echo "[código ${PIPESTATUS[0]}]"
+  elif [ "$3" = nocolor ]; then
+    FORCE_COLOR=1 NO_COLOR=1 ./flux $1 "$2" 2>&1 </dev/null | sed 's/\x1b/<ESC>/g'
+    echo "[código ${PIPESTATUS[0]}]"
+  elif [ "$3" = tagged ]; then
     FLUX_TAGGED=1 ./flux $1 "$2" 2>&1 </dev/null | sed 's/\x1e/<RS>/g'
     echo "[código ${PIPESTATUS[0]}]"
   else
@@ -30,7 +38,7 @@ run_case() {
 passed=0
 failed=0
 
-for dir in lexico sintatico arvore json ast semantico exec exec_tagged; do
+for dir in lexico sintatico arvore json ast semantico exec exec_tagged exec_color exec_nocolor; do
   [ -d "tests/$dir" ] || continue
   flags=""
   [ "$dir" = lexico ] && flags="-t"
@@ -41,6 +49,8 @@ for dir in lexico sintatico arvore json ast semantico exec exec_tagged; do
   [ "$dir" = exec ] && flags="--run"
   mode=""
   [ "$dir" = exec_tagged ] && flags="--run" && mode="tagged"
+  [ "$dir" = exec_color ] && flags="--run" && mode="color"
+  [ "$dir" = exec_nocolor ] && flags="--run" && mode="nocolor"
 
   for src in tests/$dir/*.flux; do
     [ -e "$src" ] || continue

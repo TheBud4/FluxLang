@@ -72,6 +72,31 @@ static int fx_line; /* a linha do comando em execução, para as mensagens */
  * E error, F erro de execução, P prompt do input. */
 static int fx_tagged;
 
+/* Cores no terminal. Só quando a saída é um terminal (isatty), como os outros
+ * programas fazem: redirecionar para um arquivo ou um pipe continua sem cor.
+ * NO_COLOR (qualquer valor) desliga e FORCE_COLOR liga mesmo sem terminal. */
+FX_FN int fx_use_color(int fd) {
+  const char *no = getenv("NO_COLOR");
+  if (no && no[0])
+    return 0;
+  const char *force = getenv("FORCE_COLOR");
+  if (force && force[0] && strcmp(force, "0") != 0)
+    return 1;
+  return isatty(fd);
+}
+
+/* A cor de cada tipo de impressão: log azul, info ciano, warn amarelo, error
+ * vermelho e o erro de execução vermelho em negrito (as mesmas da interface). */
+FX_FN const char *fx_color_of(char kind) {
+  switch (kind) {
+  case 'L': return "\033[94m";
+  case 'I': return "\033[36m";
+  case 'W': return "\033[33m";
+  case 'E': return "\033[31m";
+  default:  return "\033[1;31m";
+  }
+}
+
 FX_FN void fx_emit(char kind, const char *text) {
   size_t n = strlen(text);
   fprintf(stdout, "\x1e%c%zu:", kind, n);
@@ -102,7 +127,9 @@ FX_FN void fx_die(const char *fmt, ...) {
     exit(1);
   }
   fflush(stdout);
-  fprintf(stderr, "Erro de execução [linha %d]:\n%s\n", fx_line, text);
+  int color = fx_use_color(2);
+  fprintf(stderr, "%sErro de execução [linha %d]:\n%s%s\n", color ? fx_color_of('F') : "", fx_line,
+          text, color ? "\033[0m" : "");
   exit(1);
 }
 
@@ -626,12 +653,13 @@ FX_FN FxValue fx_print(char kind, int to_stderr, FxValue v) {
   const char *text = fx_repr(v, 0);
   if (fx_tagged) {
     fx_emit(kind, text);
-  } else if (to_stderr) {
-    fflush(stdout);
-    fprintf(stderr, "%s\n", text);
-  } else {
-    fprintf(stdout, "%s\n", text);
+    return fx_null();
   }
+  FILE *stream = to_stderr ? stderr : stdout;
+  if (to_stderr)
+    fflush(stdout);
+  int color = fx_use_color(to_stderr ? 2 : 1);
+  fprintf(stream, "%s%s%s\n", color ? fx_color_of(kind) : "", text, color ? "\033[0m" : "");
   return fx_null();
 }
 

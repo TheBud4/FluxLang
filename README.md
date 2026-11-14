@@ -405,7 +405,7 @@ make                            # gera ./flux
 ./flux --semantic programa.flux # confere também os erros semânticos (E1 a E24)
 ./flux --c programa.flux        # imprime o programa em C (a biblioteca de execução vai junto)
 ./flux --build programa.flux    # gera o executável ./programa (via gcc); -o escolhe o nome
-./flux --run programa.flux      # gera, executa e apaga o executável
+./flux --run programa.flux      # gera, executa e apaga o executável (a saída é colorida num terminal; NO_COLOR desliga)
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)

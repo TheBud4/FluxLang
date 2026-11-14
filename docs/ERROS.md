@@ -339,6 +339,15 @@ padrão inteira (inclusive o `\n` final) e, quando o comando não pode ser
 iniciado, o erro é `comando 'x' não pôde ser iniciado: <motivo>`; listas e
 objetos aparecem como `[1, 2]` e `{a: 1}`, com as strings entre aspas.
 
+**Cores no terminal.** Quando a saída é um terminal, as impressões saem
+coloridas pelo tipo (as mesmas da interface web): `log` em azul, `info` em
+ciano, `warn` em amarelo, `error` em vermelho e o erro de execução em vermelho
+forte. Cada fluxo é decidido sozinho: com `warn` e `error` no terminal e a
+saída padrão num arquivo, só os dois primeiros ganham cor. `NO_COLOR` (com
+qualquer valor) desliga as cores e `FORCE_COLOR` liga mesmo sem terminal; num
+pipe ou arquivo não há cor, então os testes e a saída redirecionada continuam
+limpos.
+
 **Saída etiquetada** (`FLUX_TAGGED=1`, usada pela interface web): para a
 interface colorir cada linha pelo tipo de quem a imprimiu, a biblioteca de
 execução, com essa variável no ambiente, escreve tudo na saída padrão, em
