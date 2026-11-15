@@ -29,11 +29,16 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
 | `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` (`/api/compile`) e executa programas (`/api/run`, botão Executar) | Agente, com revisão do usuário |
-| `src/` | `lexer.l`, `parser.y`, `main.c`, `tree.c`, `json.c`, `types.c`, `ast.c`, `ast_build.c`, `sema.c`, `codegen_c.c`, `mem.c` (arena: nunca chame malloc/strdup direto) | Agente |
-| `runtime/flux_rt.h` | Biblioteca de execução (valores, operadores, `run`, `terminal`, coletor de lixo), embutida em todo `.c` gerado | Agente |
+| `src/` | Driver: `main.c` (opções, `report_error`), `json.c` (saída `--json`), `fluxc.h` | Agente |
+| `src/frontend/` | `lexer.l`, `parser.y`, `tree.c`/`tree.h` (análise léxica e sintática, árvore de derivação) | Agente |
+| `src/semantic/` | `types.c`, `ast.c`, `ast_build.c`, `sema.c` (+ `.h`): tipos, AST e análise semântica | Agente |
+| `src/backend/` | `codegen_c.c` (gerador de C) e `runtime/flux_rt.h`: biblioteca de execução (valores, operadores, `run`, `terminal`, coletor de lixo), embutida em todo `.c` gerado | Agente |
+| `src/util/` | `mem.c`/`mem.h`: arena do compilador (nunca chame malloc/strdup direto) | Agente |
 | `tests/` | Casos por pasta (ver "Estado atual"); `tests/run.sh` roda tudo | Agente |
 | `docs/TAREFAS.md` | Checklist passo a passo até as entregas | Agente e usuário |
-| `docs/superpowers/specs/` | Desenho da interface web, escrito antes de construí-la | Agente |
+| `docs/specs/` | Desenho da interface web, escrito antes de construí-la | Agente |
+| `docs/entregas/` | Artigo SBC (`.docx`) e slides (`.pptx`) entregues | Usuário |
+| `tools/vscode-fluxlang/` | Extensão do VS Code (realce de sintaxe da FluxLang) | Agente |
 | `docs/ENUNCIADO.md` | Texto original dos Trabalhos 1 e 2 | Ninguém (texto da disciplina) |
 
 ## Regras de trabalho
@@ -118,7 +123,7 @@ um à mão**, ele grava o que o compilador imprimiu.
 escopos, tipos e um estado de fluxo para E3/E20. `codegen_c.c` gera C: todo
 valor é um `FxValue` com etiqueta, cada subexpressão vai para um temporário
 (ordem de avaliação da esquerda para a direita) e `&&`/`||` viram `if`.
-`runtime/flux_rt.h` é embutido em todo `.c` gerado (o Makefile o transforma em
+`src/backend/runtime/flux_rt.h` é embutido em todo `.c` gerado (o Makefile o transforma em
 `build/runtime_src.c`) e tem os operadores, `run`, `terminal`, o coletor de
 lixo e as versões Windows/POSIX. O compilador aloca de um arena (`mem.c`).
 
@@ -307,7 +312,7 @@ O refinamento da seção 6 do ERROS.md foi medido e descartado.
 
 **Geração de código:** `./flux --c` imprime um programa C, `--build [-o x]`
 gera o executável e `--run` roda (via `gcc`). Todo valor é um `FxValue` com
-etiqueta; a biblioteca `runtime/flux_rt.h` (embutida no `.c`) faz os operadores
+etiqueta; a biblioteca `src/backend/runtime/flux_rt.h` (embutida no `.c`) faz os operadores
 e dá os erros de execução R1 a R7 (R7 é o estouro de pilha). Cada subexpressão
 vai para um temporário, para a ordem de avaliação ser da esquerda para a
 direita. `terminal.log` e `info` vão para a saída padrão, `warn` e `error` para
@@ -318,7 +323,7 @@ padrão sem cortar o `\n` final. O programa gerado roda também no Windows (`--b
 numa thread de 64 MB) e a entrada. O `flux` em si só roda em Linux/macOS.
 A memória dos programas é gerenciada por um coletor de lixo na biblioteca
 (`FLUX_GC=0` desliga, `FLUX_GC_STRESS=1` coleta a cada alocação, `FLUX_GC_STATS=1` mostra as
-contagens); o compilador usa um arena (`src/mem.c`) liberado no fim.
+contagens); o compilador usa um arena (`src/util/mem.c`) liberado no fim.
 Num terminal a saída é colorida por tipo (log azul, info ciano, warn amarelo,
 error e erro de execução vermelhos), cada fluxo decidido pelo seu `isatty`;
 `NO_COLOR` desliga e `FORCE_COLOR` liga. Com `FLUX_TAGGED=1` no ambiente a biblioteca

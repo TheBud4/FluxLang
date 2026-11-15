@@ -384,7 +384,7 @@ Bison, versão simples). A árvore de derivação (`--tree`) sai com um nó por 
 - A geração de código converte a AST em um programa C e chama o `gcc`
   (`./flux --c`, `--build` e `--run`). Todo valor em tempo de execução é um
   `FxValue` com etiqueta (null, int, float, bool, string, list, object), e
-  uma biblioteca de execução (`runtime/flux_rt.h`) faz as operações e dá os
+  uma biblioteca de execução (`src/backend/runtime/flux_rt.h`) faz as operações e dá os
   erros R1 a R7; ela é embutida no `.c` gerado, que compila sozinho. A memória
   dos programas é gerenciada por um coletor de lixo (marca e varre, que varre a
   pilha do C de forma conservadora): um laço que concatena textos não cresce
@@ -437,19 +437,22 @@ sai com código 1 se encontrou algum.
 
 | Arquivo | Conteúdo |
 |---|---|
-| `src/lexer.l` | Analisador léxico (Flex) |
-| `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
-| `src/tree.c`, `src/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
-| `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
-| `src/types.c`, `src/ast.c`, `src/ast_build.c` | Tipos da linguagem, a AST e a conversão da árvore de derivação em AST |
-| `src/codegen_c.c`, `runtime/flux_rt.h` | Gerador de código C e a biblioteca de execução que ele embute (os valores, os operadores, `run`, `terminal` e os erros R1 a R7) |
-| `src/sema.c` | Análise semântica (E1 a E24): tabela de símbolos, tipos e análise de fluxo |
-| `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
 | `src/main.c` | Leitura da entrada, modos `--tokens`, `--tree` e `--json` e resultado |
+| `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
+| `src/frontend/lexer.l` | Analisador léxico (Flex) |
+| `src/frontend/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
+| `src/frontend/tree.c`, `src/frontend/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
+| `src/semantic/types.c`, `ast.c`, `ast_build.c` | Tipos da linguagem, a AST e a conversão da árvore de derivação em AST |
+| `src/semantic/sema.c` | Análise semântica (E1 a E24): tabela de símbolos, tipos e análise de fluxo |
+| `src/backend/codegen_c.c`, `src/backend/runtime/flux_rt.h` | Gerador de código C e a biblioteca de execução que ele embute (os valores, os operadores, `run`, `terminal` e os erros R1 a R7) |
+| `src/util/mem.c`, `src/util/mem.h` | Arena de memória do compilador (tudo é liberado no fim) |
+| `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
+| `tools/vscode-fluxlang/` | Extensão do VS Code com o realce de sintaxe da FluxLang |
+| `docs/` | `BNF.txt`, `ERROS.md`, `TAREFAS.md`, `ENUNCIADO.md`, `exemplos/`, `specs/` (desenho da interface) e `entregas/` (artigo e slides) |
 | `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`, `tests/ast/` com `--ast`, `tests/semantico/` com `--semantic`, `tests/exec/` com `--run`: compila para C e confere a saída do programa); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
-`src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
+`src/frontend/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.
 
 ### Interface web

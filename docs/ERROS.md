@@ -62,7 +62,7 @@ erro, quando o token encontrado é `call` ou `run` a mensagem ganha a
 explicação `(call e run só aparecem logo depois do '=' de um var ou de uma
 atribuição)`.
 
-No Bison, as mensagens padrão são em inglês. O `src/parser.y` usa
+No Bison, as mensagens padrão são em inglês. O `src/frontend/parser.y` usa
 `%define parse.error custom` e escreve as mensagens em
 `yyreport_syntax_error`, com a lista de tokens esperados vinda de
 `yypcontext_expected_tokens`. A ordem da lista segue a ordem das
@@ -141,7 +141,7 @@ Cada linha desta tabela e da tabela de erros léxicos tem um caso em
 ## 4. Erros semânticos
 
 Verificados só depois de um parse sem erros. Estão implementados em
-`src/sema.c` e rodam com `./flux --semantic` (a interface web tem a chave
+`src/semantic/sema.c` e rodam com `./flux --semantic` (a interface web tem a chave
 "Análise semântica", ligada por padrão). Todos os erros são coletados e
 impressos ordenados por linha e coluna, no formato
 `Erro semântico [linha L, coluna C]:` e a mensagem.
@@ -268,7 +268,7 @@ o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 **Fim do arquivo:** se ainda falta fechar um bloco, reporta
 `Token encontrado: fim do arquivo` / `Esperado: '}'` e encerra.
 
-**Como está implementado (versão simples, `src/parser.y`):** as regras
+**Como está implementado (versão simples, `src/frontend/parser.y`):** as regras
 com o token `error` são os pontos de recuperação, um por construção, como
 no código feito em sala (`try/catch` + `consumeUntil`):
 
