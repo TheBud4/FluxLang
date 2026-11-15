@@ -488,7 +488,12 @@ int generate_c(const Program *program, FILE *file) {
   next_tmp = 0;
   fputs("int main(void) {\n", out);
   depth = 1;
-  emit("fx_init();");
+  emit("fx_init(__builtin_frame_address(0));");
+  for (int i = 0; i < program->n_decls; i++) { /* os globais são raízes do coletor */
+    Stmt *v = program->decls[i].var;
+    for (int k = 0; v && k < v->n_names; k++)
+      emit("fx_gc_root(&v_%s);", v->names[k]->name);
+  }
   for (int i = 0; i < program->n_decls; i++) {
     Stmt *v = program->decls[i].var;
     if (!v)

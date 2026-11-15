@@ -60,9 +60,11 @@ test: flux
 clean:
 	rm -f build/* flux
 
-# AddressSanitizer e UBSan pegam acesso fora dos limites, uso depois de liberar
-# e comportamento indefinido. A árvore de derivação nunca é liberada (vive até
-# o fim do processo), então a detecção de vazamento fica desligada.
+# AddressSanitizer e UBSan pegam acesso fora dos limites, uso depois de liberar,
+# comportamento indefinido e, com o LeakSanitizer (ligado), vazamentos: o
+# compilador libera tudo no fim (arena) e o coletor de lixo da biblioteca de
+# execução cuida dos programas gerados. O use-after-return do ASan fica desligado
+# porque ele move variáveis para uma pilha falsa que o coletor não varre.
 # Precisa dos pacotes libasan e libubsan (Fedora: sudo dnf install libasan libubsan).
 # Mesmo que o build ou os testes falhem, o build normal é restaurado no fim.
 asan:
@@ -70,7 +72,7 @@ asan:
 	@status=0; \
 	$(MAKE) CFLAGS='-Wall -g -fsanitize=address,undefined -fno-omit-frame-pointer -Isrc -Ibuild' flux \
 	  && FLUX_CC_FLAGS='-g -fsanitize=address,undefined -fno-omit-frame-pointer' \
-     ASAN_OPTIONS=detect_leaks=0 bash tests/run.sh || status=1; \
+     ASAN_OPTIONS=detect_stack_use_after_return=0 bash tests/run.sh || status=1; \
 	$(MAKE) clean; $(MAKE) flux; exit $$status
 
 web: flux

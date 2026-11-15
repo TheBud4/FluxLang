@@ -375,7 +375,10 @@ Bison, versão simples). A árvore de derivação (`--tree`) sai com um nó por 
   (`./flux --c`, `--build` e `--run`). Todo valor em tempo de execução é um
   `FxValue` com etiqueta (null, int, float, bool, string, list, object), e
   uma biblioteca de execução (`runtime/flux_rt.h`) faz as operações e dá os
-  erros R1 a R7; ela é embutida no `.c` gerado, que compila sozinho.
+  erros R1 a R7; ela é embutida no `.c` gerado, que compila sozinho. A memória
+  dos programas é gerenciada por um coletor de lixo (marca e varre, que varre a
+  pilha do C de forma conservadora): um laço que concatena textos não cresce
+  sem limite. O próprio compilador usa um arena liberado no fim.
 - Mensagens de erro em português, citando o token encontrado e o
   esperado, na saída de erro. Formato, catálogo e modo pânico estão em
   [`ERROS.md`](docs/ERROS.md).

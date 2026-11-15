@@ -156,15 +156,6 @@ FX_FN void fx_type_err(const char *expected, FxValue got) {
   fx_die("Esperado %s, encontrado %s.", expected, fx_tag_name(got.tag));
 }
 
-FX_FN void *fx_alloc(size_t n) {
-  void *p = calloc(1, n ? n : 1);
-  if (!p) {
-    fprintf(stderr, "Memória esgotada.\n");
-    exit(2);
-  }
-  return p;
-}
-
 /* ---------- Pilha (R7) ----------
  * Uma recursão sem fim estouraria a pilha do processo e o programa morreria com
  * uma falha de segmentação. Cada função confere, ao entrar, quanto da pilha já
@@ -173,25 +164,236 @@ FX_FN void *fx_alloc(size_t n) {
 static const char *fx_stack_base;
 static size_t fx_stack_limit;
 
-FX_FN void fx_stack_init(void) {
+FX_FN void fx_check_stack(void) {
+  const char *here = __builtin_frame_address(0);
+  if ((size_t)(fx_stack_base - here) > fx_stack_limit)
+    fx_die("Estouro de pilha: recursão profunda demais."); /* R7 */
+}
+
+/* ---------- Coletor de lixo ----------
+ * Um programa que concatena textos num laço cresceria sem limite se ninguém
+ * liberasse nada. Todo bloco que a biblioteca aloca (textos, listas, objetos e
+ * seus buffers) entra numa lista, com um tipo. Quando o programa alocou bastante
+ * desde a última coleta, o coletor:
+ *   1. acha o que ainda é alcançável: os globais registrados (fx_gc_root) e a
+ *      pilha do C, varrida de forma CONSERVADORA (qualquer palavra que aponte
+ *      para dentro de um bloco o mantém vivo; assim o código gerado não precisa
+ *      registrar cada temporário), e depois os ponteiros dentro de listas e
+ *      objetos, que ele conhece pelo tipo do bloco;
+ *   2. libera o resto.
+ * Variáveis de ambiente (para depurar e testar): FLUX_GC=0 desliga o coletor;
+ * FLUX_GC_STRESS=1 coleta a CADA alocação (acha erros do coletor, é lento);
+ * FLUX_GC_STATS=1 imprime as contagens ao sair. */
+
+typedef enum { FXB_RAW, FXB_LIST, FXB_VALUES, FXB_OBJ, FXB_KEYS } FxBlockKind;
+
+typedef struct FxBlock {
+  struct FxBlock *next;
+  size_t size; /* bytes do conteúdo, que vem logo depois deste cabeçalho */
+  unsigned char kind, mark;
+} __attribute__((aligned(16))) FxBlock;
+
+static FxBlock *fx_blocks;
+static size_t fx_block_count;
+static size_t fx_gc_since;                /* bytes alocados desde a última coleta */
+static size_t fx_gc_threshold = 4u << 20; /* coleta quando fx_gc_since passa disto */
+static int fx_gc_disabled, fx_gc_stress;
+static size_t fx_gc_runs, fx_gc_freed;
+
+static FxValue **fx_roots;
+static size_t fx_n_roots, fx_cap_roots;
+
+/* Durante uma coleta: os blocos ordenados por endereço (para achar o bloco que
+ * contém um ponteiro) e a pilha de blocos a percorrer. */
+static FxBlock **fx_gc_sorted;
+static size_t fx_gc_n;
+static FxBlock **fx_gc_todo;
+static size_t fx_gc_todo_n, fx_gc_todo_cap;
+
+FX_FN void fx_no_memory(void) __attribute__((noreturn));
+FX_FN void fx_no_memory(void) {
+  fprintf(stderr, "Memória esgotada.\n");
+  exit(2);
+}
+
+/* Registra uma variável global como raiz: o que ela guarda não é lixo. */
+FX_FN void fx_gc_root(FxValue *slot) {
+  if (fx_n_roots == fx_cap_roots) {
+    fx_cap_roots = fx_cap_roots ? fx_cap_roots * 2 : 16;
+    fx_roots = realloc(fx_roots, fx_cap_roots * sizeof *fx_roots);
+    if (!fx_roots)
+      fx_no_memory();
+  }
+  fx_roots[fx_n_roots++] = slot;
+}
+
+FX_FN int fx_block_cmp(const void *a, const void *b) {
+  const FxBlock *x = *(FxBlock *const *)a, *y = *(FxBlock *const *)b;
+  return (x > y) - (x < y);
+}
+
+/* O bloco cujo conteúdo contém o endereço p (um ponteiro para o meio também
+ * vale), ou NULL se p não aponta para um bloco (um literal, um número...). */
+FX_FN FxBlock *fx_gc_find(const void *p) {
+  size_t lo = 0, hi = fx_gc_n;
+  while (lo < hi) {
+    size_t mid = (lo + hi) / 2;
+    if ((const void *)fx_gc_sorted[mid] <= p)
+      lo = mid + 1;
+    else
+      hi = mid;
+  }
+  if (lo == 0)
+    return NULL;
+  FxBlock *b = fx_gc_sorted[lo - 1];
+  const char *start = (const char *)(b + 1);
+  return ((const char *)p >= start && (const char *)p < start + b->size) ? b : NULL;
+}
+
+FX_FN void fx_gc_mark_ptr(const void *p) {
+  FxBlock *b = p ? fx_gc_find(p) : NULL;
+  if (!b || b->mark)
+    return;
+  b->mark = 1;
+  if (fx_gc_todo_n == fx_gc_todo_cap) {
+    fx_gc_todo_cap = fx_gc_todo_cap ? fx_gc_todo_cap * 2 : 256;
+    fx_gc_todo = realloc(fx_gc_todo, fx_gc_todo_cap * sizeof *fx_gc_todo);
+    if (!fx_gc_todo)
+      fx_no_memory();
+  }
+  fx_gc_todo[fx_gc_todo_n++] = b;
+}
+
+FX_FN void fx_gc_mark_value(const FxValue *v) {
+  switch (v->tag) {
+  case FX_STRING: fx_gc_mark_ptr(v->as.s); break;
+  case FX_LIST:   fx_gc_mark_ptr(v->as.l); break;
+  case FX_OBJECT: fx_gc_mark_ptr(v->as.o); break;
+  default:        break;
+  }
+}
+
+/* Os ponteiros que um bloco guarda, conforme o tipo dele. */
+FX_FN void fx_gc_trace(FxBlock *b) {
+  void *payload = b + 1;
+  switch (b->kind) {
+  case FXB_LIST:
+    fx_gc_mark_ptr(((FxList *)payload)->v);
+    break;
+  case FXB_OBJ:
+    fx_gc_mark_ptr(((FxObj *)payload)->keys);
+    fx_gc_mark_ptr(((FxObj *)payload)->vals);
+    break;
+  case FXB_VALUES:
+    for (size_t i = 0; i < b->size / sizeof(FxValue); i++)
+      fx_gc_mark_value(&((FxValue *)payload)[i]);
+    break;
+  case FXB_KEYS: /* chaves: textos do heap ou literais (que não são blocos) */
+    for (size_t i = 0; i < b->size / sizeof(char *); i++)
+      fx_gc_mark_ptr(((const char **)payload)[i]);
+    break;
+  default:
+    break;
+  }
+}
+
+/* Varre [lo, hi) palavra por palavra. Fica fora do AddressSanitizer porque lê a
+ * pilha inteira, inclusive o que o sanitizador marcou como proibido. */
+FX_FN void fx_gc_scan_range(const char *lo, const char *hi)
+    __attribute__((noinline, no_sanitize_address));
+FX_FN void fx_gc_scan_range(const char *lo, const char *hi) {
+  uintptr_t start = ((uintptr_t)lo + 7) & ~(uintptr_t)7;
+  for (const uintptr_t *w = (const uintptr_t *)start; (const char *)(w + 1) <= hi; w++)
+    fx_gc_mark_ptr((const void *)*w);
+}
+
+FX_FN void fx_gc_collect(void) __attribute__((noinline));
+FX_FN void fx_gc_collect(void) {
+  __builtin_unwind_init(); /* passa para a pilha os registradores que o C preserva */
+  fx_gc_runs++;
+
+  fx_gc_n = fx_block_count;
+  fx_gc_sorted = malloc((fx_gc_n ? fx_gc_n : 1) * sizeof *fx_gc_sorted);
+  if (!fx_gc_sorted)
+    fx_no_memory();
+  size_t i = 0;
+  for (FxBlock *b = fx_blocks; b; b = b->next)
+    fx_gc_sorted[i++] = b;
+  qsort(fx_gc_sorted, fx_gc_n, sizeof *fx_gc_sorted, fx_block_cmp);
+  fx_gc_todo_n = 0;
+
+  for (size_t r = 0; r < fx_n_roots; r++)
+    fx_gc_mark_value(fx_roots[r]);
+  volatile char here = 0; /* um endereço no quadro atual: daqui até a base da pilha */
+  fx_gc_scan_range((const char *)&here, fx_stack_base + 64);
+  while (fx_gc_todo_n > 0)
+    fx_gc_trace(fx_gc_todo[--fx_gc_todo_n]);
+
+  size_t live_bytes = 0, live = 0;
+  FxBlock **link = &fx_blocks;
+  while (*link) {
+    FxBlock *b = *link;
+    if (b->mark) {
+      b->mark = 0;
+      live++;
+      live_bytes += b->size + sizeof *b;
+      link = &b->next;
+    } else {
+      *link = b->next;
+      free(b);
+      fx_gc_freed++;
+    }
+  }
+  fx_block_count = live;
+  fx_gc_since = 0;
+  /* o próximo limite cresce com o que está vivo, então o custo fica proporcional */
+  fx_gc_threshold = live_bytes > (4u << 20) ? live_bytes : (4u << 20);
+  free(fx_gc_sorted);
+  fx_gc_sorted = NULL;
+  fx_gc_n = 0;
+}
+
+FX_FN void *fx_gc_alloc(size_t n, FxBlockKind kind) {
+  /* a coleta vem ANTES de alocar: o bloco novo nunca é coletado antes de usado */
+  if (!fx_gc_disabled && (fx_gc_stress || fx_gc_since >= fx_gc_threshold))
+    fx_gc_collect();
+  size_t size = n ? n : 1;
+  FxBlock *b = calloc(1, sizeof *b + size);
+  if (!b)
+    fx_no_memory();
+  b->size = size;
+  b->kind = (unsigned char)kind;
+  b->next = fx_blocks;
+  fx_blocks = b;
+  fx_block_count++;
+  fx_gc_since += size + sizeof *b;
+  return b + 1;
+}
+
+/* Bytes sem ponteiros: textos e buffers de leitura. */
+FX_FN void *fx_alloc(size_t n) { return fx_gc_alloc(n, FXB_RAW); }
+
+FX_FN void fx_gc_report(void) {
+  fprintf(stderr, "[gc] %zu coletas, %zu blocos liberados, %zu blocos vivos\n", fx_gc_runs,
+          fx_gc_freed, fx_block_count);
+}
+
+/* Chamada no início do main, com o endereço do quadro dele (a base da pilha):
+ * liga o modo etiquetado, o coletor e a conferência de pilha. */
+FX_FN void fx_init(const void *stack_base) {
+  fx_tagged = getenv("FLUX_TAGGED") != NULL;
+  const char *gc = getenv("FLUX_GC");
+  fx_gc_disabled = gc && strcmp(gc, "0") == 0;
+  fx_gc_stress = getenv("FLUX_GC_STRESS") != NULL;
+  if (getenv("FLUX_GC_STATS"))
+    atexit(fx_gc_report);
+
   struct rlimit rl;
   size_t limit = 8u << 20;
   if (getrlimit(RLIMIT_STACK, &rl) == 0 && rl.rlim_cur != RLIM_INFINITY)
     limit = (size_t)rl.rlim_cur;
   fx_stack_limit = limit > (512u << 10) ? limit - (256u << 10) : limit / 2;
-  fx_stack_base = __builtin_frame_address(0);
-}
-
-/* Chamada no início do main: liga o modo etiquetado e guarda a base da pilha. */
-FX_FN void fx_init(void) {
-  fx_tagged = getenv("FLUX_TAGGED") != NULL;
-  fx_stack_init();
-}
-
-FX_FN void fx_check_stack(void) {
-  const char *here = __builtin_frame_address(0);
-  if ((size_t)(fx_stack_base - here) > fx_stack_limit)
-    fx_die("Estouro de pilha: recursão profunda demais."); /* R7 */
+  fx_stack_base = stack_base;
 }
 
 /* ---------- Construtores ---------- */
@@ -205,14 +407,14 @@ FX_FN FxValue fx_str(const char *s) { FxValue v; v.tag = FX_STRING; v.as.s = s; 
 FX_FN FxValue fx_new_list(void) {
   FxValue v;
   v.tag = FX_LIST;
-  v.as.l = fx_alloc(sizeof(FxList));
+  v.as.l = fx_gc_alloc(sizeof(FxList), FXB_LIST);
   return v;
 }
 
 FX_FN FxValue fx_new_object(void) {
   FxValue v;
   v.tag = FX_OBJECT;
-  v.as.o = fx_alloc(sizeof(FxObj));
+  v.as.o = fx_gc_alloc(sizeof(FxObj), FXB_OBJ);
   return v;
 }
 
@@ -225,13 +427,13 @@ FX_FN FxPair fx_pair(FxValue result, FxValue error) {
 
 FX_FN void fx_list_add(FxValue list, FxValue v) {
   FxList *l = list.as.l;
-  if (l->n == l->cap) {
-    l->cap = l->cap ? l->cap * 2 : 4;
-    l->v = realloc(l->v, l->cap * sizeof(FxValue));
-    if (!l->v) {
-      fprintf(stderr, "Memória esgotada.\n");
-      exit(2);
-    }
+  if (l->n == l->cap) { /* o buffer cresce: bloco novo, cópia, o antigo vira lixo */
+    int cap = l->cap ? l->cap * 2 : 4;
+    FxValue *buffer = fx_gc_alloc((size_t)cap * sizeof(FxValue), FXB_VALUES);
+    if (l->n)
+      memcpy(buffer, l->v, (size_t)l->n * sizeof(FxValue));
+    l->v = buffer;
+    l->cap = cap;
   }
   l->v[l->n++] = v;
 }
@@ -263,13 +465,16 @@ FX_FN void fx_obj_put(FxObj *o, const char *key, FxValue v) {
     return;
   }
   if (o->n == o->cap) {
-    o->cap = o->cap ? o->cap * 2 : 4;
-    o->keys = realloc(o->keys, o->cap * sizeof(char *));
-    o->vals = realloc(o->vals, o->cap * sizeof(FxValue));
-    if (!o->keys || !o->vals) {
-      fprintf(stderr, "Memória esgotada.\n");
-      exit(2);
+    int cap = o->cap ? o->cap * 2 : 4;
+    const char **keys = fx_gc_alloc((size_t)cap * sizeof(char *), FXB_KEYS);
+    FxValue *vals = fx_gc_alloc((size_t)cap * sizeof(FxValue), FXB_VALUES);
+    if (o->n) {
+      memcpy(keys, o->keys, (size_t)o->n * sizeof(char *));
+      memcpy(vals, o->vals, (size_t)o->n * sizeof(FxValue));
     }
+    o->keys = keys;
+    o->vals = vals;
+    o->cap = cap;
   }
   o->keys[o->n] = key;
   o->vals[o->n++] = v;
@@ -338,6 +543,7 @@ FX_FN FxValue fx_remove(FxValue list, FxValue idx) {
   int32_t i = fx_index_of(idx, l);
   memmove(&l->v[i], &l->v[i + 1], (l->n - i - 1) * sizeof(FxValue));
   l->n--;
+  l->v[l->n] = fx_null(); /* a vaga que sobrou não segura o valor antigo */
   return fx_null();
 }
 
@@ -684,12 +890,10 @@ FX_FN FxValue fx_input(FxValue prompt) {
   int c;
   while ((c = getchar()) != EOF && c != '\n') {
     if (n + 1 >= cap) {
+      char *bigger = fx_alloc(cap * 2);
+      memcpy(bigger, buf, n);
+      buf = bigger;
       cap *= 2;
-      buf = realloc(buf, cap);
-      if (!buf) {
-        fprintf(stderr, "Memória esgotada.\n");
-        exit(2);
-      }
     }
     buf[n++] = (char)c;
   }
@@ -776,12 +980,10 @@ FX_FN FxPair fx_run(FxValue spec) {
       if (fds[k].fd < 0 || !(fds[k].revents & (POLLIN | POLLHUP)))
         continue;
       if (lens[k] + 129 > caps[k]) {
+        char *bigger = fx_alloc(caps[k] * 2);
+        memcpy(bigger, bufs[k], lens[k]);
+        bufs[k] = bigger;
         caps[k] *= 2;
-        bufs[k] = realloc(bufs[k], caps[k]);
-        if (!bufs[k]) {
-          fprintf(stderr, "Memória esgotada.\n");
-          exit(2);
-        }
       }
       ssize_t got = read(fds[k].fd, bufs[k] + lens[k], 128);
       if (got > 0) {

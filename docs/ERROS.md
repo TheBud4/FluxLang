@@ -348,6 +348,16 @@ qualquer valor) desliga as cores e `FORCE_COLOR` liga mesmo sem terminal; num
 pipe ou arquivo não há cor, então os testes e a saída redirecionada continuam
 limpos.
 
+**Memória dos programas.** A biblioteca de execução tem um coletor de lixo
+(marca e varre). Ele roda quando o programa alocou uns 4 MB desde a última
+coleta, acha o que ainda é alcançável (os globais e a pilha do C, varrida de
+forma conservadora) e libera o resto. Variáveis de ambiente para depurar:
+`FLUX_GC=0` desliga o coletor, `FLUX_GC_STRESS=1` coleta a cada alocação (os
+testes de `tests/exec` rodam também assim, e a saída tem de ser idêntica) e
+`FLUX_GC_STATS=1` imprime quantas coletas houve ao sair. Um laço de 3 milhões
+de concatenações usa cerca de 9 MB, contra 330 MB sem o coletor, e leva cerca
+de 30% mais tempo.
+
 **Saída etiquetada** (`FLUX_TAGGED=1`, usada pela interface web): para a
 interface colorir cada linha pelo tipo de quem a imprimiu, a biblioteca de
 execução, com essa variável no ambiente, escreve tudo na saída padrão, em

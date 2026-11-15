@@ -219,7 +219,10 @@ vai para um temporário, para a ordem de avaliação ser da esquerda para a
 direita. `terminal.log` e `info` vão para a saída padrão, `warn` e `error` para
 a de erro, sem prefixo; `toString` de float usa a forma mais curta com `.0`
 (`3.0`); `terminal.input` devolve `""` no fim da entrada; `run` devolve a saída
-padrão sem cortar o `\n` final. Num terminal a saída é colorida por tipo (log azul, info ciano, warn amarelo,
+padrão sem cortar o `\n` final. A memória dos programas é gerenciada por um coletor de lixo na biblioteca
+(`FLUX_GC=0` desliga, `FLUX_GC_STRESS=1` coleta a cada alocação, `FLUX_GC_STATS=1` mostra as
+contagens); o compilador usa um arena (`src/mem.c`) liberado no fim.
+Num terminal a saída é colorida por tipo (log azul, info ciano, warn amarelo,
 error e erro de execução vermelhos), cada fluxo decidido pelo seu `isatty`;
 `NO_COLOR` desliga e `FORCE_COLOR` liga. Com `FLUX_TAGGED=1` no ambiente a biblioteca
 marca cada impressão com o tipo (registros `\x1e<tipo><bytes>:<texto>`), que a

@@ -10,6 +10,8 @@
 #   tests/exec/*.flux       Runs: ./flux --run (compiles to C, runs the program)
 #   tests/exec_color/*.flux  Runs: FORCE_COLOR=1 ./flux --run (ANSI colors; the ESC byte is shown as <ESC>)
 #   tests/exec_nocolor/*.flux Runs: FORCE_COLOR=1 NO_COLOR=1 ./flux --run (NO_COLOR wins: no colors)
+#   (exec again)            Runs: FLUX_GC_STRESS=1 ./flux --run on tests/exec/*.flux and expects the SAME
+#                            .out: the garbage collector runs at every allocation and must change nothing
 #   tests/exec_tagged/*.flux Runs: FLUX_TAGGED=1 ./flux --run (the tagged output the web UI reads;
 #                            the record separator \x1e is shown as <RS>)
 #
@@ -23,7 +25,10 @@ run_case() {
   # a entrada padrão do teste: X.in, se existir, senão vazia
   input="${2%.flux}.in"
   [ -f "$input" ] || input=/dev/null
-  if [ "$3" = color ]; then
+  if [ "$3" = gcstress ]; then
+    FLUX_GC_STRESS=1 ./flux $1 "$2" 2>&1 < "$input"
+    echo "[código $?]"
+  elif [ "$3" = color ]; then
     FORCE_COLOR=1 ./flux $1 "$2" 2>&1 < "$input" | sed 's/\x1b/<ESC>/g'
     echo "[código ${PIPESTATUS[0]}]"
   elif [ "$3" = nocolor ]; then
@@ -41,7 +46,9 @@ run_case() {
 passed=0
 failed=0
 
-for dir in lexico sintatico arvore json ast semantico exec exec_tagged exec_color exec_nocolor; do
+for pass in lexico sintatico arvore json ast semantico exec exec_tagged exec_color exec_nocolor exec_gc; do
+  dir="$pass"
+  [ "$pass" = exec_gc ] && dir=exec
   [ -d "tests/$dir" ] || continue
   flags=""
   [ "$dir" = lexico ] && flags="-t"
@@ -54,10 +61,13 @@ for dir in lexico sintatico arvore json ast semantico exec exec_tagged exec_colo
   [ "$dir" = exec_tagged ] && flags="--run" && mode="tagged"
   [ "$dir" = exec_color ] && flags="--run" && mode="color"
   [ "$dir" = exec_nocolor ] && flags="--run" && mode="nocolor"
+  [ "$pass" = exec_gc ] && flags="--run" && mode="gcstress"
 
   for src in tests/$dir/*.flux; do
     [ -e "$src" ] || continue
     expected="${src%.flux}.out"
+    label="$src"
+    [ "$pass" = exec_gc ] && label="$src (coleta a cada alocação)"
 
     if [ ! -f "$expected" ]; then
       if [ "$1" = "--generate" ]; then
@@ -71,10 +81,10 @@ for dir in lexico sintatico arvore json ast semantico exec exec_tagged exec_colo
     fi
 
     if diff -u "$expected" <(run_case "$flags" "$src" "$mode") > /dev/null; then
-      echo "ok      $src"
+      echo "ok      $label"
       passed=$((passed + 1))
     else
-      echo "FALHOU  $src"
+      echo "FALHOU  $label"
       diff -u "$expected" <(run_case "$flags" "$src" "$mode") | tail -n +3 | sed 's/^/        /'
       failed=$((failed + 1))
     fi
