@@ -1,7 +1,7 @@
 /* Gerador de código C da FluxLang (./flux --c, --build e --run).
  *
  * Percorre a AST (já conferida pela análise semântica) e escreve um programa C
- * que usa a biblioteca de execução (runtime/flux_rt.h), embutida no próprio
+ * que usa a biblioteca de execução (src/backend/runtime/flux_rt.h), embutida no próprio
  * arquivo gerado: o resultado compila sozinho com o gcc.
  *
  * Duas ideias seguram o gerador:
@@ -24,7 +24,7 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-extern const char flux_runtime_source[]; /* build/runtime_src.c, gerado de runtime/flux_rt.h */
+extern const char flux_runtime_source[]; /* build/runtime_src.c, gerado de src/backend/runtime/flux_rt.h */
 
 /* ---------- Saída ---------- */
 

@@ -20,7 +20,7 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
 
 %locations
 %union {
-  struct Node *node; /* valor de todo símbolo: ver src/tree.h */
+  struct Node *node; /* valor de todo símbolo: ver src/frontend/tree.h */
 }
 
 /* Keywords */

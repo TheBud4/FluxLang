@@ -47,7 +47,7 @@ const KINDS: Record<string, OutputKind> = {
 
 /**
  * Lê a saída do programa no modo etiquetado (FLUX_TAGGED=1, ver
- * runtime/flux_rt.h): uma sequência de registros  \x1e <tipo> <bytes> : <texto> .
+ * src/backend/runtime/flux_rt.h): uma sequência de registros  \x1e <tipo> <bytes> : <texto> .
  * O tamanho é em bytes, então o texto pode ter qualquer coisa (inclusive
  * quebras de linha). Um texto solto fora de um registro não deveria existir,
  * mas aparece como 'raw' em vez de se perder.
