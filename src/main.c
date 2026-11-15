@@ -44,6 +44,7 @@ static void help(void) {
          "  --c            imprime o programa em C (com a biblioteca de execução)\n"
          "  --build [-o x] gera o executável (via gcc); sem -o, usa o nome do arquivo\n"
          "  --run          gera o executável, roda e apaga\n"
+         "  --windows      com --build/--run: gera um .exe de Windows (precisa do mingw64-gcc; o --run usa o wine)\n"
          "  -h, --help     mostra esta mensagem\n");
 }
 
@@ -64,13 +65,18 @@ static int list_tokens(void) {
 /* O nome do executável: o do arquivo sem a extensão, na pasta atual. */
 static char *default_exe_name(const char *file) {
   if (!file)
-    return mem_strdup("a.out");
+    return mem_strdup(is_windows_target() ? "a.exe" : "a.out");
   const char *base = strrchr(file, '/');
   base = base ? base + 1 : file;
   char *name = mem_strdup(base);
   char *dot = strrchr(name, '.');
   if (dot && dot != name)
     *dot = '\0';
+  if (is_windows_target()) {
+    char *with_exe = mem_alloc(strlen(name) + 5);
+    sprintf(with_exe, "%s.exe", name);
+    return with_exe;
+  }
   return name;
 }
 
@@ -101,8 +107,10 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
   if (build_mode) {
     snprintf(exe_path, sizeof exe_path, "%s", outfile ? outfile : default_exe_name(file));
   } else { /* --run: um executável temporário */
-    snprintf(exe_path, sizeof exe_path, "%s/fluxexeXXXXXX", tmpdir ? tmpdir : "/tmp");
-    int exe_fd = mkstemp(exe_path);
+    /* o wine só roda o que termina em .exe */
+    const char *suffix = is_windows_target() ? ".exe" : "";
+    snprintf(exe_path, sizeof exe_path, "%s/fluxexeXXXXXX%s", tmpdir ? tmpdir : "/tmp", suffix);
+    int exe_fd = mkstemps(exe_path, (int)strlen(suffix));
     if (exe_fd < 0) {
       perror(exe_path);
       unlink(c_path);
@@ -151,6 +159,8 @@ static int run(int argc, char **argv) {
       build_mode = 1;
     } else if (strcmp(argv[i], "--run") == 0) {
       run_mode = 1;
+    } else if (strcmp(argv[i], "--windows") == 0) {
+      set_windows_target();
     } else if (strcmp(argv[i], "-o") == 0 && i + 1 < argc) {
       outfile = argv[++i];
     } else if (strcmp(argv[i], "--ast") == 0) {

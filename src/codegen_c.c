@@ -486,7 +486,7 @@ int generate_c(const Program *program, FILE *file) {
 
   /* main: inicializa os globais na ordem do arquivo e chama a main da FluxLang */
   next_tmp = 0;
-  fputs("int main(void) {\n", out);
+  fputs("static int fx_program(void) {\n", out);
   depth = 1;
   emit("fx_init(__builtin_frame_address(0));");
   for (int i = 0; i < program->n_decls; i++) { /* os globais são raízes do coletor */
@@ -503,11 +503,17 @@ int generate_c(const Program *program, FILE *file) {
   }
   emit("f_main();");
   emit("return 0;");
-  fputs("}\n", out);
+  fputs("}\n\nint main(void) { return fx_start(fx_program); }\n", out);
   return 0;
 }
 
 /* ---------- gcc ---------- */
+
+/* --windows: o executável é para Windows (gcc do MinGW, ligado estaticamente, e
+ * rodado pelo wine no --run). */
+static int windows_target;
+void set_windows_target(void) { windows_target = 1; }
+int is_windows_target(void) { return windows_target; }
 
 /* Roda `argv` e devolve o código de saída, ou -1 se não conseguiu executar. */
 static int run_program(char *const argv[]) {
@@ -531,6 +537,8 @@ int compile_c(const char *c_path, const char *exe_path) {
   /* Os avisos do gcc falam do C gerado, não da FluxLang, então ficam desligados
    * (-w). FLUX_CC_WARN=1 os liga, para depurar o gerador; FLUX_CC troca o gcc. */
   const char *cc = getenv("FLUX_CC");
+  if (!cc && windows_target)
+    cc = "x86_64-w64-mingw32-gcc";
   const char *warn = getenv("FLUX_CC_WARN") ? "-Wall" : "-w";
   char *argv[64];
   int n = 0;
@@ -539,8 +547,12 @@ int compile_c(const char *c_path, const char *exe_path) {
   argv[n++] = "c";
   argv[n++] = "-O1";
   argv[n++] = (char *)warn;
-  /* FLUX_CC_FLAGS: flags extras para o gcc (ex.: -fsanitize=address no make asan) */
-  char *extra = getenv("FLUX_CC_FLAGS") ? mem_strdup(getenv("FLUX_CC_FLAGS")) : NULL;
+  if (windows_target) /* o .exe leva a libgcc e a winpthreads junto: roda sem DLLs soltas */
+    argv[n++] = "-static";
+  /* FLUX_CC_FLAGS: flags extras para o gcc (ex.: -fsanitize=address no make asan).
+   * Não valem para --windows: são do compilador deste computador (o MinGW não tem
+   * as bibliotecas dos sanitizadores). */
+  char *extra = getenv("FLUX_CC_FLAGS") && !windows_target ? mem_strdup(getenv("FLUX_CC_FLAGS")) : NULL;
   for (char *tok = extra ? strtok(extra, " ") : NULL; tok && n < 56; tok = strtok(NULL, " "))
     argv[n++] = tok;
   argv[n++] = "-o";
@@ -552,6 +564,11 @@ int compile_c(const char *c_path, const char *exe_path) {
 }
 
 int execute_program(const char *exe_path) {
+  if (windows_target) { /* um .exe roda no Linux pelo wine (sem as mensagens de depuração dele) */
+    setenv("WINEDEBUG", "-all", 0);
+    char *wine_argv[] = {"wine", (char *)exe_path, NULL};
+    return run_program(wine_argv);
+  }
   char *argv[] = {(char *)exe_path, NULL};
   return run_program(argv);
 }

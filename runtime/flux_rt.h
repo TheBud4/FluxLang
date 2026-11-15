@@ -11,18 +11,33 @@
  * list e object são referências (decisão D2): FxList e FxObj ficam no heap e o
  * FxValue só guarda o ponteiro. Nada é liberado: o programa roda e termina. */
 
+#ifdef _WIN32
+#ifndef __USE_MINGW_ANSI_STDIO
+#define __USE_MINGW_ANSI_STDIO 1 /* printf com %zu e %lld corretos no MinGW */
+#endif
+#endif
+
 #include <errno.h>
-#include <fcntl.h>
 #include <math.h>
-#include <poll.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+
+#ifdef _WIN32
+#include <fcntl.h>
+#include <io.h>
+#include <windows.h>
+#define fx_isatty _isatty
+#else
+#include <fcntl.h>
+#include <poll.h>
 #include <sys/resource.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#define fx_isatty isatty
+#endif
 
 #define FX_FN static __attribute__((unused))
 
@@ -82,7 +97,7 @@ FX_FN int fx_use_color(int fd) {
   const char *force = getenv("FORCE_COLOR");
   if (force && force[0] && strcmp(force, "0") != 0)
     return 1;
-  return isatty(fd);
+  return fx_isatty(fd);
 }
 
 /* A cor de cada tipo de impressão: log azul, info ciano, warn amarelo, error
@@ -232,8 +247,11 @@ FX_FN int fx_block_cmp(const void *a, const void *b) {
   return (x > y) - (x < y);
 }
 
-/* O bloco cujo conteúdo contém o endereço p (um ponteiro para o meio também
- * vale), ou NULL se p não aponta para um bloco (um literal, um número...). */
+/* O bloco que contém o endereço p, ou NULL se p não aponta para um bloco (um
+ * literal, um número...). Vale um ponteiro para o meio do conteúdo e também um
+ * ponteiro para o cabeçalho: com otimização, o compilador pode guardar só o
+ * endereço que o calloc devolveu (o cabeçalho) e recalcular o do conteúdo na
+ * hora de usar, e esse bloco não pode ser tido como morto. */
 FX_FN FxBlock *fx_gc_find(const void *p) {
   size_t lo = 0, hi = fx_gc_n;
   while (lo < hi) {
@@ -246,8 +264,8 @@ FX_FN FxBlock *fx_gc_find(const void *p) {
   if (lo == 0)
     return NULL;
   FxBlock *b = fx_gc_sorted[lo - 1];
-  const char *start = (const char *)(b + 1);
-  return ((const char *)p >= start && (const char *)p < start + b->size) ? b : NULL;
+  const char *end = (const char *)(b + 1) + b->size;
+  return ((const char *)p >= (const char *)b && (const char *)p < end) ? b : NULL;
 }
 
 FX_FN void fx_gc_mark_ptr(const void *p) {
@@ -309,7 +327,29 @@ FX_FN void fx_gc_scan_range(const char *lo, const char *hi) {
 
 FX_FN void fx_gc_collect(void) __attribute__((noinline));
 FX_FN void fx_gc_collect(void) {
-  __builtin_unwind_init(); /* passa para a pilha os registradores que o C preserva */
+  /* Um ponteiro vivo pode estar só num registrador que o C preserva entre
+   * chamadas. Este quadro guarda uma cópia deles, para a varredura da pilha os
+   * enxergar. (__builtin_unwind_init faz isso no gcc, mas não no clang.) */
+  uintptr_t saved[16] __attribute__((aligned(16))) = {0};
+#if defined(__x86_64__) && defined(_WIN32)
+  /* no Windows x64 também são preservados rdi, rsi e xmm6 a xmm15 (um valor de 16
+   * bytes pode estar num xmm) */
+  uintptr_t saved_xmm[20] __attribute__((aligned(16))) = {0};
+  __asm__ volatile("movups %%xmm6, 0(%0)\n\tmovups %%xmm7, 16(%0)\n\tmovups %%xmm8, 32(%0)\n\t"
+                   "movups %%xmm9, 48(%0)\n\tmovups %%xmm10, 64(%0)\n\tmovups %%xmm11, 80(%0)\n\t"
+                   "movups %%xmm12, 96(%0)\n\tmovups %%xmm13, 112(%0)\n\tmovups %%xmm14, 128(%0)\n\t"
+                   "movups %%xmm15, 144(%0)"
+                   : : "c"(saved_xmm) : "memory");
+#endif
+#if defined(__x86_64__)
+  /* rcx é usado como ponteiro porque nenhum ABI o preserva: os demais saem intactos */
+  __asm__ volatile("movq %%rbx, 0(%0)\n\tmovq %%rbp, 8(%0)\n\tmovq %%r12, 16(%0)\n\t"
+                   "movq %%r13, 24(%0)\n\tmovq %%r14, 32(%0)\n\tmovq %%r15, 40(%0)\n\t"
+                   "movq %%rdi, 48(%0)\n\tmovq %%rsi, 56(%0)"
+                   : : "c"(saved) : "memory");
+#else
+  __builtin_unwind_init();
+#endif
   fx_gc_runs++;
 
   fx_gc_n = fx_block_count;
@@ -325,7 +365,14 @@ FX_FN void fx_gc_collect(void) {
   for (size_t r = 0; r < fx_n_roots; r++)
     fx_gc_mark_value(fx_roots[r]);
   volatile char here = 0; /* um endereço no quadro atual: daqui até a base da pilha */
-  fx_gc_scan_range((const char *)&here, fx_stack_base + 64);
+  const char *lo = (const char *)&here;
+  if ((const char *)saved < lo)
+    lo = (const char *)saved;
+#if defined(__x86_64__) && defined(_WIN32)
+  if ((const char *)saved_xmm < lo)
+    lo = (const char *)saved_xmm;
+#endif
+  fx_gc_scan_range(lo, fx_stack_base + 64);
   while (fx_gc_todo_n > 0)
     fx_gc_trace(fx_gc_todo[--fx_gc_todo_n]);
 
@@ -388,13 +435,59 @@ FX_FN void fx_init(const void *stack_base) {
   if (getenv("FLUX_GC_STATS"))
     atexit(fx_gc_report);
 
+#ifdef _WIN32
+  /* a pilha desta thread (fx_start a criou grande) */
+  ULONG_PTR stack_low = 0, stack_high = 0;
+  GetCurrentThreadStackLimits(&stack_low, &stack_high);
+  size_t limit = (size_t)(stack_high - stack_low);
+  if (fx_tagged) { /* os tamanhos do modo etiquetado são em bytes: nada de \n virar \r\n */
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
+  }
+  /* o console do Windows 10+ entende as cores ANSI quando isso é ligado */
+  DWORD console_mode;
+  HANDLE handles[2] = {GetStdHandle(STD_OUTPUT_HANDLE), GetStdHandle(STD_ERROR_HANDLE)};
+  for (int i = 0; i < 2; i++)
+    if (GetConsoleMode(handles[i], &console_mode))
+      SetConsoleMode(handles[i], console_mode | 0x0004 /* ENABLE_VIRTUAL_TERMINAL_PROCESSING */);
+#else
   struct rlimit rl;
   size_t limit = 8u << 20;
   if (getrlimit(RLIMIT_STACK, &rl) == 0 && rl.rlim_cur != RLIM_INFINITY)
     limit = (size_t)rl.rlim_cur;
+#endif
   fx_stack_limit = limit > (512u << 10) ? limit - (256u << 10) : limit / 2;
   fx_stack_base = stack_base;
 }
+
+/* Roda o programa. No Windows ele vai numa thread de pilha grande (64 MB, só
+ * reservada): a pilha padrão de 1 a 2 MB não aguentaria as recursões que no
+ * Linux (8 MB) funcionam, e o limite R7 sai do tamanho real da pilha. */
+#ifdef _WIN32
+typedef struct {
+  int (*program)(void);
+  int code;
+} FxStart;
+
+FX_FN DWORD WINAPI fx_thread_main(LPVOID arg) {
+  FxStart *start = (FxStart *)arg;
+  start->code = start->program();
+  return 0;
+}
+
+FX_FN int fx_start(int (*program)(void)) {
+  FxStart start = {program, 0};
+  HANDLE thread = CreateThread(NULL, (SIZE_T)64 << 20, fx_thread_main, &start,
+                               STACK_SIZE_PARAM_IS_A_RESERVATION, NULL);
+  if (!thread)
+    return program();
+  WaitForSingleObject(thread, INFINITE);
+  CloseHandle(thread);
+  return start.code;
+}
+#else
+FX_FN int fx_start(int (*program)(void)) { return program(); }
+#endif
 
 /* ---------- Construtores ---------- */
 
@@ -909,7 +1002,224 @@ FX_FN void fx_abort(FxValue e) { fx_die("%s", fx_repr(e, 0)); }
 
 /* ---------- run ---------- */
 
-/* Executa o comando (sem shell) e junta a saída padrão e a de erro. */
+/* O resultado de um comando que terminou: (saída padrão, null) se saiu com
+ * código 0; senão (null, erro), onde o erro é a saída de erro do comando ou, se
+ * vier vazia, uma frase com o código. Comum aos dois sistemas. */
+FX_FN FxPair fx_run_result(const char *command, char *out, char *err, size_t err_len, int exited,
+                           int code) {
+  if (exited && code == 0)
+    return fx_pair(fx_str(out), fx_null());
+  while (err_len > 0 && (err[err_len - 1] == '\n' || err[err_len - 1] == '\r'))
+    err[--err_len] = '\0';
+  if (err_len > 0)
+    return fx_pair(fx_null(), fx_str(err));
+  if (exited)
+    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' terminou com código %d", command, code)));
+  return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' terminou pelo sinal %d", command, code)));
+}
+
+/* Cresce o buffer de leitura de um fluxo (bloco novo + cópia). */
+FX_FN void fx_run_room(char **buf, size_t *cap, size_t len, size_t need) {
+  if (len + need + 1 <= *cap)
+    return;
+  char *bigger = fx_alloc(*cap * 2 + need);
+  memcpy(bigger, *buf, len);
+  *buf = bigger;
+  *cap = *cap * 2 + need;
+}
+
+#ifdef _WIN32
+
+/* Uma mensagem do sistema para um código de erro do Windows, sem a quebra de linha. */
+FX_FN const char *fx_win_message(DWORD code) {
+  char buf[256];
+  DWORD n = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, 0, buf,
+                           sizeof buf, NULL);
+  while (n > 0 && (buf[n - 1] == '\n' || buf[n - 1] == '\r' || buf[n - 1] == ' '))
+    buf[--n] = '\0';
+  return n > 0 ? fx_dup_printf("%s", buf) : fx_dup_printf("erro %lu do sistema", (unsigned long)code);
+}
+
+/* Põe um argumento na linha de comando do Windows, entre aspas quando precisa, com
+ * as regras do CommandLineToArgvW (barras antes de aspas são dobradas). */
+FX_FN const char *fx_win_quote(const char *arg) {
+  size_t n = strlen(arg);
+  if (n > 0 && !strpbrk(arg, " \t\n\v\""))
+    return arg;
+  char *out = fx_alloc(n * 2 + 3);
+  size_t o = 0;
+  out[o++] = '"';
+  for (size_t i = 0; i < n; i++) {
+    size_t slashes = 0;
+    while (i < n && arg[i] == '\\') {
+      slashes++;
+      i++;
+    }
+    if (i == n) { /* barras no fim, antes da aspa de fechar: dobram */
+      for (size_t k = 0; k < slashes * 2; k++)
+        out[o++] = '\\';
+      break;
+    }
+    if (arg[i] == '"') {
+      for (size_t k = 0; k < slashes * 2 + 1; k++)
+        out[o++] = '\\';
+    } else {
+      for (size_t k = 0; k < slashes; k++)
+        out[o++] = '\\';
+    }
+    out[o++] = arg[i];
+  }
+  out[o++] = '"';
+  out[o] = '\0';
+  return out;
+}
+
+/* Windows: CreateProcess com pipes para a saída padrão e a de erro. O command é
+ * procurado no PATH (o .exe é implícito); builtins do cmd, como echo, precisam
+ * de `cmd /c`. */
+FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const char *dir) {
+  const char *cmdline = "";
+  for (int i = 0; i < argc; i++)
+    cmdline = fx_dup_printf("%s%s%s", cmdline, i ? " " : "", fx_win_quote(argv[i]));
+
+  SECURITY_ATTRIBUTES sa = {sizeof sa, NULL, TRUE};
+  HANDLE out_r, out_w, err_r, err_w;
+  if (!CreatePipe(&out_r, &out_w, &sa, 0) || !CreatePipe(&err_r, &err_w, &sa, 0))
+    return fx_pair(fx_null(), fx_str("não foi possível criar os pipes do comando"));
+  SetHandleInformation(out_r, HANDLE_FLAG_INHERIT, 0); /* só as pontas de escrita passam ao filho */
+  SetHandleInformation(err_r, HANDLE_FLAG_INHERIT, 0);
+
+  STARTUPINFOA si;
+  memset(&si, 0, sizeof si);
+  si.cb = sizeof si;
+  si.dwFlags = STARTF_USESTDHANDLES;
+  si.hStdOutput = out_w;
+  si.hStdError = err_w;
+  si.hStdInput = GetStdHandle(STD_INPUT_HANDLE);
+  PROCESS_INFORMATION pi;
+  memset(&pi, 0, sizeof pi);
+
+  fflush(stdout);
+  fflush(stderr);
+  char *mutable_line = fx_alloc(strlen(cmdline) + 1); /* CreateProcessA pode alterar o texto */
+  strcpy(mutable_line, cmdline);
+  BOOL started = CreateProcessA(NULL, mutable_line, NULL, NULL, TRUE, 0, NULL, dir, &si, &pi);
+  DWORD error = started ? 0 : GetLastError();
+  CloseHandle(out_w);
+  CloseHandle(err_w);
+  if (!started) {
+    CloseHandle(out_r);
+    CloseHandle(err_r);
+    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' não pôde ser iniciado: %s", command,
+                                                   fx_win_message(error))));
+  }
+
+  /* lê os dois pipes sem travar em nenhum: só lê o que já chegou */
+  HANDLE pipes[2] = {out_r, err_r};
+  char *bufs[2] = {fx_alloc(256), fx_alloc(256)};
+  size_t lens[2] = {0, 0}, caps[2] = {256, 256};
+  int open_pipes = 2;
+  while (open_pipes > 0) {
+    int idle = 1;
+    for (int k = 0; k < 2; k++) {
+      if (!pipes[k])
+        continue;
+      DWORD avail = 0;
+      if (!PeekNamedPipe(pipes[k], NULL, 0, NULL, &avail, NULL)) { /* o filho fechou o pipe */
+        CloseHandle(pipes[k]);
+        pipes[k] = NULL;
+        open_pipes--;
+        continue;
+      }
+      if (avail > 0) {
+        DWORD want = avail < 4096 ? avail : 4096, got = 0;
+        fx_run_room(&bufs[k], &caps[k], lens[k], want);
+        if (ReadFile(pipes[k], bufs[k] + lens[k], want, &got, NULL) && got > 0) {
+          lens[k] += got;
+          idle = 0;
+        }
+      }
+    }
+    if (idle && open_pipes > 0)
+      Sleep(1);
+  }
+  bufs[0][lens[0]] = '\0';
+  bufs[1][lens[1]] = '\0';
+
+  WaitForSingleObject(pi.hProcess, INFINITE);
+  DWORD code = 0;
+  GetExitCodeProcess(pi.hProcess, &code);
+  CloseHandle(pi.hProcess);
+  CloseHandle(pi.hThread);
+  return fx_run_result(command, bufs[0], bufs[1], lens[1], 1, (int)code);
+}
+
+#else /* POSIX */
+
+/* Linux e macOS: fork + execvp, com pipes lidos por poll. Sem shell. */
+FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const char *dir) {
+  (void)argc;
+  int out_pipe[2], err_pipe[2];
+  if (pipe(out_pipe) < 0 || pipe(err_pipe) < 0)
+    return fx_pair(fx_null(), fx_str("não foi possível criar os pipes do comando"));
+
+  fflush(stdout);
+  fflush(stderr);
+  pid_t pid = fork();
+  if (pid < 0)
+    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' não pôde ser iniciado: %s", command,
+                                                   strerror(errno))));
+  if (pid == 0) {
+    dup2(out_pipe[1], 1);
+    dup2(err_pipe[1], 2);
+    close(out_pipe[0]); close(out_pipe[1]);
+    close(err_pipe[0]); close(err_pipe[1]);
+    if (dir && chdir(dir) < 0) {
+      fprintf(stderr, "comando '%s' não pôde ser iniciado: %s: %s\n", command, dir, strerror(errno));
+      _exit(127);
+    }
+    execvp(argv[0], argv);
+    fprintf(stderr, "comando '%s' não pôde ser iniciado: %s\n", command, strerror(errno));
+    _exit(127);
+  }
+  close(out_pipe[1]);
+  close(err_pipe[1]);
+
+  char *bufs[2] = {fx_alloc(256), fx_alloc(256)};
+  size_t lens[2] = {0, 0}, caps[2] = {256, 256};
+  struct pollfd fds[2] = {{out_pipe[0], POLLIN, 0}, {err_pipe[0], POLLIN, 0}};
+  int open_fds = 2;
+  while (open_fds > 0) {
+    if (poll(fds, 2, -1) < 0 && errno != EINTR)
+      break;
+    for (int k = 0; k < 2; k++) {
+      if (fds[k].fd < 0 || !(fds[k].revents & (POLLIN | POLLHUP)))
+        continue;
+      fx_run_room(&bufs[k], &caps[k], lens[k], 128);
+      ssize_t got = read(fds[k].fd, bufs[k] + lens[k], 128);
+      if (got > 0) {
+        lens[k] += (size_t)got;
+      } else if (got == 0 || (got < 0 && errno != EINTR)) {
+        close(fds[k].fd);
+        fds[k].fd = -1;
+        open_fds--;
+      }
+    }
+  }
+  bufs[0][lens[0]] = '\0';
+  bufs[1][lens[1]] = '\0';
+
+  int status = 0;
+  while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {
+  }
+  if (WIFEXITED(status))
+    return fx_run_result(command, bufs[0], bufs[1], lens[1], 1, WEXITSTATUS(status));
+  return fx_run_result(command, bufs[0], bufs[1], lens[1], 0, WTERMSIG(status));
+}
+
+#endif
+
+/* run { command, flags, workingDir }: confere o pedido e executa o comando (sem shell). */
 FX_FN FxPair fx_run(FxValue spec) {
   FxObj *o = fx_as_obj_ptr(spec);
   int ic = fx_obj_find(o, "command");
@@ -941,77 +1251,5 @@ FX_FN FxPair fx_run(FxValue spec) {
       fx_type_err("string", flags->v[i]);
     argv[i + 1] = (char *)flags->v[i].as.s;
   }
-
-  int out_pipe[2], err_pipe[2];
-  if (pipe(out_pipe) < 0 || pipe(err_pipe) < 0)
-    return fx_pair(fx_null(), fx_str("não foi possível criar os pipes do comando"));
-
-  fflush(stdout);
-  fflush(stderr);
-  pid_t pid = fork();
-  if (pid < 0)
-    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' não pôde ser iniciado: %s",
-                                                   command.as.s, strerror(errno))));
-  if (pid == 0) {
-    dup2(out_pipe[1], 1);
-    dup2(err_pipe[1], 2);
-    close(out_pipe[0]); close(out_pipe[1]);
-    close(err_pipe[0]); close(err_pipe[1]);
-    if (dir && chdir(dir) < 0) {
-      fprintf(stderr, "comando '%s' não pôde ser iniciado: %s: %s\n", command.as.s, dir,
-              strerror(errno));
-      _exit(127);
-    }
-    execvp(argv[0], argv);
-    fprintf(stderr, "comando '%s' não pôde ser iniciado: %s\n", command.as.s, strerror(errno));
-    _exit(127);
-  }
-  close(out_pipe[1]);
-  close(err_pipe[1]);
-
-  char *bufs[2] = {fx_alloc(256), fx_alloc(256)};
-  size_t lens[2] = {0, 0}, caps[2] = {256, 256};
-  struct pollfd fds[2] = {{out_pipe[0], POLLIN, 0}, {err_pipe[0], POLLIN, 0}};
-  int open_fds = 2;
-  while (open_fds > 0) {
-    if (poll(fds, 2, -1) < 0 && errno != EINTR)
-      break;
-    for (int k = 0; k < 2; k++) {
-      if (fds[k].fd < 0 || !(fds[k].revents & (POLLIN | POLLHUP)))
-        continue;
-      if (lens[k] + 129 > caps[k]) {
-        char *bigger = fx_alloc(caps[k] * 2);
-        memcpy(bigger, bufs[k], lens[k]);
-        bufs[k] = bigger;
-        caps[k] *= 2;
-      }
-      ssize_t got = read(fds[k].fd, bufs[k] + lens[k], 128);
-      if (got > 0) {
-        lens[k] += (size_t)got;
-      } else if (got == 0 || (got < 0 && errno != EINTR)) {
-        close(fds[k].fd);
-        fds[k].fd = -1;
-        open_fds--;
-      }
-    }
-  }
-  bufs[0][lens[0]] = '\0';
-  bufs[1][lens[1]] = '\0';
-
-  int status = 0;
-  while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {
-  }
-  if (WIFEXITED(status) && WEXITSTATUS(status) == 0)
-    return fx_pair(fx_str(bufs[0]), fx_null());
-
-  /* o erro é a saída de erro do comando; se vier vazia, uma frase com o código */
-  while (lens[1] > 0 && (bufs[1][lens[1] - 1] == '\n' || bufs[1][lens[1] - 1] == '\r'))
-    bufs[1][--lens[1]] = '\0';
-  if (lens[1] > 0)
-    return fx_pair(fx_null(), fx_str(bufs[1]));
-  if (WIFEXITED(status))
-    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' terminou com código %d",
-                                                   command.as.s, WEXITSTATUS(status))));
-  return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' terminou pelo sinal %d",
-                                                 command.as.s, WTERMSIG(status))));
+  return fx_run_process(command.as.s, argv, n_flags + 1, dir);
 }

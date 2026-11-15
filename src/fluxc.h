@@ -19,6 +19,8 @@ struct Program;
 int generate_c(const struct Program *program, FILE *out);
 int compile_c(const char *c_path, const char *exe_path);
 int execute_program(const char *exe_path);
+void set_windows_target(void); /* --windows: gera um .exe com o gcc do MinGW */
+int is_windows_target(void);
 
 /* json.c: modo --json. Tokens e erros são registrados durante a análise e
    impressos no fim junto com a árvore de derivação. */
