@@ -16,27 +16,24 @@ em `docs/ENUNCIADO.md`.
 | Trabalho 2 | 26/11/2026 | Leitura de arquivo, interface gráfica (código, contagem de linhas, tokens, aceito/rejeitado, erros, árvore sintática), modo pânico, AST; apresentação mostrando a transformação para LL(1), o modo pânico e a interface |
 | Extras | — | Realce das linhas com erro; geração de código C + `gcc` (feitos) |
 
-Implementação: C, lexer em Flex, parser em GNU Bison 3.6+, binário
-`./flux`. Lexer e parser do T1 prontos: erros L1–L6, mensagens
-sintáticas em português (`parse.error custom`, `yyreport_syntax_error` no
-fim do `src/parser.y`), checagem S3 nas ações (campo `flag` dos nós),
-modo `-t`/`--tokens`, árvore de derivação (`--tree`, `src/tree.c`: um nó
-por não-terminal da BNF, inclusive `*_rest`, mais folhas de token, ε e
-`error`), `--json` (`src/json.c`: tokens, erros e árvore; formato no
-README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
-`tests/sintatico/`, `tests/arvore/` (com `--tree`), `tests/json/`, `tests/ast/` e `tests/semantico/` (`tests/run.sh`; `--generate` cria os
-`.out` que faltam, que devem ser conferidos à mão).
+Implementação: C. Lexer em Flex, parser em GNU Bison 3.6+, binário `./flux`.
+O resto (árvore, AST, análise semântica, gerador de C, biblioteca de execução)
+está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 
 ## Mapa do repositório
 
 | Caminho | Papel | Quem edita |
 |---|---|---|
 | `README.md` | Especificação da linguagem (seções 1–10, Gramática, Escopo da v1, Em aberto) | Agente, com revisão do usuário |
-| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E24, exemplo inválido, modo pânico, execução R1–R6 | Agente, com revisão do usuário |
+| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E24, exemplo inválido, modo pânico, execução R1–R7, saída colorida/etiquetada, memória e Windows | Agente, com revisão do usuário |
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
 | `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` (`/api/compile`) e executa programas (`/api/run`, botão Executar) | Agente, com revisão do usuário |
+| `src/` | `lexer.l`, `parser.y`, `main.c`, `tree.c`, `json.c`, `types.c`, `ast.c`, `ast_build.c`, `sema.c`, `codegen_c.c`, `mem.c` (arena: nunca chame malloc/strdup direto) | Agente |
+| `runtime/flux_rt.h` | Biblioteca de execução (valores, operadores, `run`, `terminal`, coletor de lixo), embutida em todo `.c` gerado | Agente |
+| `tests/` | Casos por pasta (ver "Estado atual"); `tests/run.sh` roda tudo | Agente |
 | `docs/TAREFAS.md` | Checklist passo a passo até as entregas | Agente e usuário |
+| `docs/superpowers/specs/` | Desenho da interface web, escrito antes de construí-la | Agente |
 | `docs/ENUNCIADO.md` | Texto original dos Trabalhos 1 e 2 | Ninguém (texto da disciplina) |
 
 ## Regras de trabalho
@@ -63,48 +60,145 @@ README, seção 9). `make test` roda `tests/lexico/` (com `-t`),
    BNF usa nomes de não-terminais em inglês (`<before_main>`,
    `<commands>`, `<return_type>`...).
 7. **Git:** nunca adicione `Co-Authored-By` nem qualquer atribuição a IA
-   nas mensagens de commit. Só commite quando o usuário pedir. `build/`,
-   `flux` e `compile_commands.json` estão no `.gitignore` (commit eeff661),
-   mas continuam versionados, então todo `make` altera arquivos rastreados.
-   Decisão pendente do usuário: tirá-los do controle de versão
-   (`git rm --cached`) ou voltar a versioná-los de propósito.
+   nas mensagens de commit. Só commite quando o usuário pedir, em commits
+   pequenos e lógicos (código/testes separados da documentação). `build/`,
+   `flux`, `compile_commands.json`, `web/node_modules` e `web/dist` ficam
+   fora do controle de versão.
+8. **Quem escreve o código:** desde 14/11 o agente escreve o código e
+   explica o que fez; a BNF continua só do usuário (regra 2) e as decisões
+   de linguagem continuam do usuário (regra 1).
+9. **Medir antes de afirmar.** Tentativas que pioraram o resultado ficam
+   registradas na documentação com o número que as derrubou (ver o
+   refinamento do pânico em ERROS.md, seção 6) para ninguém repeti-las.
 
-## Estado atual (03/10/2026)
+## Estado atual (15/11/2026): handoff
 
-- Trabalho 1 entregue em 01/10. O parser continua em Bison (decisão de
-  14/11: o enunciado não exige parser escrito à mão). O modo pânico
-  simples está pronto (regras `error` em `command`, `global_no_func` e
-  `after_func`): o `invalido.flux` dá os 7 erros sem cascata. Retomar em `}`/palavras de comando/`func` foi
-  testado e piora as cascatas (medição em ERROS.md, seção 6): não repetir.
-  A árvore de derivação (`--tree`), o `--json` e a interface web (`web/`,
-  `make web`) estão prontos. A análise semântica (E1 a E24, `src/sema.c`, só com `--semantic`; a interface a liga por padrão) também. Fora do código, faltam os slides e o ensaio (outras pessoas). A demonstração da transformação para LL(1) foi dispensada pelo usuário em 14/11: a linguagem nasceu LL(1).
-- README e ERROS.md revisados e coerentes com as decisões abaixo. Os
-  blocos `.flux` do README passam pela gramática.
-- A BNF está completa (seções 0–6) e é LL(1): 71 não-terminais, sem
-  conflitos FIRST/FIRST ou FIRST/FOLLOW, sem recursão à esquerda (conferido
-  por uma tabela preditiva independente e pelo Bison).
-  Não há comentários `[erro]`/`[pendente]` abertos.
-- Os exemplos foram escritos pelo agente. O commit f22850e tirou uma linha
-  de comentário do `invalido.flux`; as posições da seção 5 do ERROS.md
-  foram reconferidas com o `flux` em 02/10 (o erro 1 está em 3:20). Os
-  casos `tests/sintatico/invalido_erroN.flux` ainda usam a versão antiga,
-  com uma linha a mais (pendência do usuário em `docs/TAREFAS.md`).
-- A demonstração da transformação para LL(1) foi dispensada (a linguagem
-  nasceu LL(1)). Se o professor exigir, o histórico git tem o antes e o
-  depois reais da BNF (7c94f9c → e9a06e3).
-- Auditoria do projeto (02/10): os pendentes estão em `docs/TAREFAS.md`.
-- Lexer e parser implementados e testados: 57 casos (`tests/lexico/`: 19,
-  cobrindo os 56 tokens e L1–L6; `tests/sintatico/`: 38, com cada linha da
-  seção 3 do ERROS.md, os 7 erros do `invalido.flux` isolados, variações
-  do S3 e programas válidos). Os 7 erros saem nas posições da seção 5.
-- Próximos passos: `docs/TAREFAS.md`.
+**Resumo.** O Trabalho 2 vence em 26/11/2026. O compilador está completo para
+o enunciado e para os dois extras: lexer, parser com modo pânico, árvore de
+derivação, `--json`, interface web, AST, análise semântica (E1 a E24) e um
+gerador de C com biblioteca de execução. O que falta não é código: os slides,
+a demonstração e o ensaio (feitos por outras pessoas) e a pergunta ao
+professor (ver `docs/TAREFAS.md`). O Trabalho 1 foi entregue em 01/10.
 
-## Plano até o T2
+### Como construir e testar
 
-Compilador completo até a execução. Decisão de 14/11: o backend gera **C**
-e chama o `gcc` (o x86-64 nativo, sem passar por C, ficou como possível
-etapa futura). Feito: front end, modo pânico, árvore, `--json`, interface web,
-AST, análise semântica e o gerador de C.
+```
+make            # gera ./flux
+make test       # tests/run.sh: 203 casos; leva alguns minutos (passadas do coletor e do Windows)
+make asan       # compilador e programas gerados com ASan + UBSan + LeakSanitizer; restaura o build normal
+make web        # interface em http://127.0.0.1:5173 (Node 20+)
+```
+
+Precisa de `gcc`, `flex`, `bison` 3.6+ e GNU `make` 4.3+. Opcionais: `libasan` e
+`libubsan` (`make asan`); `mingw64-gcc` e `wine` (as passadas de Windows do
+`make test`; sem eles elas são puladas com um aviso); `clang` (só para
+conferir o código gerado: `FLUX_CC=clang bash tests/run.sh`). `tests/run.sh
+--generate` roda a suíte inteira e cria os `.out` que faltam: **confira cada
+um à mão**, ele grava o que o compilador imprimiu.
+
+### O que o `./flux` faz
+
+| Flag | Resultado |
+|---|---|
+| (nenhuma) | léxico + sintaxe; `Programa aceito.` ou `rejeitado.` |
+| `-t` | só os tokens |
+| `--tree` / `--ast` | árvore de derivação (fiel à BNF) / AST enxuta |
+| `--json` | tokens, erros, linhas e árvore, para a interface |
+| `--semantic` | confere E1 a E24 (a interface a liga por padrão) |
+| `--c` | imprime o programa em C, com a biblioteca embutida |
+| `--build [-o x]` / `--run` | gera o executável via `gcc` / gera, roda e apaga |
+| `--windows` | com `--build`/`--run`: `.exe` com `mingw64-gcc`; o `--run` usa o `wine` |
+
+### Estrutura do código
+
+`parser.y` é uma transcrição regra a regra da BNF, com ações uniformes
+`$$ = mknode("regra", n, ...)`; as regras `error` fazem o modo pânico simples.
+`ast_build.c` converte a árvore de derivação em AST; `sema.c` roda três passadas
+(declarar globais, conferir inicializadores, conferir corpos) com pilha de
+escopos, tipos e um estado de fluxo para E3/E20. `codegen_c.c` gera C: todo
+valor é um `FxValue` com etiqueta, cada subexpressão vai para um temporário
+(ordem de avaliação da esquerda para a direita) e `&&`/`||` viram `if`.
+`runtime/flux_rt.h` é embutido em todo `.c` gerado (o Makefile o transforma em
+`build/runtime_src.c`) e tem os operadores, `run`, `terminal`, o coletor de
+lixo e as versões Windows/POSIX. O compilador aloca de um arena (`mem.c`).
+
+### Testes (`tests/run.sh`)
+
+`lexico`, `sintatico`, `arvore`, `json`, `ast`, `semantico` (um caso por regra
+E1 a E24 e casos de borda), `exec` (programas que rodam e têm a saída
+conferida; `X.in` é a entrada padrão, se existir), `exec_tagged`, `exec_color`,
+`exec_nocolor`, `exec_windows`. Além disso, o `run.sh` repete `exec` com o
+coletor em estresse (`FLUX_GC_STRESS=1`, coleta a cada alocação, a saída tem de
+ser idêntica) e como `.exe` no `wine` (normal e em estresse).
+
+### Decisões que o usuário tomou
+
+- Manter o Bison (o enunciado não exige parser à mão); modo pânico **simples**.
+- Dispensar a demonstração da transformação para LL(1): a linguagem nasceu LL(1).
+- Backend em **C + gcc**, não x86-64 nativo. Windows: o **programa gerado** roda
+  lá; o `flux` e a interface web exigem Linux/macOS (no Windows, WSL).
+- D1 a D8 (campo de object dinâmico, list/object por referência, globais
+  visíveis em todo o arquivo, `terminal.*` com qualquer tipo, conversões
+  enxutas, `1 == 1.0`, estouro de int é erro R6, caminhos que terminam em
+  return/break/continue contam), mais E23 (global sem valor inicial) e E24
+  (só chamadas valem como comando). `[1, 2.5]` é `list<float>`.
+- Slides, demonstração e ensaio são de outras pessoas.
+
+### Escolhas minhas que o usuário não confirmou (mudáveis, em ERROS.md §4 e §7)
+
+`terminal.log` e `info` na saída padrão, `warn` e `error` na de erro, sem
+prefixo; float impresso na forma mais curta com `.0`; `terminal.input` devolve
+`""` no fim da entrada; `run` devolve a saída padrão inteira (com o `\n`
+final); cores no terminal (log azul, info ciano, warn amarelo, error vermelho);
+posições dos erros semânticos; o amarelo do tema claro da interface é âmbar
+escuro (contraste).
+
+### Pendências e limitações conhecidas
+
+| Item | Situação |
+|---|---|
+| Cascata de erros no pânico | Um `{` esquecido, ou função com o bloco aberto, gera erros extras. O refinamento foi medido e **piora**; não repetir. |
+| `flux` e interface web no Windows | Só via WSL. Só o programa gerado roda no Windows. |
+| macOS | Nunca testado. A biblioteca é POSIX e passou com `clang`, mas não houve execução lá. |
+| Testes automáticos da interface web | Só tipos, build e os gates de acessibilidade; a API foi testada à mão com `curl`. |
+| Entrada interativa na interface | A entrada é um campo preenchido antes de Executar; não há terminal interativo. |
+| Mensagens do compilador sem cor | Só a saída do programa é colorida. |
+| Gate de overflow da interface | Falha por falso positivo (linhas escondidas pela rolagem); verificado à mão. |
+| x86-64 nativo | Possível etapa futura, reaproveitando a biblioteca. Só se o usuário pedir. |
+| Pergunta ao professor | Em aberto em `docs/TAREFAS.md`. |
+
+### Armadilhas (aprendidas na prática)
+
+- **Nunca chame `malloc`/`strdup` em `src/`**: use `mem_alloc`/`mem_strdup`/`mem_grow`.
+  O `make asan` roda com o LeakSanitizer ligado e acusa qualquer escape.
+- **O coletor é conservador.** Ele varre a pilha do C e aceita ponteiros para o
+  meio de um bloco e para o **cabeçalho** (o `clang -O1` guarda só o endereço do
+  `calloc`). Mexeu em alocação da biblioteca? Rode o `exec` em estresse e o
+  `make asan`. `FLUX_GC=0` desliga o coletor para investigar.
+- **Teste com mais de um compilador.** O `gcc` escondeu esse bug do coletor; o
+  `clang` o mostrou. O `clang -O1` também transforma recursão de cauda em
+  laço, então um teste de "recursão infinita" precisa de recursão que não é de
+  cauda (`1 + f(n + 1)`).
+- **Testes de estouro de pilha e laço infinito** deixam executáveis órfãos se o
+  pai morrer por timeout (`pgrep -f /tmp/fluxexe`). Mate-os depois.
+- **`--generate` roda a suíte toda** (inclusive Windows e estresse): demora.
+- **`wine`**: a primeira execução cria o prefixo (~7 s); o `run.sh` fixa
+  `LC_ALL=C` para as mensagens do sistema saírem em inglês, e filtra o ruído do Mesa.
+- **ASan e o coletor**: o `use-after-return` do ASan move variáveis para uma
+  pilha falsa que o coletor não varre; o `make asan` o desliga. A flag do clang
+  para isso não existe no gcc.
+- **Interface web**: cores só por tokens em `web/src/index.css` (o hook de design
+  barra valores soltos). Mudou a tela? Tire um retrato do DOM e rode `verify_states`,
+  `axe_audit` (claro e escuro), `verify_target_size` e `verify_keyboard`.
+- **Segurança do Executar**: `POST /api/run` roda programas e comandos de verdade; ele
+  exige `Host` de localhost, `Origin` igual e o cabeçalho `X-Flux-Run`. Não relaxe.
+- **Hooks do ambiente** recusam `rm -rf` com variável no caminho: use um diretório novo.
+
+### Para retomar
+
+Leia, nesta ordem: este arquivo, `docs/TAREFAS.md` (o que falta), `docs/ERROS.md`
+(erros, formatos de saída, coletor, Windows) e o README seção 9 (uso). A memória do
+agente (`~/.claude/projects/.../memory/`) guarda as decisões do usuário e os motivos.
 
 ## A linguagem em uma página
 
@@ -219,7 +313,10 @@ vai para um temporário, para a ordem de avaliação ser da esquerda para a
 direita. `terminal.log` e `info` vão para a saída padrão, `warn` e `error` para
 a de erro, sem prefixo; `toString` de float usa a forma mais curta com `.0`
 (`3.0`); `terminal.input` devolve `""` no fim da entrada; `run` devolve a saída
-padrão sem cortar o `\n` final. A memória dos programas é gerenciada por um coletor de lixo na biblioteca
+padrão sem cortar o `\n` final. O programa gerado roda também no Windows (`--build --windows`, `mingw64-gcc`; `--run --windows` usa o
+`wine`): a biblioteca tem `#ifdef _WIN32` para o `run` (CreateProcess), as cores, a pilha (o programa roda
+numa thread de 64 MB) e a entrada. O `flux` em si só roda em Linux/macOS.
+A memória dos programas é gerenciada por um coletor de lixo na biblioteca
 (`FLUX_GC=0` desliga, `FLUX_GC_STRESS=1` coleta a cada alocação, `FLUX_GC_STATS=1` mostra as
 contagens); o compilador usa um arena (`src/mem.c`) liberado no fim.
 Num terminal a saída é colorida por tipo (log azul, info ciano, warn amarelo,

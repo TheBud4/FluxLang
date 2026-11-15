@@ -348,6 +348,13 @@ qualquer valor) desliga as cores e `FORCE_COLOR` liga mesmo sem terminal; num
 pipe ou arquivo não há cor, então os testes e a saída redirecionada continuam
 limpos.
 
+**Windows.** O programa gerado também roda no Windows (`./flux --build
+--windows`, com o `mingw64-gcc`, ou compilando o `.c` lá). As diferenças que se
+veem: `run` não usa shell, então os comandos internos do `cmd`, como `echo`,
+precisam de `command: "cmd", flags: ["/c", "echo oi"]`; a mensagem de um
+comando que não pôde ser iniciado vem do sistema, no idioma dele; e a saída de
+texto usa `\r\n` nas quebras de linha, como o Windows faz.
+
 **Memória dos programas.** A biblioteca de execução tem um coletor de lixo
 (marca e varre). Ele roda quando o programa alocou uns 4 MB desde a última
 coleta, acha o que ainda é alcançável (os globais e a pilha do C, varrida de

@@ -75,9 +75,9 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 - [ ] Perguntar ao professor: o pânico "análogo ao código feito em sala", o que ele entende por "árvore sintática" e se a demonstração da transformação para LL(1) é mesmo dispensável, já que a linguagem nasceu LL(1)
 - [x] Alinhar `tests/sintatico/invalido_erroN.flux` ao `invalido.flux` atual e conferir os `.out` com as posições da seção 5 do ERROS.md
 - [x] Testes positivos que faltam: declarações depois da `main`, `var` global, `[]`, `{}`, função sem parâmetros, `return;` e o operador `>`
-- [x] Alvo `make asan` e `-g` no `Makefile` (o `asan` precisa de `sudo dnf install libasan libubsan`; ainda não rodou neste computador)
-- [ ] Decidir se `build/`, `flux` e `compile_commands.json` continuam versionados (hoje estão também no `.gitignore`)
-- [ ] Decidir se as decisões da spec viram um `docs/DECISOES.md` versionado
+- [x] Alvo `make asan` e `-g` no `Makefile` (roda com ASan, UBSan e LeakSanitizer; precisa de `libasan` e `libubsan`)
+- [x] `build/`, `flux` e `compile_commands.json` saíram do controle de versão (estão no `.gitignore`)
+- [x] As decisões ficam no handoff do `AGENTS.md` (seção "Estado atual"), no README e no ERROS.md; não há `DECISOES.md`
 - [x] Antes da análise semântica: decisões D1 a D8 (as originais da auditoria se perderam; as oito foram refeitas e decididas em 14/11, ver README e AGENTS.md)
 
 ## Trabalho 2 (26/11/2026)
@@ -119,3 +119,15 @@ documentação já foi feita; o que envolve código ou BNF fica com você.
 - [x] Análise semântica (E1–E24): `./flux --semantic`, com a chave na interface
 - [x] Geração de código C e chamada do `gcc` (`--c`, `--build`, `--run`)
 - [x] Checagens de execução R1–R7 no código gerado (biblioteca `runtime/flux_rt.h`)
+- [x] Coletor de lixo na biblioteca de execução e arena de memória no compilador (sem vazamentos sob o LeakSanitizer)
+- [x] Saída do programa colorida por tipo, no terminal e na interface (`NO_COLOR` e `FORCE_COLOR`)
+- [x] Campo de entrada (stdin) e botão Executar na interface
+- [x] O programa gerado roda no Windows (`--build --windows`; testado como `.exe` no wine)
+
+## Em aberto (opcional)
+
+- [ ] Perguntar ao professor (item acima)
+- [ ] Testes automáticos da interface web (hoje só tipos, build e gates de acessibilidade)
+- [ ] Colorir as mensagens do próprio compilador no terminal
+- [ ] Testar em macOS
+- [ ] x86-64 nativo, sem passar por C (só se o usuário pedir)

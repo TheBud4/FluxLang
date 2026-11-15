@@ -364,6 +364,16 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 
 ## 9. Implementação
 
+**Plataformas.** O compilador `flux` roda em Linux (e deve rodar em macOS; não
+foi testado lá). Os programas que ele gera rodam em Linux, macOS e **Windows**:
+a biblioteca de execução tem uma versão para cada sistema (no Windows o `run`
+usa `CreateProcess`, o console liga as cores ANSI e o programa roda numa thread
+de pilha grande). Para Windows há duas formas: compilar aqui com
+`./flux --build --windows` (gera um `.exe` que leva tudo junto) ou levar o `.c`
+de `./flux --c` e compilá-lo no Windows com o MinGW ou o clang. No Windows, o
+próprio `flux` e a interface web continuam precisando do WSL. Os programas
+gerados foram testados com `gcc` e `clang` no Linux e como `.exe` no `wine`.
+
 O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
 Bison**. O lexer e o parser do Trabalho 1 estão prontos: o compilador
 reporta todos os erros do programa (modo pânico com as regras `error` do
@@ -409,6 +419,8 @@ make                            # gera ./flux
 ./flux --c programa.flux        # imprime o programa em C (a biblioteca de execução vai junto)
 ./flux --build programa.flux    # gera o executável ./programa (via gcc); -o escolhe o nome
 ./flux --run programa.flux      # gera, executa e apaga o executável (a saída é colorida num terminal; NO_COLOR desliga)
+./flux --build --windows programa.flux   # gera programa.exe para Windows (precisa do mingw64-gcc)
+./flux --run --windows programa.flux     # idem, e roda o .exe no wine
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
