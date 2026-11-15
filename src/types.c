@@ -1,4 +1,5 @@
 #include "types.h"
+#include "mem.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -12,11 +13,7 @@ static Type prims[] = {
 Type *type_prim(TypeKind kind) { return &prims[kind]; }
 
 Type *type_list(Type *elem) {
-  Type *t = calloc(1, sizeof *t);
-  if (!t) {
-    perror("calloc");
-    exit(2);
-  }
+  Type *t = mem_alloc(sizeof *t);
   t->kind = T_LIST;
   t->elem = elem;
   return t;

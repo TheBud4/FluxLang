@@ -21,6 +21,7 @@
 
 #include "ast.h"
 #include "fluxc.h"
+#include "mem.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -37,12 +38,9 @@ static int n_diags, cap_diags;
 
 static void err(Pos pos, const char *fmt, ...) {
   if (n_diags == cap_diags) {
-    cap_diags = cap_diags ? cap_diags * 2 : 32;
-    diags = realloc(diags, cap_diags * sizeof *diags);
-    if (!diags) {
-      perror("realloc");
-      exit(2);
-    }
+    int cap = cap_diags ? cap_diags * 2 : 32;
+    diags = mem_grow(diags, cap_diags * sizeof *diags, cap * sizeof *diags);
+    cap_diags = cap;
   }
   Diag *d = &diags[n_diags];
   d->line = pos.line;

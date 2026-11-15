@@ -1,4 +1,5 @@
 #include "tree.h"
+#include "mem.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -9,11 +10,7 @@
 Node *parse_root = NULL;
 
 static Node *alloc(enum NodeKind kind, const char *label) {
-  Node *n = calloc(1, sizeof *n);
-  if (!n) {
-    perror("calloc");
-    exit(2);
-  }
+  Node *n = mem_alloc(sizeof *n);
   n->kind = kind;
   n->label = label;
   return n;
@@ -43,7 +40,7 @@ Node *mknode(const char *label, int n, ...) {
 
 Node *token_node(const char *label, const char *text, int line, int column) {
   Node *node = alloc(NODE_TOKEN, label);
-  node->text = strdup(text);
+  node->text = mem_strdup(text);
   node->line = line;
   node->column = column;
   return node;

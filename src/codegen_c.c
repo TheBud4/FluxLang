@@ -16,6 +16,7 @@
 
 #include "ast.h"
 #include "fluxc.h"
+#include "mem.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -48,11 +49,7 @@ static char *fstr(const char *fmt, ...) {
   va_start(args, fmt);
   int n = vsnprintf(NULL, 0, fmt, args);
   va_end(args);
-  char *s = malloc(n + 1);
-  if (!s) {
-    perror("malloc");
-    exit(2);
-  }
+  char *s = mem_alloc(n + 1);
   va_start(args, fmt);
   vsnprintf(s, n + 1, fmt, args);
   va_end(args);
@@ -171,7 +168,7 @@ static char *gen_call(Expr *c) {
       }
     }
     const Func *f = find_func(name);
-    char **args = malloc((c->n_items + 1) * sizeof(char *));
+    char **args = mem_alloc((c->n_items + 1) * sizeof(char *));
     for (int i = 0; i < c->n_items; i++)
       args[i] = convert(c->items[i], f->params[i]->type);
     t = new_tmp();
@@ -279,7 +276,7 @@ static char *gen_pair(Rhs *r) {
     return t;
   }
   const Func *f = find_func(r->callee.name);
-  char **args = malloc((r->n_args + 1) * sizeof(char *));
+  char **args = mem_alloc((r->n_args + 1) * sizeof(char *));
   for (int i = 0; i < r->n_args; i++)
     args[i] = convert(r->args[i], f->params[i]->type);
   emit("FxPair %s = w_%s(%s);", t, r->callee.name, join_args(args, r->n_args));
@@ -294,7 +291,7 @@ static void gen_var(Stmt *s, int global) {
   }
   Rhs *r = s->rhs;
   if (r->kind == RHS_EXPRS) {
-    char **vals = malloc((r->n_exprs + 1) * sizeof(char *));
+    char **vals = mem_alloc((r->n_exprs + 1) * sizeof(char *));
     for (int i = 0; i < r->n_exprs; i++) /* todos os valores, depois as variáveis */
       vals[i] = convert(r->exprs[i], s->declared);
     for (int i = 0; i < s->n_names && i < r->n_exprs; i++)
@@ -324,7 +321,7 @@ static void gen_assign(Stmt *s) {
   Rhs *r = s->rhs;
   if (r->kind == RHS_EXPRS) {
     /* a, b = b, a: todos os valores à direita antes de atribuir */
-    char **vals = malloc((r->n_exprs + 1) * sizeof(char *));
+    char **vals = mem_alloc((r->n_exprs + 1) * sizeof(char *));
     for (int i = 0; i < r->n_exprs; i++)
       vals[i] = convert(r->exprs[i], i < s->n_targets ? s->targets[i]->type : NULL);
     for (int i = 0; i < s->n_targets && i < r->n_exprs; i++)
@@ -538,7 +535,7 @@ int compile_c(const char *c_path, const char *exe_path) {
   argv[n++] = "-O1";
   argv[n++] = (char *)warn;
   /* FLUX_CC_FLAGS: flags extras para o gcc (ex.: -fsanitize=address no make asan) */
-  char *extra = getenv("FLUX_CC_FLAGS") ? strdup(getenv("FLUX_CC_FLAGS")) : NULL;
+  char *extra = getenv("FLUX_CC_FLAGS") ? mem_strdup(getenv("FLUX_CC_FLAGS")) : NULL;
   for (char *tok = extra ? strtok(extra, " ") : NULL; tok && n < 56; tok = strtok(NULL, " "))
     argv[n++] = tok;
   argv[n++] = "-o";

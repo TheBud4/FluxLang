@@ -3,6 +3,7 @@
  * lexer e o parser trabalham e impressos no fim, por json_print(). */
 
 #include "fluxc.h"
+#include "mem.h"
 #include "tree.h"
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,12 +28,9 @@ static int error_count_rec, error_cap;
 static void *grow(void *array, int count, int *cap, size_t size) {
   if (count < *cap)
     return array;
-  *cap = *cap ? *cap * 2 : 64;
-  array = realloc(array, *cap * size);
-  if (!array) {
-    perror("realloc");
-    exit(2);
-  }
+  int new_cap = *cap ? *cap * 2 : 64;
+  array = mem_grow(array, (size_t)*cap * size, (size_t)new_cap * size);
+  *cap = new_cap;
   return array;
 }
 
@@ -44,14 +42,14 @@ void json_record_token(const char *type, const char *text, int line,
   if (!enabled)
     return;
   tokens = grow(tokens, token_count, &token_cap, sizeof *tokens);
-  tokens[token_count++] = (TokenRec){strdup(type), strdup(text), line, column};
+  tokens[token_count++] = (TokenRec){mem_strdup(type), mem_strdup(text), line, column};
 }
 
 void json_record_error(const char *kind, int line, int column,
                        const char *message) {
   errors = grow(errors, error_count_rec, &error_cap, sizeof *errors);
   errors[error_count_rec++] =
-      (ErrorRec){strdup(kind), strdup(message), line, column};
+      (ErrorRec){mem_strdup(kind), mem_strdup(message), line, column};
 }
 
 /* Escreve s entre aspas, com os escapes do JSON. Bytes que não formam UTF-8

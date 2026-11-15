@@ -1,15 +1,9 @@
 #include "ast.h"
+#include "mem.h"
 #include <stdlib.h>
 #include <string.h>
 
-void *ast_alloc(size_t size) {
-  void *p = calloc(1, size);
-  if (!p) {
-    perror("calloc");
-    exit(2);
-  }
-  return p;
-}
+void *ast_alloc(size_t size) { return mem_alloc(size); }
 
 /* ---------- Impressão (--ast) ---------- */
 

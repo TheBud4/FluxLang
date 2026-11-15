@@ -1,6 +1,7 @@
 #include "fluxc.h"
 #include "parser.tab.h"
 #include "ast.h"
+#include "mem.h"
 #include "tree.h"
 #include <stdarg.h>
 #include <stdlib.h>
@@ -63,10 +64,10 @@ static int list_tokens(void) {
 /* O nome do executável: o do arquivo sem a extensão, na pasta atual. */
 static char *default_exe_name(const char *file) {
   if (!file)
-    return strdup("a.out");
+    return mem_strdup("a.out");
   const char *base = strrchr(file, '/');
   base = base ? base + 1 : file;
-  char *name = strdup(base);
+  char *name = mem_strdup(base);
   char *dot = strrchr(name, '.');
   if (dot && dot != name)
     *dot = '\0';
@@ -127,7 +128,7 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
   return code;
 }
 
-int main(int argc, char **argv) {
+static int run(int argc, char **argv) {
   int token_mode = 0;
   int tree_mode = 0;
   int json_mode = 0;
@@ -214,4 +215,17 @@ int main(int argc, char **argv) {
   }
   printf("Programa rejeitado.\n");
   return 1;
+}
+
+int yylex_destroy(void); /* lex.yy.c: libera os buffers do Flex */
+
+int main(int argc, char **argv) {
+  int code = run(argc, argv);
+  /* Tudo o que o compilador alocou é liberado aqui, inclusive o que o Flex
+     guarda; assim o AddressSanitizer pode checar vazamentos de verdade. */
+  yylex_destroy();
+  if (yyin && yyin != stdin)
+    fclose(yyin);
+  mem_free_all();
+  return code;
 }

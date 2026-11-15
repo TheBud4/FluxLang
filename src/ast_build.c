@@ -9,6 +9,7 @@
  * repetem a regra que cada função lê. */
 
 #include "ast.h"
+#include "mem.h"
 #include "tree.h"
 #include <stdlib.h>
 #include <string.h>
@@ -37,12 +38,7 @@ static Pos pos_of(const Node *n) {
 }
 
 static char *dup(const char *s) {
-  char *copy = strdup(s);
-  if (!copy) {
-    perror("strdup");
-    exit(2);
-  }
-  return copy;
+  return mem_strdup(s);
 }
 
 static int has_error_node(const Node *n) {
@@ -63,12 +59,9 @@ typedef struct {
 
 static void push(Vec *vec, void *p) {
   if (vec->n == vec->cap) {
-    vec->cap = vec->cap ? vec->cap * 2 : 8;
-    vec->v = realloc(vec->v, vec->cap * sizeof(void *));
-    if (!vec->v) {
-      perror("realloc");
-      exit(2);
-    }
+    int cap = vec->cap ? vec->cap * 2 : 8;
+    vec->v = mem_grow(vec->v, vec->cap * sizeof(void *), cap * sizeof(void *));
+    vec->cap = cap;
   }
   vec->v[vec->n++] = p;
 }

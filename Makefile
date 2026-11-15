@@ -23,10 +23,10 @@ lexer:  build/lex.yy.o
 main:   build/main.o
 tree:   build/tree.o
 json:   build/json.o
-ast:    build/ast.o build/ast_build.o build/types.o build/sema.o
+ast:    build/ast.o build/ast_build.o build/types.o build/sema.o build/mem.o
 
 # Ligação: junta as três partes no executável
-flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o build/json.o build/types.o build/ast.o build/ast_build.o build/sema.o build/codegen_c.o build/runtime_src.o
+flux: build/parser.tab.o build/lex.yy.o build/main.o build/tree.o build/json.o build/types.o build/ast.o build/ast_build.o build/sema.o build/codegen_c.o build/runtime_src.o build/mem.o
 	$(CC) $(CFLAGS) -o $@ $^
 
 # Parser: o bison gera o .c e o .h (lista de tokens) de uma vez só
@@ -48,7 +48,7 @@ build/lex.yy.c: src/lexer.l build/parser.tab.h | build
 build/%.o: build/%.c build/parser.tab.h src/fluxc.h src/tree.h
 	$(CC) $(CFLAGS) -c -o $@ $<
 
-build/%.o: src/%.c build/parser.tab.h src/fluxc.h src/tree.h src/ast.h src/types.h | build
+build/%.o: src/%.c build/parser.tab.h src/fluxc.h src/tree.h src/ast.h src/types.h src/mem.h | build
 	$(CC) $(CFLAGS) -c -o $@ $<
 
 build:
