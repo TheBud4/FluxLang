@@ -61,7 +61,7 @@ function isTrustedRunRequest(req: IncomingMessage): boolean {
  * preview`; o servidor escuta só em 127.0.0.1 (ver vite.config.ts).
  *
  *  POST /api/compile[?semantic=1]  roda `../flux --json` com o código e devolve o JSON
- *  POST /api/run                   compila, executa e devolve a saída do programa
+ *  POST /api/run                   JSON { source, stdin }: compila, executa e devolve a saída do programa
  */
 export function fluxApi(): Plugin {
   let fluxPath = ''
@@ -113,8 +113,18 @@ export function fluxApi(): Plugin {
     if (!existsSync(fluxPath)) {
       return fail(res, 503, 'O compilador ./flux não foi encontrado. Rode `make` na raiz do projeto.')
     }
+    let source: unknown
+    let stdin: unknown
     try {
-      sendJson(res, 200, await runProgram(fluxPath, body.toString('utf8')))
+      ;({ source, stdin } = JSON.parse(body.toString('utf8')))
+    } catch {
+      return fail(res, 400, 'O pedido de execução deve ser um JSON com "source" e "stdin".')
+    }
+    if (typeof source !== 'string' || (stdin !== undefined && typeof stdin !== 'string')) {
+      return fail(res, 400, 'O pedido de execução deve ser um JSON com "source" e "stdin" em texto.')
+    }
+    try {
+      sendJson(res, 200, await runProgram(fluxPath, source, stdin ?? ''))
     } catch (e) {
       fail(res, 500, e instanceof Error ? e.message : String(e))
     }

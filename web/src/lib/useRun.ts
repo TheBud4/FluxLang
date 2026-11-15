@@ -9,14 +9,15 @@ export type RunState =
 
 /**
  * Executa o programa pelo servidor (`POST /api/run`): ele compila, roda neste
- * computador e devolve a saída. O cabeçalho X-Flux-Run é o que o servidor exige
+ * computador, com `stdin` como entrada (uma linha para cada `terminal.input`), e
+ * devolve a saída. O cabeçalho X-Flux-Run é o que o servidor exige
  * para aceitar o pedido: um outro site aberto no navegador não consegue enviá-lo.
  */
 export function useRun() {
   const [state, setState] = useState<RunState>({ phase: 'idle' })
   const pending = useRef<AbortController | null>(null)
 
-  const run = useCallback(async (source: string) => {
+  const run = useCallback(async (source: string, stdin: string) => {
     pending.current?.abort()
     const controller = new AbortController()
     pending.current = controller
@@ -24,8 +25,8 @@ export function useRun() {
     try {
       const response = await fetch('/api/run', {
         method: 'POST',
-        headers: { 'Content-Type': 'text/plain; charset=utf-8', 'X-Flux-Run': '1' },
-        body: source,
+        headers: { 'Content-Type': 'application/json', 'X-Flux-Run': '1' },
+        body: JSON.stringify({ source, stdin }),
         signal: controller.signal,
       })
       const body = await response.json()

@@ -20,17 +20,20 @@
 cd "$(dirname "$0")/.." || exit 2
 
 run_case() {
+  # a entrada padrão do teste: X.in, se existir, senão vazia
+  input="${2%.flux}.in"
+  [ -f "$input" ] || input=/dev/null
   if [ "$3" = color ]; then
-    FORCE_COLOR=1 ./flux $1 "$2" 2>&1 </dev/null | sed 's/\x1b/<ESC>/g'
+    FORCE_COLOR=1 ./flux $1 "$2" 2>&1 < "$input" | sed 's/\x1b/<ESC>/g'
     echo "[código ${PIPESTATUS[0]}]"
   elif [ "$3" = nocolor ]; then
-    FORCE_COLOR=1 NO_COLOR=1 ./flux $1 "$2" 2>&1 </dev/null | sed 's/\x1b/<ESC>/g'
+    FORCE_COLOR=1 NO_COLOR=1 ./flux $1 "$2" 2>&1 < "$input" | sed 's/\x1b/<ESC>/g'
     echo "[código ${PIPESTATUS[0]}]"
   elif [ "$3" = tagged ]; then
-    FLUX_TAGGED=1 ./flux $1 "$2" 2>&1 </dev/null | sed 's/\x1e/<RS>/g'
+    FLUX_TAGGED=1 ./flux $1 "$2" 2>&1 < "$input" | sed 's/\x1e/<RS>/g'
     echo "[código ${PIPESTATUS[0]}]"
   else
-    ./flux $1 "$2" 2>&1 </dev/null
+    ./flux $1 "$2" 2>&1 < "$input"
     echo "[código $?]"
   fi
 }

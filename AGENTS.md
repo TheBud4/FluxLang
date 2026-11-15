@@ -223,7 +223,8 @@ padrão sem cortar o `\n` final. Num terminal a saída é colorida por tipo (log
 error e erro de execução vermelhos), cada fluxo decidido pelo seu `isatty`;
 `NO_COLOR` desliga e `FORCE_COLOR` liga. Com `FLUX_TAGGED=1` no ambiente a biblioteca
 marca cada impressão com o tipo (registros `\x1e<tipo><bytes>:<texto>`), que a
-interface lê para colorir a saída.
+interface lê para colorir a saída. A interface passa o texto do campo "Entrada" como
+entrada padrão (uma linha por `terminal.input`); o `run.sh` usa `X.in`, se existir, como entrada do teste.
 
 **Fora da v1:** HTTP, formas tipadas de `object` e outros recursos
 avançados.

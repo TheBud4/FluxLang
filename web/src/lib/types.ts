@@ -34,7 +34,7 @@ export interface CompileResult {
 }
 
 /** Quem imprimiu a linha: terminal.log/info/warn/error, um erro de execução (fatal) ou o prompt do input. */
-export type OutputKind = 'log' | 'info' | 'warn' | 'error' | 'fatal' | 'prompt' | 'raw' | 'stderr'
+export type OutputKind = 'log' | 'info' | 'warn' | 'error' | 'fatal' | 'prompt' | 'answer' | 'raw' | 'stderr'
 
 export interface OutputLine {
   kind: OutputKind

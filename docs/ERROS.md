@@ -353,7 +353,7 @@ interface colorir cada linha pelo tipo de quem a imprimiu, a biblioteca de
 execução, com essa variável no ambiente, escreve tudo na saída padrão, em
 ordem, como registros `\x1e <tipo> <bytes> : <texto>`. Os tipos são `L`
 (`log`), `I` (`info`), `W` (`warn`), `E` (`error`), `F` (erro de execução, com o
-cabeçalho e a mensagem juntos) e `P` (o prompt do `terminal.input`). Sem a
+cabeçalho e a mensagem juntos) `P` (o prompt do `terminal.input`) e `A` (a resposta que ele leu). Sem a
 variável, o formato é o normal, descrito acima. O teste `tests/exec_tagged/`
 confere os registros (o separador aparece como `<RS>`).
 

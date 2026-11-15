@@ -11,6 +11,7 @@ import { countNodes } from './lib/tree'
 import type { Focus } from './lib/types'
 import { useCompile } from './lib/useCompile'
 import { useRun } from './lib/useRun'
+import { InputBox } from './components/InputBox'
 import { OutputPanel } from './components/OutputPanel'
 
 const SAMPLES = [
@@ -27,9 +28,13 @@ export default function App() {
   const [focus, setFocus] = useState<Focus | null>(null)
   const [hideRest, setHideRest] = useState(false)
   const [semantic, setSemantic] = useState(true)
+  const [stdin, setStdin] = useState('')
   const [expand, setExpand] = useState({ key: 0, all: true })
   const { result, loading, failure, compileNow } = useCompile(source, semantic)
   const { state: runState, run } = useRun()
+
+  // o campo de entrada só aparece quando o programa pede entrada
+  const usesInput = useMemo(() => /\bterminal\s*\.\s*input\b/.test(source), [source])
 
   const errorLines = useMemo(() => new Set(result?.errors.map((e) => e.line) ?? []), [result])
 
@@ -48,7 +53,7 @@ export default function App() {
         semantic={semantic}
         onSemantic={setSemantic}
         running={runState.phase === 'running'}
-        onRun={() => run(source)}
+        onRun={() => run(source, stdin)}
       />
 
       {failure && (
@@ -103,6 +108,7 @@ export default function App() {
         </Panel>
 
         <Panel title="Saída">
+          {usesInput && <InputBox value={stdin} onChange={setStdin} />}
           <OutputPanel state={runState} />
         </Panel>
       </main>

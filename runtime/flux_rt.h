@@ -69,7 +69,7 @@ static int fx_line; /* a linha do comando em execução, para as mensagens */
  * saída padrão, na ordem, como um registro  \x1e <tipo> <tamanho> : <texto> .
  * É o que a interface web usa para colorir cada linha pelo tipo, sem mudar o
  * formato normal do programa no terminal. Tipos: L log, I info, W warn,
- * E error, F erro de execução, P prompt do input. */
+ * E error, F erro de execução, P prompt do input, A a resposta lida. */
 static int fx_tagged;
 
 /* Cores no terminal. Só quando a saída é um terminal (isatty), como os outros
@@ -694,6 +694,8 @@ FX_FN FxValue fx_input(FxValue prompt) {
     buf[n++] = (char)c;
   }
   buf[n] = '\0';
+  if (fx_tagged)
+    fx_emit('A', buf); /* a interface mostra a resposta ao lado do prompt */
   return fx_str(buf);
 }
 

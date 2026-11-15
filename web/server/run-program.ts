@@ -8,7 +8,7 @@ const BUILD_TIMEOUT_MS = 30_000
 const RUN_TIMEOUT_MS = 10_000
 
 /** Quem imprimiu a linha: as quatro funções do terminal, o erro de execução e o prompt. */
-export type OutputKind = 'log' | 'info' | 'warn' | 'error' | 'fatal' | 'prompt' | 'raw' | 'stderr'
+export type OutputKind = 'log' | 'info' | 'warn' | 'error' | 'fatal' | 'prompt' | 'answer' | 'raw' | 'stderr'
 
 export interface OutputLine {
   kind: OutputKind
@@ -42,6 +42,7 @@ const KINDS: Record<string, OutputKind> = {
   E: 'error',
   F: 'fatal',
   P: 'prompt',
+  A: 'answer',
 }
 
 /**
@@ -146,11 +147,11 @@ function exec(
 
 /**
  * Compila o código com `flux --build` (que já confere a análise semântica) e
- * roda o executável, sem entrada. O código vem do navegador e o programa roda
+ * roda o executável com a entrada padrão que veio da interface. O código vem do navegador e o programa roda
  * neste computador, com os comandos que ele pedir em `run`: quem chama tem de
  * ter conferido que o pedido veio da própria interface (ver flux-api.ts).
  */
-export async function runProgram(fluxPath: string, source: string): Promise<RunResult> {
+export async function runProgram(fluxPath: string, source: string, stdin = ''): Promise<RunResult> {
   const dir = await mkdtemp(path.join(tmpdir(), 'flux-web-'))
   const exe = path.join(dir, 'programa')
   try {
@@ -172,7 +173,12 @@ export async function runProgram(fluxPath: string, source: string): Promise<RunR
     }
 
     // FLUX_TAGGED=1 faz o programa marcar cada impressão com o tipo de quem a fez
-    const run = await exec(exe, [], { timeoutMs: RUN_TIMEOUT_MS, env: { ...process.env, FLUX_TAGGED: '1' } })
+    // a entrada digitada na interface vai para a entrada padrão: uma linha por terminal.input
+    const run = await exec(exe, [], {
+      input: stdin,
+      timeoutMs: RUN_TIMEOUT_MS,
+      env: { ...process.env, FLUX_TAGGED: '1' },
+    })
     const output = parseTagged(run.stdout)
     const stderr = run.stderr.toString('utf8').trimEnd()
     if (stderr) output.push({ kind: 'stderr', text: stderr }) // não deveria haver; ex.: falha do sistema

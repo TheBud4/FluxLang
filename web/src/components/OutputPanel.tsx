@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import type { OutputKind } from '../lib/types'
+import type { OutputKind, OutputLine } from '../lib/types'
 import type { RunState } from '../lib/useRun'
 
 /**
@@ -14,11 +14,35 @@ const KIND: Record<OutputKind, { label: string; tone: string }> = {
   error: { label: 'error', tone: 'text-bad' },
   fatal: { label: 'fatal', tone: 'font-semibold text-bad' },
   prompt: { label: 'input', tone: 'text-muted' },
+  answer: { label: 'entrada', tone: 'text-ink' },
   raw: { label: 'saída', tone: 'text-ink' },
   stderr: { label: 'stderr', tone: 'text-bad' },
 }
 
 const note = 'px-3 py-1 text-xs'
+
+interface Row {
+  kind: OutputKind
+  text: string
+  /** A resposta lida, mostrada na mesma linha do prompt (como num terminal). */
+  answer?: string
+}
+
+/** Junta cada prompt com a resposta que veio logo depois, numa linha só. */
+function rows(lines: OutputLine[]): Row[] {
+  const out: Row[] = []
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i]
+    const next = lines[i + 1]
+    if (line.kind === 'prompt' && next?.kind === 'answer') {
+      out.push({ kind: 'prompt', text: line.text, answer: next.text })
+      i++
+    } else {
+      out.push({ kind: line.kind, text: line.text })
+    }
+  }
+  return out
+}
 
 export function OutputPanel({ state }: { state: RunState }) {
   // Como um terminal: quando chega saída nova, rola até o fim (é onde fica o erro)
@@ -57,10 +81,13 @@ export function OutputPanel({ state }: { state: RunState }) {
       {r.status !== 'rejected' && r.message && <p className={`${note} text-muted`}>{r.message}</p>}
       {r.output.length > 0 && (
         <ul className="px-3 py-2 font-mono text-xs">
-          {r.output.map((line, i) => (
+          {rows(r.output).map((row, i) => (
             <li key={i} className="grid grid-cols-[3.5rem_1fr] gap-2 py-px">
-              <span className={KIND[line.kind].tone}>{KIND[line.kind].label}</span>
-              <span className={`break-words whitespace-pre-wrap ${KIND[line.kind].tone}`}>{line.text}</span>
+              <span className={KIND[row.kind].tone}>{KIND[row.kind].label}</span>
+              <span className={`break-words whitespace-pre-wrap ${KIND[row.kind].tone}`}>
+                {row.text}
+                {row.answer !== undefined && <span className="font-semibold text-ink">{row.answer}</span>}
+              </span>
             </li>
           ))}
         </ul>
