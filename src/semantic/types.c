@@ -27,7 +27,7 @@ int type_equal(const Type *a, const Type *b) {
 
 int type_assignable(const Type *to, const Type *from) {
   if (to->kind == T_ERROR || from->kind == T_ERROR)
-    return 1; /* o erro já foi reportado */
+    return 1;
   if (to->kind == T_DYN || from->kind == T_DYN)
     return 1;
   if (from->kind == T_NULL)
@@ -35,7 +35,7 @@ int type_assignable(const Type *to, const Type *from) {
   if (to->kind == T_FLOAT && from->kind == T_INT)
     return 1;
   if (to->kind == T_LIST && from->kind == T_LIST) {
-    if (from->elem->kind == T_NULL) /* o literal [] */
+    if (from->elem->kind == T_NULL)
       return 1;
     return type_equal(to->elem, from->elem) ||
            to->elem->kind == T_DYN || from->elem->kind == T_DYN;
