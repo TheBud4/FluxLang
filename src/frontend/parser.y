@@ -11,30 +11,22 @@
 #include "tree.h"
 }
 %code {
-/* S3: onde está o "=" da atribuição, para a mensagem de erro */
 static YYLTYPE assign_loc;
 
-/* Último sufixo de uma expressão pós-fixa (postfix_rest), guardado em node->flag */
 enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
 }
 
 %locations
 %union {
-  struct Node *node; /* valor de todo símbolo: ver src/frontend/tree.h */
+  struct Node *node;
 }
 
-/* Keywords */
 %token <node> VAR CONST FUNC WORKFLOW MAIN RETURN IF ELSE WHILE FOR IN BREAK CONTINUE CALL RUN STOP ABORT PROCEED
-/* Type Keywords */
 %token <node> TYPE_INT TYPE_FLOAT TYPE_STRING TYPE_BOOL TYPE_OBJECT TYPE_LIST
-/* Literals */
 %token <node> TRUE FALSE NULL_LITERAL
 %token <node> INT_LITERAL FLOAT_LITERAL STRING_LITERAL
-/* Identifier */
 %token <node> IDENTIFIER
-/* Operators */
 %token <node> ASSIGN EQUAL NOT_EQUAL LOWER_THAN LOWER_THAN_EQUAL GREATER_THAN GREATER_THAN_EQUAL PLUS MINUS MUL DIV MOD AND OR NOT
-/* Punctuation */
 %token <node> LPAREN RPAREN LBRACE RBRACE LBRACKET RBRACKET COMMA COLON SEMICOLON DOT
 %type <node> program before_main after_func after_main global_no_func variable_declaration
 %type <node> variable_rest initializer constant_declaration constant_rest identifier_list identifier_list_rest
@@ -51,18 +43,7 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
 
 %%
 
-  /* Modo pânico (docs/ERROS.md, seção 6): as alternativas com o token
-     "error" são os pontos de recuperação, um por construção, como no código
-     de sala (try/catch + consumeUntil). Ao achar um erro, o Bison desempilha
-     estados até um que aceite "error", empilha "error" e descarta tokens
-     até um que a regra aceite: ';' (consome e segue) ou '{' (lê o bloco
-     inteiro, o que evita erros em cascata em "else if" e "if x > 5 {"). O
-     yyerrok volta a permitir mensagens: sem ele, o Bison só reportaria o
-     próximo erro depois de 3 tokens lidos com sucesso. Um erro léxico chega
-     como o token YYerror: entra em recuperação sem segunda mensagem. */
-
   program
-  /* O EOF da BNF não é token (o Bison o chama de $end): não há folha para ele */
   : before_main { $$ = mknode("program", 1, $1); parse_root = $$; }
   ;
 
@@ -434,10 +415,6 @@ const char *token_name(int tok) { return yysymbol_name(YYTRANSLATE(tok)); }
 
 void yyerror(const char *msg) { fprintf(stderr, "%s\n", msg); }
 
-/* ---------- Mensagens de erro sintático (docs/ERROS.md,1 e 3) ---------- */
-
-/* Como o token é escrito no código-fonte ("if", ";"...), ou NULL para
-   identificadores, literais e fim do arquivo. */
 static const char *spelling(yysymbol_kind_t s) {
   switch (s) {
   case YYSYMBOL_VAR: return "var";           case YYSYMBOL_CONST: return "const";
@@ -475,7 +452,6 @@ static int is_keyword(yysymbol_kind_t s) {
   return s >= YYSYMBOL_VAR && s <= YYSYMBOL_NULL_LITERAL;
 }
 
-/* Nome de um token esperado: 'if', ';', identificador... */
 static const char *expected_name(yysymbol_kind_t s, char *buf, size_t size) {
   switch (s) {
   case YYSYMBOL_YYEOF:          return "fim do arquivo";
@@ -489,7 +465,6 @@ static const char *expected_name(yysymbol_kind_t s, char *buf, size_t size) {
   }
 }
 
-/* O token encontrado, com o texto quando houver: identificador 'total'... */
 static void found_name(yysymbol_kind_t s, char *buf, size_t size) {
   const char *text = yylval.node && yylval.node->text ? yylval.node->text : "";
   switch (s) {
@@ -504,8 +479,6 @@ static void found_name(yysymbol_kind_t s, char *buf, size_t size) {
   }
 }
 
-/* Categorias: quando todos os tokens que iniciam uma expressão, um tipo ou
-   um comando são esperados, a lista vira uma palavra só. */
 static const yysymbol_kind_t EXPRESSION_START[] = {
   YYSYMBOL_INT_LITERAL, YYSYMBOL_FLOAT_LITERAL, YYSYMBOL_STRING_LITERAL,
   YYSYMBOL_TRUE, YYSYMBOL_FALSE, YYSYMBOL_NULL_LITERAL, YYSYMBOL_IDENTIFIER,
@@ -519,8 +492,6 @@ static const yysymbol_kind_t COMMAND_KEYWORDS[] = {
   YYSYMBOL_RETURN, YYSYMBOL_BREAK, YYSYMBOL_CONTINUE, YYSYMBOL_STOP,
   YYSYMBOL_ABORT, YYSYMBOL_PROCEED, YYSYMBOL_YYEMPTY};
 
-/* Se todos os tokens de "group" estão marcados em "expected", desmarca-os e
-   devolve 1. */
 static int take_group(int *expected, const yysymbol_kind_t *group) {
   for (int i = 0; group[i] != YYSYMBOL_YYEMPTY; i++)
     if (!expected[group[i]]) return 0;
@@ -535,7 +506,6 @@ int yyreport_syntax_error(const yypcontext_t *ctx) {
   int expected[YYNTOKENS] = {0};
   for (int i = 0; i < n; i++) expected[list[i]] = 1;
 
-  /* "comando" inclui o início de expressão, então é testado primeiro */
   const char *words[40];
   char bufs[40][16];
   int count = 0;

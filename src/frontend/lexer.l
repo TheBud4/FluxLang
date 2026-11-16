@@ -12,8 +12,6 @@
     static int count_chars(const char *s, int n);
     static int comment_line, comment_column;
 
-    /* Devolve o token t com um nó-folha (nome do token, lexema, posição) como
-       valor semântico: é o que vira folha da árvore de derivação. */
     #define RET(t) do { \
         yylval.node = token_node(#t, yytext, yylloc.first_line, yylloc.first_column); \
         json_record_token(#t, yytext, yylloc.first_line, yylloc.first_column); \
@@ -37,10 +35,9 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 
 %%
 
-[ \t\r\n]+      { /* ignores spaces */ }
+[ \t\r\n]+      { }
 
- /* Comments */
-"//"[^\n]*      { /* ignores line comments */ }
+"//"[^\n]*      { }
 
 "/*" {
     comment_line = yylloc.first_line;
@@ -48,7 +45,7 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
     BEGIN(COMMENT);
 }
 <COMMENT>"*/"       { BEGIN(INITIAL); }
-<COMMENT>[^*]+|"*"  { /* ignores comment content */ }
+<COMMENT>[^*]+|"*"  { }
 <COMMENT><<EOF>> {
     report_error("léxico", comment_line, comment_column,
                  "Comentário de bloco não terminado");
@@ -56,7 +53,6 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
     return YYerror;
 }
 
- /* Keywords */
 "var"           { RET(VAR); }
 "const"         { RET(CONST); }
 "func"          { RET(FUNC); }
@@ -76,7 +72,6 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 "abort"         { RET(ABORT); }
 "proceed"       { RET(PROCEED); }
 
- /* Type keywords */
 "int"           { RET(TYPE_INT); }
 "float"         { RET(TYPE_FLOAT); }
 "string"        { RET(TYPE_STRING); }
@@ -84,12 +79,10 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 "object"        { RET(TYPE_OBJECT); }
 "list"          { RET(TYPE_LIST); }
 
- /* Literals */
 "true"          { RET(TRUE); }
 "false"         { RET(FALSE); }
 "null"          { RET(NULL_LITERAL); }
 
- /* Numbers */
 {DIG}+"."{DIG}+ { RET(FLOAT_LITERAL); }
 
 {DIG}+ {
@@ -111,7 +104,6 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
     return YYerror;
 }
 
- /* Strings */
 \"([^"\\\n]|\\[^\n])*\" {
     for (int i = 1; i < yyleng - 1; i++) {
         if (yytext[i] != '\\')
@@ -137,7 +129,6 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
     return YYerror;
 }
 
- /* Operators */
 "="             { RET(ASSIGN); }
 "=="            { RET(EQUAL); }
 "!="            { RET(NOT_EQUAL); }
@@ -154,8 +145,6 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 "||"            { RET(OR); }
 "!"             { RET(NOT); }
 
-
- /* Punctuation */
 "("             { RET(LPAREN); }
 ")"             { RET(RPAREN); }
 "{"             { RET(LBRACE); }
@@ -167,17 +156,14 @@ UTF8    [\xC2-\xDF][\x80-\xBF]|[\xE0-\xEF][\x80-\xBF]{2}|[\xF0-\xF4][\x80-\xBF]{
 ";"             { RET(SEMICOLON); }
 "."             { RET(DOT); }
 
- /* Identifier */
 {ID}            { RET(IDENTIFIER); }
 
- /* End of file: the position is where the input ends */
 <<EOF>> {
     yylloc.first_line = yylloc.last_line = line;
     yylloc.first_column = column;
     return 0;
 }
 
- /* Unrecognized characters (L1) */
 {UTF8}|[\x21-\x7E] {
     report_error("léxico", yylloc.first_line, yylloc.first_column,
                  "Caractere não reconhecido: '%s'", yytext);
@@ -207,8 +193,6 @@ static int count_chars(const char *s, int n) {
     return count;
 }
 
-/* Depois de ler tudo: line é a linha do fim; se o código termina em '\n',
-   o fim está na coluna 1 de uma linha que não tem nada. */
 int source_lines(void) {
     if (line == 1 && column == 1) return 0;
     return column == 1 ? line - 1 : line;
