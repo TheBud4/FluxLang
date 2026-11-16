@@ -61,7 +61,8 @@ export function Parser() {
             mono('%union { struct Node *node; }'),
             <>
               Todo símbolo, token ou não terminal, tem como valor um {mono('Node *')}. Por isso toda declaração é{' '}
-              {mono('%token <node>')} ou {mono('%type <node>')}.
+              {mono('%token <node>')} ou {mono('%type <node>')}. O tipo {mono('Node')} está em {mono('tree.h')}; ver{' '}
+              <PageLink to="compilador/arvore-json">Árvore e JSON</PageLink>.
             </>,
           ],
           [
@@ -419,8 +420,9 @@ call f();  (num bloco)
       </Fn>
       <Fn name="yyreport_syntax_error" signature="int yyreport_syntax_error(const yypcontext_t *ctx)">
         Chamada pelo Bison em cada erro de sintaxe fora de recuperação. Faz os sete passos da tabela acima e chama {mono('report_error')} com a classe{' '}
-        {mono('"sintático"')} e a posição do token encontrado ({mono('yypcontext_location')}). Devolve 0 (o Bison segue a recuperação). Usa vetores de tamanho fixo:
-        no máximo 40 itens na mensagem, 256 caracteres no texto do token encontrado e 512 na lista dos esperados, sem verificação de limite.
+        {mono('"sintático"')} e a posição do token encontrado ({mono('yypcontext_location')}). Devolve 0 (o Bison segue a recuperação). Usa vetores de tamanho fixo.
+        O texto do token encontrado (256 caracteres) é montado por {mono('found_name')} com {mono('snprintf')}, então é truncado e nunca estoura. Sem verificação de
+        limite estão só a lista dos esperados ({mono('wanted')}, 512 caracteres, montada com {mono('strcat')}) e o vetor de itens da mensagem ({mono('words')}, 40 posições).
       </Fn>
       <P>
         O Bison não chama {mono('yyreport_syntax_error')} quando o próprio lexer devolve {mono('YYerror')} (erro léxico), nem enquanto um erro anterior

@@ -55,7 +55,7 @@ export function ModoPanico() {
         estado que aceita esse token.
       </P>
       <P>
-        É um modo pânico simples, decidido pelo usuário. Ele não tenta adivinhar o que o programador queria: descarta até um
+        É um modo pânico simples, decisão registrada no AGENTS.md. Ele não tenta adivinhar o que o programador queria: descarta até um
         ponto de sincronização fixo.
       </P>
       <Why>
