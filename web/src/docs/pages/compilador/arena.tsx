@@ -127,10 +127,9 @@ export function Arena() {
         desperdício total fica abaixo do tamanho final.
       </Fn>
       <Why>
-        O bloco antigo de um {mono('mem_grow')} fica na arena e não é liberado: não há como devolver um pedaço isolado.
-        A alternativa, um {mono('realloc')} de verdade, exigiria uma lista de pedaços livres e quebraria a regra de que
-        tudo some junto no fim. Como os vetores dobram de tamanho, a soma dos tamanhos anteriores nunca passa do tamanho
-        atual.
+        O bloco antigo de um {mono('mem_grow')} fica na arena e não é liberado: é consequência do desenho, em que nada
+        é liberado individualmente e tudo some junto em {mono('mem_free_all')}. Como os vetores que usam {mono('mem_grow')}
+        dobram de tamanho a cada vez, a soma dos tamanhos anteriores nunca passa do tamanho atual.
       </Why>
       <Fn name="mem_free_all" signature="void mem_free_all(void)">
         Libera todos os blocos, do mais recente ao mais antigo, e deixa a lista vazia. Todo ponteiro obtido da arena

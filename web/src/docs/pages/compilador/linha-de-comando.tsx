@@ -23,8 +23,8 @@ export function LinhaDeComando() {
         head={['Opção', 'Efeito']}
         rows={[
           [<>{mono('-t')}, {mono('--tokens')}</>, <>Roda só o lexer e imprime um token por linha: {mono('linha:coluna')}, o nome do token e, para identificadores e literais, o texto. Não chama o parser. Continua depois de erros léxicos e sai com 1 se houve algum.</>],
-          [mono('--tree'), 'Imprime a árvore de derivação (um nó por regra da BNF), mesmo que o programa tenha erros, e depois a linha de aceito ou rejeitado.'],
-          [mono('--json'), <>Imprime só um objeto JSON com os tokens, os erros, o número de linhas e a árvore. Os erros não vão para a saída de erro. Ver <PageLink to="compilador/arvore-json">Árvore e JSON</PageLink>.</>],
+          [mono('--tree'), 'Imprime a árvore de derivação (um nó por regra da BNF) e depois a linha de aceito ou rejeitado. Com erros de sintaxe, a árvore sai se o parser se recuperou até construir a raiz; depois de um erro severo (bloco não fechado, texto solto no nível global, arquivo vazio) não imprime árvore nenhuma, só os erros.'],
+          [mono('--json'), <>Imprime só um objeto JSON com os tokens, os erros, o número de linhas e a árvore (o campo {mono('tree')} é {mono('null')} depois de um erro de sintaxe severo, quando o parser não chegou a montar a raiz). Os erros não vão para a saída de erro. Ver <PageLink to="compilador/arvore-json">Árvore e JSON</PageLink>.</>],
           [mono('--ast'), 'Imprime a AST (sem rodar a análise semântica), depois a linha de aceito ou rejeitado. Se o programa tem erros de sintaxe, não há AST.'],
           [mono('--semantic'), <>Roda a análise semântica (E1 a E24). Sem esta opção, só léxico e sintaxe são conferidos.</>],
           [mono('--c'), 'Imprime o programa C gerado, com a biblioteca de execução embutida. Liga a análise semântica.'],
@@ -85,8 +85,8 @@ export function LinhaDeComando() {
       />
       <P>
         Um programa FluxLang pode terminar com 1, 2 ou 3, e com {mono('--run')} esses valores se misturam com os do
-        compilador. Para distinguir, olhe a saída de erro: as mensagens do compilador começam com {mono('Erro')} ou
-        {mono(' Programa rejeitado')}, as de execução com {mono('Erro de execução')}.
+        compilador. Para distinguir, olhe a saída de erro: as mensagens do compilador começam com {mono('Erro léxico')}, {mono('Erro sintático')}, {mono('Erro semântico')}{' '}
+        ou {mono('Programa rejeitado')}, e as de execução com {mono('Erro de execução')}.
       </P>
       <Code lang="bash">
         {`./flux --run abort.flux; echo "[código $?]"`}
@@ -204,8 +204,9 @@ x19999`}
         uma opção desconhecida (saída com 2).
       </Fn>
       <Fn name="list_tokens" signature="static int list_tokens(void)">
-        Implementa {mono('-t')}. Chama {mono('yylex')} até o fim (token 0) e imprime cada token como{' '}
-        {mono('%d:%d\\t%-20s %s')}: linha, coluna, nome ({mono('token_name')}) e o texto. Tokens {mono('YYerror')} são
+        Implementa {mono('-t')}. Chama {mono('yylex')} até o fim (token 0) e imprime cada token numa linha com a
+        posição ({mono('linha:coluna')}), uma tabulação, o nome ({mono('token_name')}) preenchido até uma coluna de 20
+        caracteres e o texto. Tokens {mono('YYerror')} são
         pulados, porque o lexer já relatou o erro. Devolve 1 se {mono('error_count')} é positivo, senão 0, e esse é o
         código de saída.
       </Fn>
@@ -288,7 +289,7 @@ x19999`}
       <H2 title="Declarações compartilhadas (fluxc.h)" />
       <P>
         {mono('src/fluxc.h')} é o cabeçalho de ligação entre o driver, o lexer, o parser e os módulos de apoio. Não
-        define nada: só declara as funções que um arquivo expõe aos outros. Quem implementa cada uma:
+        define nada: só declara as funções que um arquivo expõe aos outros. {mono('report_error')} também é declarada aqui, mas definida em {mono('main.c')} (descrita acima). Quem implementa as demais:
       </P>
       <Fn name="yylex" signature="int yylex(void)">
         Definida em {mono('lexer.l')}. Devolve o próximo token (0 no fim do arquivo) e preenche {mono('yylloc')} e{' '}
@@ -345,9 +346,6 @@ x19999`}
       <Fn name="source_lines" signature="int source_lines(void)">
         Definida em {mono('lexer.l')}. Quantas linhas tem o código lido; só vale depois de ler tudo. Um arquivo vazio tem
         0 linhas, e um que termina em quebra de linha não conta a linha vazia final.
-      </Fn>
-      <Fn name="report_error (declaração)" signature="void report_error(const char *kind, int line, int column, const char *fmt, ...)">
-        Declarada aqui, definida em {mono('main.c')} (descrita acima).
       </Fn>
       <Callout kind="nota">
         {mono('fluxc.h')} declara {mono('struct Program;')} duas vezes (antes de {mono('semantic_check')} e antes de{' '}

@@ -169,7 +169,7 @@ export function VisaoGeral() {
         rows={[
           ['(nenhuma)', 'Léxico e sintaxe', <>{mono('Programa aceito.')} ou {mono('Programa rejeitado.')}</>],
           [mono('-t'), 'Só o léxico (o parser nem é chamado)', 'Uma linha por token: posição, nome, texto'],
-          [mono('--tree'), 'Léxico e sintaxe', 'A árvore de derivação, depois a linha de aceito ou rejeitado'],
+          [mono('--tree'), 'Léxico e sintaxe', 'A árvore de derivação (se o parser chegou a montá-la), depois a linha de aceito ou rejeitado'],
           [mono('--json'), 'Léxico e sintaxe (mais a semântica se pedida)', 'Só o JSON, na saída padrão'],
           [mono('--ast'), 'Até a AST, sem a semântica', 'A AST, depois a linha de aceito ou rejeitado'],
           [mono('--semantic'), 'Até a análise semântica', <>{mono('Programa aceito.')} ou {mono('Programa rejeitado.')}, com os erros E1 a E24</>],
