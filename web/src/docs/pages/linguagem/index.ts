@@ -7,6 +7,8 @@ import { Funcoes } from './funcoes'
 import { Introducao } from './introducao'
 import { ListasObjetos } from './listas-objetos'
 import { Operadores } from './operadores'
+import { RegrasLexicas } from './regras-lexicas'
+import { RegrasSemanticas } from './regras-semanticas'
 import { Tipos } from './tipos'
 import { Workflows } from './workflows'
 
@@ -80,5 +82,19 @@ export const linguagemPages: DocPage[] = [
     title: 'Biblioteca',
     summary: 'terminal, as conversões toString, toInt, toFloat e toBool e o que já vem declarado.',
     Component: Biblioteca,
+  },
+  {
+    id: 'linguagem/regras-lexicas',
+    section: 'linguagem',
+    title: 'Regras léxicas',
+    summary: 'Maiúsculas e minúsculas, identificadores, palavras reservadas, números, textos, comentários e o maior casamento.',
+    Component: RegrasLexicas,
+  },
+  {
+    id: 'linguagem/regras-semanticas',
+    section: 'linguagem',
+    title: 'Regras semânticas',
+    summary: 'Escopo, inicialização, tipos, chamadas, retorno e tratamento de erros, cada regra com o seu código E.',
+    Component: RegrasSemanticas,
   },
 ]
