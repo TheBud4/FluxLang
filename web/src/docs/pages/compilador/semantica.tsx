@@ -305,7 +305,7 @@ Operador '+' não aceita dinâmico e bool.`}
       <P>
         {mono('check_list_literal') } calcula o tipo dos elementos juntando um a um. O primeiro elemento dá o tipo inicial. Cada um dos seguintes: se cabe no tipo atual, nada muda; se o tipo atual cabe nele, o tipo atual se alarga (um {mono('null') } vira {mono('int')},
         um {mono('int')} vira {mono('float')}: {mono('[1, 2.5]')} é {mono('list<float>')}); se nenhum cabe no outro, é um E4 no elemento. Um literal vazio é {mono('list<null>')}, e um literal em que todo elemento teve erro é {mono('T_ERROR')}.
-        {mono(' check_object_literal')} só confere os valores de dentro com {mono('value_of')} e devolve {mono('T_OBJECT')}: os nomes dos campos não são conferidos (nem repetição).
+        {' '}{mono('check_object_literal')} só confere os valores de dentro com {mono('value_of')} e devolve {mono('T_OBJECT')}: os nomes dos campos não são conferidos (nem repetição).
       </P>
       <Why>
         Um literal de lista é conferido elemento a elemento contra o tipo esperado: {mono('check_assign_to')} trata esse caso antes da regra geral. Por isso {mono('var l:list<float> = [1, 2];')} vale (cada {mono('int')} vira {mono('float')}), embora {mono('[1, 2]')} sozinho seja um {mono('list<int>')},
@@ -500,7 +500,7 @@ Variável 'z' utilizada antes de ser inicializada.`}
       <H3 title="E9: erro de call ou run não tratado" />
       <P>
         A segunda variável de um {mono('call')} ou {mono('run')} é uma variável de erro: {mono('make_error_var')} a marca ({mono('is_err')}, {mono('handled = 0')}, {mono('err_pos')}), só dentro de uma função que pode usar {mono('call')}/{mono('run')} (workflow ou {mono('main')}). Um {mono('stop if')},
-        {mono(' abort if')} ou {mono('proceed if')} sobre ela marca {mono('handled')}. Ao fechar o escopo onde a variável foi declarada, {mono('scope_pop')} levanta o E9 (na posição em que ela recebeu o erro) para toda variável de erro não tratada.
+        {' '}{mono('abort if')} ou {mono('proceed if')} sobre ela marca {mono('handled')}. Ao fechar o escopo onde a variável foi declarada, {mono('scope_pop')} levanta o E9 (na posição em que ela recebeu o erro) para toda variável de erro não tratada.
       </P>
       <Why>
         O erro de um {mono('call')}/{mono('run')} tem de ser tratado até o fim do bloco onde foi declarado. {mono('scope_pop')} é o ponto onde esse bloco termina, então é nele que o E9 é conferido; o tratamento dentro de um bloco interno vale (ver o próximo item).
@@ -576,7 +576,7 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
       <H2 title="Erros: coleta, ordem e relatório" />
       <P>
         Nenhuma conferência escreve na tela. {mono('err(pos, fmt, ...)')} formata a mensagem num {mono('Diag')} do buffer. No fim de {mono('semantic_check')}, o buffer é ordenado por linha, depois coluna, depois ordem de chegada ({mono('by_position')}) e cada erro vai a {mono('report_error')} com a classe
-        {mono(' "semântico"')}. Sem {mono('--json')}, {mono('report_error')} escreve em {mono('stderr')} duas linhas ({mono('Erro semântico [linha L, coluna C]:')} e a mensagem) e conta o erro; com {mono('--json')}, grava o erro para o objeto JSON e <strong>não escreve nada</strong> em {mono('stderr')}.
+        {' '}{mono('"semântico"')}. Sem {mono('--json')}, {mono('report_error')} escreve em {mono('stderr')} duas linhas ({mono('Erro semântico [linha L, coluna C]:')} e a mensagem) e conta o erro; com {mono('--json')}, grava o erro para o objeto JSON e <strong>não escreve nada</strong> em {mono('stderr')}.
         A mensagem já está formatada, então passa por {mono('"%s"')} e não é lida de novo como formato.
       </P>
       <Code lang="bash">
@@ -741,7 +741,7 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
       <Fn name="check_expr" signature="static Type *check_expr(Expr *e)">
         O despachante: escolhe a função pelo {mono('ExprKind')}, grava o tipo em {mono('e->type')} e o devolve. Os literais simples não têm função própria; um {mono('EX_OBJECT') } é o caso padrão do {mono('switch')}. Todas as demais funções de expressão voltam aqui, recursivamente.
       </Fn>
-      <H3 title="call e run" />
+      <H3 title="Funções de call e run" />
       <Fn name="check_run_object" signature="static void check_run_object(Expr *obj)">
         Confere o objeto de um {mono('run')}: campos {mono('command')}, {mono('flags')}, {mono('workingDir')}, sem repetição nem desconhecido, cada um com o seu tipo, e {mono('command')} obrigatório. Todos os erros são o E14.
       </Fn>
