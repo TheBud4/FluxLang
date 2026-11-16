@@ -2,6 +2,7 @@ import type { DocPage } from '../../types'
 import { Biblioteca } from './biblioteca'
 import { CallRunErros } from './call-run-erros'
 import { ControleDeFluxo } from './controle-de-fluxo'
+import { Erros } from './erros'
 import { Estrutura } from './estrutura'
 import { Funcoes } from './funcoes'
 import { Introducao } from './introducao'
@@ -96,5 +97,12 @@ export const linguagemPages: DocPage[] = [
     title: 'Regras semânticas',
     summary: 'Escopo, inicialização, tipos, chamadas, retorno e tratamento de erros, cada regra com o seu código E.',
     Component: RegrasSemanticas,
+  },
+  {
+    id: 'linguagem/erros',
+    section: 'linguagem',
+    title: 'Catálogo de erros',
+    summary: 'Os erros L1 a L6, S1 a S3, E1 a E24 e R1 a R7: causa, formato da mensagem, exemplo e recuperação.',
+    Component: Erros,
   },
 ]
