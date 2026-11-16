@@ -7,6 +7,8 @@ import { LinhaDeComando } from './linha-de-comando'
 import { MapaEBuild } from './mapa-e-build'
 import { ModoPanico } from './modo-panico'
 import { Parser } from './parser'
+import { Semantica } from './semantica'
+import { TiposInternos } from './tipos-internos'
 import { VisaoGeral } from './visao-geral'
 
 export const compiladorPages: DocPage[] = [
@@ -72,5 +74,19 @@ export const compiladorPages: DocPage[] = [
     title: 'AST',
     summary: 'ast.h, ast.c e ast_build.c: cada nó da AST enxuta, como a árvore de derivação vira AST, a saída de --ast e o que a AST descarta.',
     Component: Ast,
+  },
+  {
+    id: 'compilador/tipos-internos',
+    section: 'compilador',
+    title: 'Tipos internos',
+    summary: 'types.c e types.h: TypeKind e Type, os tipos internos (erro, nada, null, dinâmico), igualdade, compatibilidade (type_assignable) e os nomes das mensagens.',
+    Component: TiposInternos,
+  },
+  {
+    id: 'compilador/semantica',
+    section: 'compilador',
+    title: 'Análise semântica',
+    summary: 'sema.c: as três passadas, a pilha de escopos, a tipagem das expressões, o estado de fluxo do E3 e do E20, call e run, e qual função levanta cada erro E1 a E24.',
+    Component: Semantica,
   },
 ]
