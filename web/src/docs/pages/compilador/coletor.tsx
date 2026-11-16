@@ -275,7 +275,7 @@ static size_t fx_gc_todo_n, fx_gc_todo_cap;`}
       <Callout kind="nota">
         Medido: tirei de {mono('fx_gc_find')} a aceitação do cabeçalho (a conta passou a ser {mono('p >= (char *)(b + 1)')}) no C gerado de seis casos de {mono('tests/exec')} e rodei com {mono('FLUX_GC_STRESS=1')}.
         Com o {mono('clang')} 22 em {mono('-O1')} e {mono('-O2')}, três falharam ({mono('gc_integridade')}, {mono('textos')} e {mono('objetos')}); com o {mono('gcc')} 16, em {mono('-O1')} e {mono('-O2')}, todos passaram. É o
-        comportamento que o comentário e o AGENTS.md descrevem.
+        comportamento que o AGENTS.md e a nota que havia no código descrevem.
       </Callout>
       <Fn name="fx_block_cmp" signature="FX_FN int fx_block_cmp(const void *a, const void *b)">
         O comparador do {mono('qsort')} sobre o vetor de ponteiros para bloco: ordena por endereço, devolvendo {mono('(x > y) - (x < y)')}.
@@ -327,9 +327,9 @@ static size_t fx_gc_todo_n, fx_gc_todo_cap;`}
       />
       <Why>
         {mono('flux_rt.h')}: o {mono('__builtin_unwind_init')} faz esse salvamento no {mono('gcc')}, mas não no {mono('clang')}. Por isso o x86-64 tem o assembly próprio e o {mono('__builtin_unwind_init')} ficou só no
-        {mono('#else')}, para as outras arquiteturas. Medido, ao contrário do que o comentário afirma: trocar o assembly por {mono('__builtin_unwind_init()')} nos mesmos quatro casos e rodar com {mono('FLUX_GC_STRESS=1')}
+        {mono('#else')}, para as outras arquiteturas. Medido: trocar o assembly por {mono('__builtin_unwind_init()')} nos mesmos quatro casos e rodar com {mono('FLUX_GC_STRESS=1')}
         passou com o {mono('clang')} 22 e com o {mono('gcc')} 16, em {mono('-O1')} e {mono('-O2')}, então a falha que motivou o assembly não se reproduziu aqui. O assembly continua correto e não custa nada; mas o
-        caminho de outras arquiteturas ({mono('__builtin_unwind_init')} com o {mono('clang')}) é o que o comentário diz ser insuficiente, e nunca foi testado (o macOS em Apple Silicon cairia nele).
+        caminho de outras arquiteturas ({mono('__builtin_unwind_init')} com o {mono('clang')}) é o que a nota que havia no código dizia ser insuficiente, e nunca foi testado (o macOS em Apple Silicon cairia nele).
       </Why>
       <Why>
         {mono('flux_rt.h')}: no Windows x64, além dos registradores gerais, são preservados {mono('rdi')}, {mono('rsi')} e {mono('xmm6')} a {mono('xmm15')}, e um valor de 16 bytes ({mono('FxValue')}) pode estar num{' '}
@@ -462,7 +462,7 @@ FLUX_GC=0 FLUX_GC_STATS=1:
           ['Uma thread', <>A biblioteca nunca cria threads (no Windows, a única thread extra é a do próprio programa). O coletor não é seguro para threads.</>],
           ['Ciclos de ponteiros', <>Não são problema: o marcador não segue o mesmo bloco duas vezes. Mas imprimir uma estrutura cíclica ({mono('o.me = o;')}) estoura a pilha do C em {mono('fx_repr')}, ver a página da <PageLink to="compilador/runtime">biblioteca</PageLink>.</>],
           ['Estruturas de dados da biblioteca', <>As raízes, o vetor ordenado e a pilha de rastreamento são de {mono('malloc')} e {mono('realloc')}, fora do coletor, e a mensagem de {mono('fx_die') } também.</>],
-          ['Arquiteturas fora do x86-64', <>Usam {mono('__builtin_unwind_init')}, que o comentário diz não bastar no {mono('clang')}. Nunca testado (AGENTS.md: macOS nunca foi testado).</>],
+          ['Arquiteturas fora do x86-64', <>Usam {mono('__builtin_unwind_init')}, que a nota que havia no código dizia não bastar no {mono('clang')}. Nunca testado (AGENTS.md: macOS nunca foi testado).</>],
         ]}
       />
       <P>

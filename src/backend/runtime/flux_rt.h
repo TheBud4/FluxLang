@@ -1,19 +1,6 @@
-/* Biblioteca de execução da FluxLang.
- *
- * É embutida em todo programa C que o compilador gera (./flux --c), então o
- * resultado compila sozinho com `gcc`. Tudo aqui é static: não há .o separado.
- *
- * Todo valor em tempo de execução é um FxValue com uma etiqueta (tag). Como
- * `null` vale para qualquer tipo e o valor de um campo de object é dinâmico
- * (decisão D1), um único tipo com etiqueta evita casos especiais: os operadores
- * conferem as etiquetas e dão os erros de execução R1 a R6 (docs/ERROS.md).
- *
- * list e object são referências (decisão D2): FxList e FxObj ficam no heap e o
- * FxValue só guarda o ponteiro. Nada é liberado: o programa roda e termina. */
-
 #ifdef _WIN32
 #ifndef __USE_MINGW_ANSI_STDIO
-#define __USE_MINGW_ANSI_STDIO 1 /* printf com %zu e %lld corretos no MinGW */
+#define __USE_MINGW_ANSI_STDIO 1
 #endif
 #endif
 
@@ -69,27 +56,15 @@ struct FxObj {
   FxValue *vals;
 };
 
-/* O par (resultado, erro) que um workflow, um call e um run devolvem. */
 typedef struct {
   FxValue result, error;
 } FxPair;
 
-static int fx_line; /* a linha do comando em execução, para as mensagens */
+static int fx_line;
 #define FX_LINE(n) (fx_line = (n))
 
-/* ---------- Erros de execução (R1 a R6) ---------- */
-
-/* Modo etiquetado: com FLUX_TAGGED=1 no ambiente, toda impressão do programa
- * (terminal.log/info/warn/error, o prompt do input e o erro de execução) sai na
- * saída padrão, na ordem, como um registro  \x1e <tipo> <tamanho> : <texto> .
- * É o que a interface web usa para colorir cada linha pelo tipo, sem mudar o
- * formato normal do programa no terminal. Tipos: L log, I info, W warn,
- * E error, F erro de execução, P prompt do input, A a resposta lida. */
 static int fx_tagged;
 
-/* Cores no terminal. Só quando a saída é um terminal (isatty), como os outros
- * programas fazem: redirecionar para um arquivo ou um pipe continua sem cor.
- * NO_COLOR (qualquer valor) desliga e FORCE_COLOR liga mesmo sem terminal. */
 FX_FN int fx_use_color(int fd) {
   const char *no = getenv("NO_COLOR");
   if (no && no[0])
@@ -100,8 +75,6 @@ FX_FN int fx_use_color(int fd) {
   return fx_isatty(fd);
 }
 
-/* A cor de cada tipo de impressão: log azul, info ciano, warn amarelo, error
- * vermelho e o erro de execução vermelho em negrito (as mesmas da interface). */
 FX_FN const char *fx_color_of(char kind) {
   switch (kind) {
   case 'L': return "\033[94m";
@@ -131,7 +104,7 @@ FX_FN void fx_die(const char *fmt, ...) {
     va_end(args);
   }
   const char *text = msg ? msg : "erro de execução";
-  if (fx_tagged) { /* um registro só: o cabeçalho e a mensagem juntos */
+  if (fx_tagged) {
     size_t size = strlen(text) + 64;
     char *full = malloc(size);
     if (full) {
@@ -161,9 +134,8 @@ FX_FN const char *fx_tag_name(FxTag t) {
 }
 
 FX_FN void fx_null_use(void) __attribute__((noreturn));
-FX_FN void fx_null_use(void) { fx_die("Uso de valor null."); } /* R3 */
+FX_FN void fx_null_use(void) { fx_die("Uso de valor null."); }
 
-/* R5: o valor tem outro tipo do que o lugar exige. */
 FX_FN void fx_type_err(const char *expected, FxValue got) __attribute__((noreturn));
 FX_FN void fx_type_err(const char *expected, FxValue got) {
   if (got.tag == FX_NULL)
@@ -171,55 +143,33 @@ FX_FN void fx_type_err(const char *expected, FxValue got) {
   fx_die("Esperado %s, encontrado %s.", expected, fx_tag_name(got.tag));
 }
 
-/* ---------- Pilha (R7) ----------
- * Uma recursão sem fim estouraria a pilha do processo e o programa morreria com
- * uma falha de segmentação. Cada função confere, ao entrar, quanto da pilha já
- * usou e, perto do limite, encerra com um erro de execução claro. */
-
 static const char *fx_stack_base;
 static size_t fx_stack_limit;
 
 FX_FN void fx_check_stack(void) {
   const char *here = __builtin_frame_address(0);
   if ((size_t)(fx_stack_base - here) > fx_stack_limit)
-    fx_die("Estouro de pilha: recursão profunda demais."); /* R7 */
+    fx_die("Estouro de pilha: recursão profunda demais.");
 }
-
-/* ---------- Coletor de lixo ----------
- * Um programa que concatena textos num laço cresceria sem limite se ninguém
- * liberasse nada. Todo bloco que a biblioteca aloca (textos, listas, objetos e
- * seus buffers) entra numa lista, com um tipo. Quando o programa alocou bastante
- * desde a última coleta, o coletor:
- *   1. acha o que ainda é alcançável: os globais registrados (fx_gc_root) e a
- *      pilha do C, varrida de forma CONSERVADORA (qualquer palavra que aponte
- *      para dentro de um bloco o mantém vivo; assim o código gerado não precisa
- *      registrar cada temporário), e depois os ponteiros dentro de listas e
- *      objetos, que ele conhece pelo tipo do bloco;
- *   2. libera o resto.
- * Variáveis de ambiente (para depurar e testar): FLUX_GC=0 desliga o coletor;
- * FLUX_GC_STRESS=1 coleta a CADA alocação (acha erros do coletor, é lento);
- * FLUX_GC_STATS=1 imprime as contagens ao sair. */
 
 typedef enum { FXB_RAW, FXB_LIST, FXB_VALUES, FXB_OBJ, FXB_KEYS } FxBlockKind;
 
 typedef struct FxBlock {
   struct FxBlock *next;
-  size_t size; /* bytes do conteúdo, que vem logo depois deste cabeçalho */
+  size_t size;
   unsigned char kind, mark;
 } __attribute__((aligned(16))) FxBlock;
 
 static FxBlock *fx_blocks;
 static size_t fx_block_count;
-static size_t fx_gc_since;                /* bytes alocados desde a última coleta */
-static size_t fx_gc_threshold = 4u << 20; /* coleta quando fx_gc_since passa disto */
+static size_t fx_gc_since;
+static size_t fx_gc_threshold = 4u << 20;
 static int fx_gc_disabled, fx_gc_stress;
 static size_t fx_gc_runs, fx_gc_freed;
 
 static FxValue **fx_roots;
 static size_t fx_n_roots, fx_cap_roots;
 
-/* Durante uma coleta: os blocos ordenados por endereço (para achar o bloco que
- * contém um ponteiro) e a pilha de blocos a percorrer. */
 static FxBlock **fx_gc_sorted;
 static size_t fx_gc_n;
 static FxBlock **fx_gc_todo;
@@ -231,7 +181,6 @@ FX_FN void fx_no_memory(void) {
   exit(2);
 }
 
-/* Registra uma variável global como raiz: o que ela guarda não é lixo. */
 FX_FN void fx_gc_root(FxValue *slot) {
   if (fx_n_roots == fx_cap_roots) {
     fx_cap_roots = fx_cap_roots ? fx_cap_roots * 2 : 16;
@@ -247,11 +196,6 @@ FX_FN int fx_block_cmp(const void *a, const void *b) {
   return (x > y) - (x < y);
 }
 
-/* O bloco que contém o endereço p, ou NULL se p não aponta para um bloco (um
- * literal, um número...). Vale um ponteiro para o meio do conteúdo e também um
- * ponteiro para o cabeçalho: com otimização, o compilador pode guardar só o
- * endereço que o calloc devolveu (o cabeçalho) e recalcular o do conteúdo na
- * hora de usar, e esse bloco não pode ser tido como morto. */
 FX_FN FxBlock *fx_gc_find(const void *p) {
   size_t lo = 0, hi = fx_gc_n;
   while (lo < hi) {
@@ -291,7 +235,6 @@ FX_FN void fx_gc_mark_value(const FxValue *v) {
   }
 }
 
-/* Os ponteiros que um bloco guarda, conforme o tipo dele. */
 FX_FN void fx_gc_trace(FxBlock *b) {
   void *payload = b + 1;
   switch (b->kind) {
@@ -306,7 +249,7 @@ FX_FN void fx_gc_trace(FxBlock *b) {
     for (size_t i = 0; i < b->size / sizeof(FxValue); i++)
       fx_gc_mark_value(&((FxValue *)payload)[i]);
     break;
-  case FXB_KEYS: /* chaves: textos do heap ou literais (que não são blocos) */
+  case FXB_KEYS:
     for (size_t i = 0; i < b->size / sizeof(char *); i++)
       fx_gc_mark_ptr(((const char **)payload)[i]);
     break;
@@ -315,8 +258,6 @@ FX_FN void fx_gc_trace(FxBlock *b) {
   }
 }
 
-/* Varre [lo, hi) palavra por palavra. Fica fora do AddressSanitizer porque lê a
- * pilha inteira, inclusive o que o sanitizador marcou como proibido. */
 FX_FN void fx_gc_scan_range(const char *lo, const char *hi)
     __attribute__((noinline, no_sanitize_address));
 FX_FN void fx_gc_scan_range(const char *lo, const char *hi) {
@@ -327,13 +268,8 @@ FX_FN void fx_gc_scan_range(const char *lo, const char *hi) {
 
 FX_FN void fx_gc_collect(void) __attribute__((noinline));
 FX_FN void fx_gc_collect(void) {
-  /* Um ponteiro vivo pode estar só num registrador que o C preserva entre
-   * chamadas. Este quadro guarda uma cópia deles, para a varredura da pilha os
-   * enxergar. (__builtin_unwind_init faz isso no gcc, mas não no clang.) */
   uintptr_t saved[16] __attribute__((aligned(16))) = {0};
 #if defined(__x86_64__) && defined(_WIN32)
-  /* no Windows x64 também são preservados rdi, rsi e xmm6 a xmm15 (um valor de 16
-   * bytes pode estar num xmm) */
   uintptr_t saved_xmm[20] __attribute__((aligned(16))) = {0};
   __asm__ volatile("movups %%xmm6, 0(%0)\n\tmovups %%xmm7, 16(%0)\n\tmovups %%xmm8, 32(%0)\n\t"
                    "movups %%xmm9, 48(%0)\n\tmovups %%xmm10, 64(%0)\n\tmovups %%xmm11, 80(%0)\n\t"
@@ -342,7 +278,6 @@ FX_FN void fx_gc_collect(void) {
                    : : "c"(saved_xmm) : "memory");
 #endif
 #if defined(__x86_64__)
-  /* rcx é usado como ponteiro porque nenhum ABI o preserva: os demais saem intactos */
   __asm__ volatile("movq %%rbx, 0(%0)\n\tmovq %%rbp, 8(%0)\n\tmovq %%r12, 16(%0)\n\t"
                    "movq %%r13, 24(%0)\n\tmovq %%r14, 32(%0)\n\tmovq %%r15, 40(%0)\n\t"
                    "movq %%rdi, 48(%0)\n\tmovq %%rsi, 56(%0)"
@@ -364,7 +299,7 @@ FX_FN void fx_gc_collect(void) {
 
   for (size_t r = 0; r < fx_n_roots; r++)
     fx_gc_mark_value(fx_roots[r]);
-  volatile char here = 0; /* um endereço no quadro atual: daqui até a base da pilha */
+  volatile char here = 0;
   const char *lo = (const char *)&here;
   if ((const char *)saved < lo)
     lo = (const char *)saved;
@@ -393,7 +328,6 @@ FX_FN void fx_gc_collect(void) {
   }
   fx_block_count = live;
   fx_gc_since = 0;
-  /* o próximo limite cresce com o que está vivo, então o custo fica proporcional */
   fx_gc_threshold = live_bytes > (4u << 20) ? live_bytes : (4u << 20);
   free(fx_gc_sorted);
   fx_gc_sorted = NULL;
@@ -401,7 +335,6 @@ FX_FN void fx_gc_collect(void) {
 }
 
 FX_FN void *fx_gc_alloc(size_t n, FxBlockKind kind) {
-  /* a coleta vem ANTES de alocar: o bloco novo nunca é coletado antes de usado */
   if (!fx_gc_disabled && (fx_gc_stress || fx_gc_since >= fx_gc_threshold))
     fx_gc_collect();
   size_t size = n ? n : 1;
@@ -417,7 +350,6 @@ FX_FN void *fx_gc_alloc(size_t n, FxBlockKind kind) {
   return b + 1;
 }
 
-/* Bytes sem ponteiros: textos e buffers de leitura. */
 FX_FN void *fx_alloc(size_t n) { return fx_gc_alloc(n, FXB_RAW); }
 
 FX_FN void fx_gc_report(void) {
@@ -425,8 +357,6 @@ FX_FN void fx_gc_report(void) {
           fx_gc_freed, fx_block_count);
 }
 
-/* Chamada no início do main, com o endereço do quadro dele (a base da pilha):
- * liga o modo etiquetado, o coletor e a conferência de pilha. */
 FX_FN void fx_init(const void *stack_base) {
   fx_tagged = getenv("FLUX_TAGGED") != NULL;
   const char *gc = getenv("FLUX_GC");
@@ -436,20 +366,18 @@ FX_FN void fx_init(const void *stack_base) {
     atexit(fx_gc_report);
 
 #ifdef _WIN32
-  /* a pilha desta thread (fx_start a criou grande) */
   ULONG_PTR stack_low = 0, stack_high = 0;
   GetCurrentThreadStackLimits(&stack_low, &stack_high);
   size_t limit = (size_t)(stack_high - stack_low);
-  if (fx_tagged) { /* os tamanhos do modo etiquetado são em bytes: nada de \n virar \r\n */
+  if (fx_tagged) {
     _setmode(_fileno(stdout), _O_BINARY);
     _setmode(_fileno(stderr), _O_BINARY);
   }
-  /* o console do Windows 10+ entende as cores ANSI quando isso é ligado */
   DWORD console_mode;
   HANDLE handles[2] = {GetStdHandle(STD_OUTPUT_HANDLE), GetStdHandle(STD_ERROR_HANDLE)};
   for (int i = 0; i < 2; i++)
     if (GetConsoleMode(handles[i], &console_mode))
-      SetConsoleMode(handles[i], console_mode | 0x0004 /* ENABLE_VIRTUAL_TERMINAL_PROCESSING */);
+      SetConsoleMode(handles[i], console_mode | 0x0004);
 #else
   struct rlimit rl;
   size_t limit = 8u << 20;
@@ -460,9 +388,6 @@ FX_FN void fx_init(const void *stack_base) {
   fx_stack_base = stack_base;
 }
 
-/* Roda o programa. No Windows ele vai numa thread de pilha grande (64 MB, só
- * reservada): a pilha padrão de 1 a 2 MB não aguentaria as recursões que no
- * Linux (8 MB) funcionam, e o limite R7 sai do tamanho real da pilha. */
 #ifdef _WIN32
 typedef struct {
   int (*program)(void);
@@ -489,8 +414,6 @@ FX_FN int fx_start(int (*program)(void)) {
 FX_FN int fx_start(int (*program)(void)) { return program(); }
 #endif
 
-/* ---------- Construtores ---------- */
-
 FX_FN FxValue fx_null(void) { FxValue v = {FX_NULL, {0}}; return v; }
 FX_FN FxValue fx_int(int32_t i) { FxValue v; v.tag = FX_INT; v.as.i = i; return v; }
 FX_FN FxValue fx_float(double f) { FxValue v; v.tag = FX_FLOAT; v.as.f = f; return v; }
@@ -516,11 +439,9 @@ FX_FN FxPair fx_pair(FxValue result, FxValue error) {
   return p;
 }
 
-/* ---------- Listas e objetos ---------- */
-
 FX_FN void fx_list_add(FxValue list, FxValue v) {
   FxList *l = list.as.l;
-  if (l->n == l->cap) { /* o buffer cresce: bloco novo, cópia, o antigo vira lixo */
+  if (l->n == l->cap) {
     int cap = l->cap ? l->cap * 2 : 4;
     FxValue *buffer = fx_gc_alloc((size_t)cap * sizeof(FxValue), FXB_VALUES);
     if (l->n)
@@ -550,7 +471,6 @@ FX_FN int fx_obj_find(const FxObj *o, const char *key) {
   return -1;
 }
 
-/* Atribuir a um campo que não existe cria o campo. */
 FX_FN void fx_obj_put(FxObj *o, const char *key, FxValue v) {
   int i = fx_obj_find(o, key);
   if (i >= 0) {
@@ -575,7 +495,6 @@ FX_FN void fx_obj_put(FxObj *o, const char *key, FxValue v) {
 
 FX_FN void fx_obj_set(FxValue obj, const char *key, FxValue v) { fx_obj_put(obj.as.o, key, v); }
 
-/* Ler um campo que não existe devolve null. */
 FX_FN FxValue fx_field(FxValue base, const char *key) {
   FxObj *o = fx_as_obj_ptr(base);
   int i = fx_obj_find(o, key);
@@ -589,7 +508,7 @@ FX_FN void fx_set_field(FxValue base, const char *key, FxValue v) {
 FX_FN int32_t fx_index_of(FxValue idx, const FxList *l) {
   if (idx.tag != FX_INT)
     fx_type_err("int", idx);
-  if (idx.as.i < 0 || idx.as.i >= l->n) /* R2 */
+  if (idx.as.i < 0 || idx.as.i >= l->n)
     fx_die("Índice %d fora da lista (tamanho %d).", idx.as.i, l->n);
   return idx.as.i;
 }
@@ -622,7 +541,6 @@ FX_FN void fx_set_index(FxValue base, FxValue idx, FxValue v) {
   fx_type_err("list ou object", base);
 }
 
-/* Os métodos de lista: l.length(), l.push(v) e l.remove(i). */
 FX_FN FxValue fx_length(FxValue l) { return fx_int(fx_as_list_ptr(l)->n); }
 
 FX_FN FxValue fx_push(FxValue l, FxValue v) {
@@ -636,16 +554,11 @@ FX_FN FxValue fx_remove(FxValue list, FxValue idx) {
   int32_t i = fx_index_of(idx, l);
   memmove(&l->v[i], &l->v[i + 1], (l->n - i - 1) * sizeof(FxValue));
   l->n--;
-  l->v[l->n] = fx_null(); /* a vaga que sobrou não segura o valor antigo */
+  l->v[l->n] = fx_null();
   return fx_null();
 }
 
-/* O `for item in lista`: a lista tem de ser mesmo uma lista. */
 FX_FN FxList *fx_for_list(FxValue v) { return fx_as_list_ptr(v); }
-
-/* ---------- Conferência de tipo em tempo de execução ----------
- * Valor vindo de um campo de object é dinâmico: ao ir para uma variável ou
- * parâmetro com tipo, o tipo real é conferido aqui (R5). null passa em tudo. */
 
 FX_FN FxValue fx_as_int(FxValue v) {
   if (v.tag != FX_INT && v.tag != FX_NULL) fx_type_err("int", v);
@@ -668,19 +581,15 @@ FX_FN FxValue fx_as_object(FxValue v) {
   return v;
 }
 
-/* float aceita int (a única conversão implícita da linguagem). */
 FX_FN FxValue fx_as_float(FxValue v) {
   if (v.tag == FX_INT) return fx_float((double)v.as.i);
   if (v.tag != FX_FLOAT && v.tag != FX_NULL) fx_type_err("float", v);
   return v;
 }
 
-/* ---------- Operadores ---------- */
-
 FX_FN int fx_is_num(FxValue v) { return v.tag == FX_INT || v.tag == FX_FLOAT; }
 FX_FN double fx_num(FxValue v) { return v.tag == FX_INT ? (double)v.as.i : v.as.f; }
 
-/* Confere os dois operandos de um operador numérico. */
 FX_FN void fx_need_nums(FxValue a, FxValue b) {
   if (a.tag == FX_NULL || b.tag == FX_NULL)
     fx_null_use();
@@ -709,7 +618,7 @@ FX_FN FxValue fx_add(FxValue a, FxValue b) {
   fx_need_nums(a, b);
   if (a.tag == FX_INT && b.tag == FX_INT) {
     int32_t r;
-    if (__builtin_add_overflow(a.as.i, b.as.i, &r)) /* R6 */
+    if (__builtin_add_overflow(a.as.i, b.as.i, &r))
       fx_die("Estouro de inteiro.");
     return fx_int(r);
   }
@@ -741,13 +650,13 @@ FX_FN FxValue fx_mul(FxValue a, FxValue b) {
 FX_FN FxValue fx_div(FxValue a, FxValue b) {
   fx_need_nums(a, b);
   if (a.tag == FX_INT && b.tag == FX_INT) {
-    if (b.as.i == 0) /* R4 */
+    if (b.as.i == 0)
       fx_die("Divisão por zero.");
     if (a.as.i == INT32_MIN && b.as.i == -1)
       fx_die("Estouro de inteiro.");
-    return fx_int(a.as.i / b.as.i); /* divisão inteira, como em C */
+    return fx_int(a.as.i / b.as.i);
   }
-  return fx_float(fx_num(a) / fx_num(b)); /* float segue o IEEE: x / 0.0 é infinito */
+  return fx_float(fx_num(a) / fx_num(b));
 }
 
 FX_FN FxValue fx_mod(FxValue a, FxValue b) {
@@ -773,7 +682,6 @@ FX_FN FxValue fx_neg(FxValue a) {
   fx_type_err("int ou float", a);
 }
 
-/* Uma condição tem de ser bool (sem truthy/falsy). */
 FX_FN int fx_cond(FxValue v) {
   if (v.tag != FX_BOOL)
     fx_type_err("bool", v);
@@ -782,7 +690,6 @@ FX_FN int fx_cond(FxValue v) {
 
 FX_FN FxValue fx_not(FxValue v) { return fx_bool(!fx_cond(v)); }
 
-/* < <= > >=: int e float se comparam promovendo o int. Devolve <0, 0 ou >0. */
 FX_FN int fx_order(FxValue a, FxValue b, int *unordered) {
   fx_need_nums(a, b);
   *unordered = 0;
@@ -801,8 +708,6 @@ FX_FN FxValue fx_le(FxValue a, FxValue b) { int u; int c = fx_order(a, b, &u); r
 FX_FN FxValue fx_gt(FxValue a, FxValue b) { int u; int c = fx_order(a, b, &u); return fx_bool(!u && c > 0); }
 FX_FN FxValue fx_ge(FxValue a, FxValue b) { int u; int c = fx_order(a, b, &u); return fx_bool(!u && c >= 0); }
 
-/* == e !=: mesmo tipo (int e float se comparam), ou qualquer valor com null.
- * list e object só se comparam com null; entre si, comparam a identidade. */
 FX_FN int fx_equal(FxValue a, FxValue b) {
   if (a.tag == FX_NULL || b.tag == FX_NULL)
     return a.tag == b.tag;
@@ -824,8 +729,6 @@ FX_FN int fx_equal(FxValue a, FxValue b) {
 FX_FN FxValue fx_eq(FxValue a, FxValue b) { return fx_bool(fx_equal(a, b)); }
 FX_FN FxValue fx_ne(FxValue a, FxValue b) { return fx_bool(!fx_equal(a, b)); }
 
-/* ---------- Texto: toString e a formatação dos valores ---------- */
-
 FX_FN const char *fx_dup_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
 FX_FN const char *fx_dup_printf(const char *fmt, ...) {
   va_list args;
@@ -839,7 +742,6 @@ FX_FN const char *fx_dup_printf(const char *fmt, ...) {
   return s;
 }
 
-/* float: a forma mais curta que volta ao mesmo número, com ".0" se for inteiro. */
 FX_FN const char *fx_fmt_float(double f) {
   if (isnan(f))
     return "nan";
@@ -883,8 +785,6 @@ FX_FN const char *fx_repr(FxValue v, int quote) {
 
 FX_FN FxValue fx_to_string(FxValue v) { return fx_str(fx_repr(v, 0)); }
 
-/* ---------- Conversões (R1) ---------- */
-
 FX_FN void fx_cannot_convert(FxValue v, const char *to) __attribute__((noreturn));
 FX_FN void fx_cannot_convert(FxValue v, const char *to) {
   fx_die("Não é possível converter %s para %s.", fx_repr(v, 1), to);
@@ -899,7 +799,7 @@ FX_FN FxValue fx_to_int(FxValue v) {
     double f = v.as.f;
     if (isnan(f) || f >= 2147483648.0 || f <= -2147483649.0)
       fx_cannot_convert(v, "int");
-    return fx_int((int32_t)f); /* trunca */
+    return fx_int((int32_t)f);
   }
   if (v.tag == FX_STRING) {
     char *end;
@@ -945,9 +845,6 @@ FX_FN FxValue fx_to_bool(FxValue v) {
   fx_type_err("string", v);
 }
 
-/* ---------- terminal ---------- */
-
-/* log e info vão para a saída padrão; warn e error, para a de erro. */
 FX_FN FxValue fx_print(char kind, int to_stderr, FxValue v) {
   const char *text = fx_repr(v, 0);
   if (fx_tagged) {
@@ -967,7 +864,6 @@ FX_FN FxValue fx_info(FxValue v)  { return fx_print('I', 0, v); }
 FX_FN FxValue fx_warn(FxValue v)  { return fx_print('W', 1, v); }
 FX_FN FxValue fx_error(FxValue v) { return fx_print('E', 1, v); }
 
-/* terminal.input(prompt): lê uma linha; no fim da entrada devolve "". */
 FX_FN FxValue fx_input(FxValue prompt) {
   if (prompt.tag == FX_STRING) {
     if (fx_tagged)
@@ -992,19 +888,13 @@ FX_FN FxValue fx_input(FxValue prompt) {
   }
   buf[n] = '\0';
   if (fx_tagged)
-    fx_emit('A', buf); /* a interface mostra a resposta ao lado do prompt */
+    fx_emit('A', buf);
   return fx_str(buf);
 }
 
-/* abort if e: escreve a mensagem na saída de erro e encerra com código 1. */
 FX_FN void fx_abort(FxValue e) __attribute__((noreturn));
 FX_FN void fx_abort(FxValue e) { fx_die("%s", fx_repr(e, 0)); }
 
-/* ---------- run ---------- */
-
-/* O resultado de um comando que terminou: (saída padrão, null) se saiu com
- * código 0; senão (null, erro), onde o erro é a saída de erro do comando ou, se
- * vier vazia, uma frase com o código. Comum aos dois sistemas. */
 FX_FN FxPair fx_run_result(const char *command, char *out, char *err, size_t err_len, int exited,
                            int code) {
   if (exited && code == 0)
@@ -1018,7 +908,6 @@ FX_FN FxPair fx_run_result(const char *command, char *out, char *err, size_t err
   return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' terminou pelo sinal %d", command, code)));
 }
 
-/* Cresce o buffer de leitura de um fluxo (bloco novo + cópia). */
 FX_FN void fx_run_room(char **buf, size_t *cap, size_t len, size_t need) {
   if (len + need + 1 <= *cap)
     return;
@@ -1030,7 +919,6 @@ FX_FN void fx_run_room(char **buf, size_t *cap, size_t len, size_t need) {
 
 #ifdef _WIN32
 
-/* Uma mensagem do sistema para um código de erro do Windows, sem a quebra de linha. */
 FX_FN const char *fx_win_message(DWORD code) {
   char buf[256];
   DWORD n = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, 0, buf,
@@ -1040,8 +928,6 @@ FX_FN const char *fx_win_message(DWORD code) {
   return n > 0 ? fx_dup_printf("%s", buf) : fx_dup_printf("erro %lu do sistema", (unsigned long)code);
 }
 
-/* Põe um argumento na linha de comando do Windows, entre aspas quando precisa, com
- * as regras do CommandLineToArgvW (barras antes de aspas são dobradas). */
 FX_FN const char *fx_win_quote(const char *arg) {
   size_t n = strlen(arg);
   if (n > 0 && !strpbrk(arg, " \t\n\v\""))
@@ -1055,7 +941,7 @@ FX_FN const char *fx_win_quote(const char *arg) {
       slashes++;
       i++;
     }
-    if (i == n) { /* barras no fim, antes da aspa de fechar: dobram */
+    if (i == n) {
       for (size_t k = 0; k < slashes * 2; k++)
         out[o++] = '\\';
       break;
@@ -1074,9 +960,6 @@ FX_FN const char *fx_win_quote(const char *arg) {
   return out;
 }
 
-/* Windows: CreateProcess com pipes para a saída padrão e a de erro. O command é
- * procurado no PATH (o .exe é implícito); builtins do cmd, como echo, precisam
- * de `cmd /c`. */
 FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const char *dir) {
   const char *cmdline = "";
   for (int i = 0; i < argc; i++)
@@ -1086,7 +969,7 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
   HANDLE out_r, out_w, err_r, err_w;
   if (!CreatePipe(&out_r, &out_w, &sa, 0) || !CreatePipe(&err_r, &err_w, &sa, 0))
     return fx_pair(fx_null(), fx_str("não foi possível criar os pipes do comando"));
-  SetHandleInformation(out_r, HANDLE_FLAG_INHERIT, 0); /* só as pontas de escrita passam ao filho */
+  SetHandleInformation(out_r, HANDLE_FLAG_INHERIT, 0);
   SetHandleInformation(err_r, HANDLE_FLAG_INHERIT, 0);
 
   STARTUPINFOA si;
@@ -1101,7 +984,7 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
 
   fflush(stdout);
   fflush(stderr);
-  char *mutable_line = fx_alloc(strlen(cmdline) + 1); /* CreateProcessA pode alterar o texto */
+  char *mutable_line = fx_alloc(strlen(cmdline) + 1);
   strcpy(mutable_line, cmdline);
   BOOL started = CreateProcessA(NULL, mutable_line, NULL, NULL, TRUE, 0, NULL, dir, &si, &pi);
   DWORD error = started ? 0 : GetLastError();
@@ -1114,7 +997,6 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
                                                    fx_win_message(error))));
   }
 
-  /* lê os dois pipes sem travar em nenhum: só lê o que já chegou */
   HANDLE pipes[2] = {out_r, err_r};
   char *bufs[2] = {fx_alloc(256), fx_alloc(256)};
   size_t lens[2] = {0, 0}, caps[2] = {256, 256};
@@ -1125,7 +1007,7 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
       if (!pipes[k])
         continue;
       DWORD avail = 0;
-      if (!PeekNamedPipe(pipes[k], NULL, 0, NULL, &avail, NULL)) { /* o filho fechou o pipe */
+      if (!PeekNamedPipe(pipes[k], NULL, 0, NULL, &avail, NULL)) {
         CloseHandle(pipes[k]);
         pipes[k] = NULL;
         open_pipes--;
@@ -1154,9 +1036,8 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
   return fx_run_result(command, bufs[0], bufs[1], lens[1], 1, (int)code);
 }
 
-#else /* POSIX */
+#else
 
-/* Linux e macOS: fork + execvp, com pipes lidos por poll. Sem shell. */
 FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const char *dir) {
   (void)argc;
   int out_pipe[2], err_pipe[2];
@@ -1219,7 +1100,6 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
 
 #endif
 
-/* run { command, flags, workingDir }: confere o pedido e executa o comando (sem shell). */
 FX_FN FxPair fx_run(FxValue spec) {
   FxObj *o = fx_as_obj_ptr(spec);
   int ic = fx_obj_find(o, "command");

@@ -126,17 +126,19 @@ export function GeradorC() {
         não depende de nenhum outro arquivo do projeto. O arquivo do Makefile está em <PageLink to="compilador/mapa-e-build">Mapa do repositório e build</PageLink>.
       </P>
       <P>
-        O começo do arquivo gerado, antes da biblioteca:
+        O começo do arquivo gerado: a linha de abertura e a primeira linha da biblioteca:
       </P>
       <Code lang="c">
         {`/* Gerado pelo compilador FluxLang (./flux --c). Compila sozinho com o gcc. */
 
-/* Biblioteca de execução da FluxLang.
- *
- * É embutida em todo programa C que o compilador gera (./flux --c), então o`}
+#ifdef _WIN32
+#ifndef __USE_MINGW_ANSI_STDIO
+#define __USE_MINGW_ANSI_STDIO 1
+#endif
+#endif`}
       </Code>
       <P>
-        Dali em diante vem a biblioteca, com pouco mais de mil linhas (o programa pequeno da seção de exemplo gera um arquivo só um pouco maior, e a biblioteca é quase todo ele). As partes do programa começam no separador. Este é o trecho
+        Dali em diante vem o resto da biblioteca, que tem pouco mais de mil linhas no total (o programa pequeno da seção de exemplo gera um arquivo só um pouco maior, e a biblioteca é quase todo ele). As partes do programa começam no separador. Este é o trecho
         real, do separador aos protótipos, para o exemplo da seção seguinte:
       </P>
       <Code lang="c">
