@@ -157,9 +157,9 @@ comando 'npm' não pôde ser iniciado: ./backend: No such file or directory`}
       />
       <H2 title="O arquivo valido.flux" />
       <P>
-        Este é o programa completo {mono('docs/exemplos/valido.flux')}, mostrado exatamente como está no repositório,
-        inclusive os dois comentários do início. Ele roda as etapas de um projeto Node, tenta de novo quando uma etapa
-        falha e mostra um resumo no terminal.
+        Este é o programa completo {mono('docs/exemplos/valido.flux')}, mostrado como está no repositório, sem os
+        espaços no fim das linhas e com os comentários originais, inclusive os dois do início. Ele roda as etapas de
+        um projeto Node, tenta de novo quando uma etapa falha e mostra um resumo no terminal.
       </P>
       <Code lang="flux" example>
         {`// Exemplo válido da FluxLang: roda as etapas de um projeto Node, tenta
@@ -339,7 +339,7 @@ Fim do "pipeline"`}
         Esta saída foi obtida executando o arquivo num diretório sem {mono('./backend')}. Os avisos das tentativas vão
         para a saída de erro, e o resto para a saída padrão. O compilador atual escreve a mensagem de um comando que
         não pôde ser iniciado como {mono("comando 'npm' não pôde ser iniciado: <motivo>")}, com o motivo vindo do
-        sistema operacional; esse texto pode mudar.
+        sistema operacional; esse texto pode mudar. A versão do Node mostrada também varia de máquina para máquina.
       </Callout>
       <H2 title="O arquivo invalido.flux" />
       <P>

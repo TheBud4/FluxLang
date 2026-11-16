@@ -1,4 +1,4 @@
-import { Callout, H2, P, PageLink, Table } from '../../blocks'
+import { H2, P, PageLink, Table } from '../../blocks'
 
 const mono = (text: string) => <code className="font-mono">{text}</code>
 
@@ -146,13 +146,10 @@ export function EscopoV1() {
       />
       <H2 title="Em aberto" />
       <P>
-        O README ainda lista um item em aberto: a forma dos nós da AST, que fazia parte do Trabalho 2. Ele é um
-        assunto do compilador, não da linguagem, e não muda nada no que um programa FluxLang pode ou não escrever.
+        O README ainda lista um item em aberto: a forma dos nós da AST (Trabalho 2). É um assunto interno do
+        compilador, não da linguagem, e não muda nada no que um programa FluxLang pode ou não escrever. O compilador
+        já tem uma AST, que {mono('./flux --ast')} imprime.
       </P>
-      <Callout kind="nota">
-        O compilador atual já constrói uma AST ({mono('./flux --ast')}), então esse item do README parece
-        desatualizado. A linguagem em si não tem pontos em aberto registrados.
-      </Callout>
       <H2 title="Escolhas do compilador atual que podem mudar" />
       <P>
         Alguns comportamentos não estão definidos nas regras da linguagem: foram escolhidos na implementação, porque a

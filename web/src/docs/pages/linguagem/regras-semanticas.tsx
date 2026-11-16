@@ -316,8 +316,22 @@ Não é possível inferir o tipo de 'a'; declare o tipo.`}
       </Code>
       <P>
         Com o tipo declarado, os três casos passam: {mono('var x:string = null;')}, {mono('var l:list<int> = [];')} e {mono('var a:int = user.age;')}.
-        Os campos de objeto são tratados em <PageLink to="linguagem/listas-objetos">Listas e objetos</PageLink>.
+        Os campos de um {mono('object')} são dinâmicos: atribuir a um campo novo cria o campo, ler um campo ausente
+        devolve {mono('null')}, e o tipo de um campo só é conferido na execução (R5). Por isso o valor de um campo não
+        serve para inferir o tipo. Os detalhes estão em <PageLink to="linguagem/listas-objetos">Listas e objetos</PageLink>.
       </P>
+      <Code lang="flux" example>
+        {`func main () {
+    var user:object = { name: "Ana" };
+    user.idade = 30;
+    terminal.log(toString(user.idade));
+    terminal.log(toString(user.cidade));
+}`}
+      </Code>
+      <Code lang="text">
+        {`30
+null`}
+      </Code>
       <P>
         Ao receber o resultado de um workflow sem {mono(':tipo')}, a variável só aceita {mono('null')}, porque o
         resultado de um workflow sem tipo é sempre {mono('null')}. O assunto está em <PageLink to="linguagem/workflows">Workflows</PageLink>.

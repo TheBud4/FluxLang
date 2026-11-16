@@ -144,6 +144,10 @@ Esperado: expressão, 'call' ou 'run'`}
 Token encontrado: fim do arquivo
 Esperado: comando ou '}'`}
       </Code>
+      <P>
+        A posição do {mono('fim do arquivo')} (linha 2, coluna 15) vale para um arquivo que não termina com quebra de
+        linha, como o trecho acima. Com a quebra final, a posição muda; a seção Posições mostra os dois casos.
+      </P>
       <H3 title="Por que um ; esquecido não lista todos os operadores" />
       <P>
         Onde a gramática admite uma parte opcional, como a lista de parâmetros, o compilador segue o caminho de "nada"
@@ -187,6 +191,18 @@ Esperado: comando ou '}' (call e run só aparecem logo depois do '=' de um var o
         sintático, a posição é a do token encontrado. Nos erros semânticos, a posição é a do nome, a do operador ou a
         do valor errado. Os erros semânticos de um programa saem todos juntos, ordenados por linha e coluna.
       </P>
+      <P>
+        Quando o erro é no fim do arquivo, a posição depende de o arquivo terminar ou não com uma quebra de linha. Sem
+        a quebra, o fim fica na última linha, logo depois do último caractere, e é o que os exemplos desta página
+        mostram, porque os blocos de código não têm linha em branco no final. Com a quebra, o fim passa para o começo
+        da linha seguinte. O mesmo programa do exemplo de fim do arquivo mostrado antes, salvo num arquivo que termina
+        com uma quebra de linha, dá:
+      </P>
+      <Code lang="text">
+        {`Erro sintático [linha 3, coluna 1]:
+Token encontrado: fim do arquivo
+Esperado: comando ou '}'`}
+      </Code>
       <H2 title="Erros léxicos" />
       <P>
         Erros léxicos acontecem quando o texto do programa não forma tokens válidos. As regras estão em <PageLink to="linguagem/regras-lexicas">Regras léxicas</PageLink>.
@@ -396,7 +412,7 @@ Esperado: '('`}
           ],
           [
             <>{mono('main')} ausente</>,
-            <>{mono('arquivo só com ')}var{mono(', ')}func{mono(' e ')}workflow``</>,
+            mono('arquivo só com var, func e workflow'),
             mono('fim do arquivo'),
             mono("'var', 'const', 'func' ou 'workflow'"),
           ],
@@ -450,6 +466,14 @@ Token encontrado: fim do arquivo
 Esperado: comando ou '}'`}
       </Code>
       <P>
+        Num arquivo que termina com uma quebra de linha, o fim do arquivo é a linha 3, coluna 1:
+      </P>
+      <Code lang="text">
+        {`Erro sintático [linha 3, coluna 1]:
+Token encontrado: fim do arquivo
+Esperado: comando ou '}'`}
+      </Code>
+      <P>
         Um arquivo sem nenhuma declaração, ou sem {mono('main')}, também termina antes da hora e pede {mono("'var', 'const', 'func' ou 'workflow'")}:
       </P>
       <Code lang="flux">
@@ -464,6 +488,10 @@ func soma(a:int):int {
 Token encontrado: fim do arquivo
 Esperado: 'var', 'const', 'func' ou 'workflow'`}
       </Code>
+      <P>
+        Aqui também a posição (linha 5, coluna 2) supõe um arquivo sem quebra de linha no final; com ela, seria a
+        linha 6, coluna 1.
+      </P>
       <H3 title="S3: alvo de atribuição inválido" />
       <P>
         Acontece quando o lado esquerdo de uma atribuição não pode receber um valor. O que decide é o último sufixo do
@@ -1490,8 +1518,10 @@ Token encontrado: fim do arquivo
 Esperado: comando ou '}'`}
       </Code>
       <P>
-        Só o primeiro erro é real. Corrigido o {mono(';')}, os outros dois desaparecem. Vale o mesmo para uma chave {mono('}')} esquecida
-        no fim de uma função: a seguinte é lida como parte dela.
+        O último erro cai no fim do arquivo (linha 10, coluna 2), por isso também depende da quebra de linha final:
+        com ela, seria a linha 11, coluna 1. Só o primeiro erro é real. Corrigido o {mono(';')}, os outros dois
+        desaparecem. Vale o mesmo para uma chave {mono('}')} esquecida no fim de uma função: a seguinte é lida como
+        parte dela.
       </P>
       <Callout kind="nota">
         Um refinamento da recuperação foi tentado e medido em 3.950 programas obtidos por mutação de um programa
