@@ -217,6 +217,20 @@ func main () {
         {`Erro semântico [linha 9, coluna 17]:
 Tipo incompatível: esperado int, encontrado string.`}
       </Code>
+      <Code lang="flux">
+        {`workflow w() {
+}
+
+func main () {
+    var r, e = call w();
+    abort if e;
+    r = 5;
+}`}
+      </Code>
+      <Code lang="text">
+        {`Erro semântico [linha 7, coluna 9]:
+Tipo incompatível: esperado null, encontrado int.`}
+      </Code>
 
       <H2 title="Criando o próprio erro" />
       <P>

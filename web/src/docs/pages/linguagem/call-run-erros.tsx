@@ -15,7 +15,8 @@ export function CallRunErros() {
       <Callout kind="aviso">
         {mono('run')} executa comandos reais no seu computador, com as suas permissões. Os exemplos executáveis desta
         página usam só {mono('echo')} e {mono('sh')} com comandos inofensivos. Antes de rodar um programa de outra pessoa no
-        editor, leia o que os {mono('run')} dele fazem.
+        editor, leia o que os {mono('run')} dele fazem. Os exemplos supõem Linux ou macOS, onde {mono('sh')} e{' '}
+        {mono('echo')} existem como programas.
       </Callout>
 
       <H2 title="Onde call e run podem aparecer" />
@@ -419,33 +420,36 @@ O erro 'erro' não foi tratado.`}
         {`Erro semântico [linha 3, coluna 20]:
 O erro 'erro' não foi tratado.`}
       </Code>
-      <P>
-        Cada {mono('call')} ou {mono('run')} gera um erro novo, também quando o resultado vai para variáveis que já
-        existem. Uma variável de erro reaproveitada precisa de um novo tratamento depois de cada atribuição:
-      </P>
-      <Code lang="flux" example>
-        {`func main () {
+      <Callout kind="nota">
+        <p>
+          O compilador atual trata cada {mono('call')} ou {mono('run')} como um erro novo, também quando o resultado vai
+          para variáveis que já existem: uma variável de erro reaproveitada precisa de um novo tratamento depois de
+          cada atribuição. As regras escritas da linguagem só pedem que o erro seja tratado antes do fim do bloco.
+        </p>
+        <Code lang="flux" example>
+          {`func main () {
     var a, e = run { command: "echo", flags: ["primeiro"] };
     abort if e;
     a, e = run { command: "echo", flags: ["segundo"] };
     abort if e;
     terminal.log(a);
 }`}
-      </Code>
-      <Code lang="text">
-        {`segundo`}
-      </Code>
-      <Code lang="flux">
-        {`func main () {
+        </Code>
+        <Code lang="text">
+          {`segundo`}
+        </Code>
+        <Code lang="flux">
+          {`func main () {
     var a, e = run { command: "echo", flags: ["primeiro"] };
     abort if e;
     a, e = run { command: "echo", flags: ["segundo"] };
 }`}
-      </Code>
-      <Code lang="text">
-        {`Erro semântico [linha 4, coluna 8]:
+        </Code>
+        <Code lang="text">
+          {`Erro semântico [linha 4, coluna 8]:
 O erro 'e' não foi tratado.`}
-      </Code>
+        </Code>
+      </Callout>
 
       <H2 title="Criando o próprio erro" />
       <P>

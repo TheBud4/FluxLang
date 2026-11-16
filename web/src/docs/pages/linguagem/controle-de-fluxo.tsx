@@ -183,7 +183,7 @@ fim`}
       </P>
       <Code lang="flux" example>
         {`func main () {
-    var precos:list<float> = [10.5, 20, 4.25];
+    var precos:list<float> = [10.5, 20.0, 4.25];
     var total = 0.0;
     for preco in precos {
         total = total + preco;

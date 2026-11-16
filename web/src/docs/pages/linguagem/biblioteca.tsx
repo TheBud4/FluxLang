@@ -82,7 +82,7 @@ error: um erro`}
         {mono('log')} e {mono('info')} para a saída padrão e {mono('warn')} e {mono('error')} para a saída de erro,
         sem prefixo. Quando a saída é um terminal, ele também as pinta por tipo: {mono('log')} em azul,{' '}
         {mono('info')} em ciano, {mono('warn')} em amarelo e {mono('error')} em vermelho. A interface web faz o mesmo.
-        Essas escolhas são de implementação e podem mudar.
+        Essas escolhas, e o formato dos valores impressos, são de implementação e podem mudar.
       </Callout>
 
       <H3 title="Como os valores são impressos" />
@@ -101,6 +101,11 @@ error: um erro`}
           [<>{mono('object')}</>, <>{mono('{a: 1, b: "x"}')}, com as strings entre aspas</>],
         ]}
       />
+      <Callout kind="nota">
+        As regras escritas da linguagem dizem só que o valor é impresso como o {mono('toString')} faria. O formato
+        exato de {mono('float')}, de listas e de objetos mostrado aqui, e a quebra de linha final que {mono('run')}{' '}
+        mantém na saída padrão, são comportamentos do compilador atual e podem mudar.
+      </Callout>
       <Code lang="flux" example>
         {`func main () {
     terminal.log("texto");
@@ -110,7 +115,7 @@ error: um erro`}
     terminal.log(true);
     terminal.log(null);
     terminal.log(["a", "b"]);
-    terminal.log([1, 2.5]);
+    terminal.log([1.0, 2.5]);
     terminal.log({ a: 1, b: "x" });
     terminal.log("duas\\nlinhas");
 }`}
