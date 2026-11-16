@@ -1,7 +1,3 @@
-/* Saída --json: tokens, erros e árvore de derivação num único objeto JSON
- * (a interface web lê isto). Os tokens e erros são registrados enquanto o
- * lexer e o parser trabalham e impressos no fim, por json_print(). */
-
 #include "fluxc.h"
 #include "mem.h"
 #include "tree.h"
@@ -52,8 +48,6 @@ void json_record_error(const char *kind, int line, int column,
       (ErrorRec){mem_strdup(kind), mem_strdup(message), line, column};
 }
 
-/* Escreve s entre aspas, com os escapes do JSON. Bytes que não formam UTF-8
- * válido (possíveis dentro de strings do código) viram U+FFFD. */
 static void put_string(FILE *out, const char *s) {
   fputc('"', out);
   for (const unsigned char *p = (const unsigned char *)s; *p;) {
@@ -120,8 +114,6 @@ static void put_node(FILE *out, const Node *node) {
   fputc('}', out);
 }
 
-/* Um objeto com as chaves em linhas separadas e um token ou erro por linha
- * (a árvore, que é grande, vai numa linha só): fácil de comparar com diff. */
 void json_print(FILE *out, int accepted, int lines) {
   fprintf(out, "{\n\"accepted\": %s,\n\"lines\": %d,\n", accepted ? "true" : "false",
           lines);

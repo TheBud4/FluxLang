@@ -4,9 +4,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-/* A árvore vive até o fim do processo (o compilador roda uma vez por
- * arquivo), então os nós nunca são liberados. */
-
 Node *parse_root = NULL;
 
 static Node *alloc(enum NodeKind kind, const char *label) {
@@ -29,7 +26,7 @@ Node *mknode(const char *label, int n, ...) {
     else
       node->first_child = child;
     node->last_child = child;
-    if (node->line == 0) { /* o nó começa onde começa o primeiro filho com posição */
+    if (node->line == 0) {
       node->line = child->line;
       node->column = child->column;
     }
