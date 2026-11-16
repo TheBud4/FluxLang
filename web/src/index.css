@@ -13,6 +13,7 @@
   --color-bad: #b42318;
   --color-warn: #926100;
   --color-info: #0e7490;
+  --color-scrim: rgb(0 0 0 / 0.4);
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 }
@@ -29,6 +30,7 @@
     --color-bad: #ff7b72;
     --color-warn: #facc15;
     --color-info: #67e8f9;
+    --color-scrim: rgb(0 0 0 / 0.6);
   }
 }
 

@@ -34,8 +34,8 @@ export function DocsView({ pageId }: { pageId: string }) {
     else heading.current?.focus({ preventScroll: true })
   }, [pageId, scroller])
 
-  const open = useCallback((kind: Exclude<Overlay, null>) => {
-    opener.current = document.activeElement instanceof HTMLElement ? document.activeElement : null
+  const open = useCallback((kind: Exclude<Overlay, null>, from?: HTMLElement) => {
+    opener.current = from ?? (document.activeElement instanceof HTMLElement ? document.activeElement : null)
     setOverlay(kind)
   }, [])
 
@@ -82,7 +82,7 @@ export function DocsView({ pageId }: { pageId: string }) {
             type="button"
             aria-haspopup="dialog"
             aria-expanded={overlay === 'menu'}
-            onClick={() => open('menu')}
+            onClick={(e) => open('menu', e.currentTarget)}
             className={`${toolButton} lg:hidden`}
           >
             Menu
@@ -92,7 +92,7 @@ export function DocsView({ pageId }: { pageId: string }) {
             aria-haspopup="dialog"
             aria-expanded={overlay === 'search'}
             aria-keyshortcuts="Control+K"
-            onClick={() => open('search')}
+            onClick={(e) => open('search', e.currentTarget)}
             className={toolButton}
           >
             Buscar

@@ -62,7 +62,7 @@ export function DocsDrawer({ pageId, onNavigate, onClose }: DocsDrawerProps) {
 
   return (
     <div className="fixed inset-0 z-50 lg:hidden">
-      <div className="absolute inset-0 bg-ink/40" onClick={onClose} />
+      <div className="absolute inset-0 bg-scrim" onClick={onClose} />
       <div
         ref={dialog}
         role="dialog"

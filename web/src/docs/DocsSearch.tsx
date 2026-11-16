@@ -14,7 +14,8 @@ export function DocsSearch({ onChoose, onClose }: DocsSearchProps) {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const [index] = useState(getIndex)
-  const hits = useMemo(() => search(index, query).slice(0, MAX_HITS), [index, query])
+  const found = useMemo(() => search(index, query), [index, query])
+  const hits = useMemo(() => found.slice(0, MAX_HITS), [found])
   const current = hits[Math.min(active, hits.length - 1)]
 
   useModal(dialog, onClose, 'input')
@@ -40,14 +41,16 @@ export function DocsSearch({ onChoose, onClose }: DocsSearchProps) {
   const trimmed = query.trim()
   const status =
     hits.length > 0
-      ? `${hits.length} ${hits.length === 1 ? 'resultado' : 'resultados'}`
+      ? found.length > hits.length
+        ? `Mostrando ${hits.length} de ${found.length} resultados`
+        : `${hits.length} ${hits.length === 1 ? 'resultado' : 'resultados'}`
       : trimmed
         ? `Nenhum resultado para ${trimmed}`
         : 'Digite para buscar. Setas escolhem, Enter abre, Esc fecha.'
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-start justify-center bg-ink/40 p-4 pt-[10dvh]"
+      className="fixed inset-0 z-50 flex items-start justify-center bg-scrim p-4 pt-[10dvh]"
       onMouseDown={(e) => {
         if (e.target === e.currentTarget) onClose()
       }}

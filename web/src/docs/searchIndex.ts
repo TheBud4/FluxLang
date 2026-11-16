@@ -25,9 +25,15 @@ export function normalize(s: string): string {
     .toLowerCase()
 }
 
+const INLINE_TAGS = new Set(['span', 'code', 'a', 'strong', 'em'])
+
+const TOOLBAR = /<figcaption\b[^>]*>(?:(?!<\/figcaption>)[\s\S])*?<button\b(?:(?!<\/figcaption>)[\s\S])*?<\/figcaption>/g
+
 function toText(markup: string): string {
   return markup
-    .replace(/<button[\s\S]*?<\/button>/g, ' ')
+    .replace(TOOLBAR, ' ')
+    .replace(/<button\b[\s\S]*?<\/button>/g, ' ')
+    .replace(/<\/?([a-z][a-z0-9]*)\b[^>]*>/gi, (_, tag: string) => (INLINE_TAGS.has(tag.toLowerCase()) ? '' : ' '))
     .replace(/<[^>]*>/g, ' ')
     .replace(/&(#x[0-9a-f]+|#\d+|[a-z]+);/gi, (whole, code: string) => {
       if (code[0] === '#') {
@@ -60,7 +66,7 @@ const SPAN = 60
 
 function snippetOf(text: string, norm: string, words: string[]): string {
   const at = words.map((w) => norm.indexOf(w)).filter((i) => i >= 0)
-  if (at.length === 0) return text.slice(0, SPAN * 2).trim()
+  if (at.length === 0 || norm.length !== text.length) return text.slice(0, SPAN * 2).trim()
   const hit = Math.min(...at)
   const from = Math.max(0, hit - SPAN)
   const to = Math.min(text.length, hit + SPAN)
