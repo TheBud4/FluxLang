@@ -48,12 +48,13 @@ export function Estrutura() {
 }`}
       </Code>
       <Code lang="text">
-        {`Erro sintático [linha 4, coluna 1]:
+        {`Erro sintático [linha 3, coluna 2]:
 Token encontrado: fim do arquivo
 Esperado: 'var', 'const', 'func' ou 'workflow'`}
       </Code>
       <P>
-        A mensagem aparece no fim do arquivo porque é lá que o parser percebe que a {mono('main')} não veio.
+        A mensagem aparece no fim do arquivo porque é lá que o parser percebe que a {mono('main')} não veio. A posição
+        indicada é a do código mostrado acima, sem quebra de linha depois da última chave.
       </P>
       <H3 title="Duas mains" />
       <Code lang="flux">

@@ -42,7 +42,7 @@ export function Operadores() {
       <P>
         Os operadores binários dos níveis 1 a 6 agrupam da esquerda para a direita: {mono('10 - 2 - 3')} é{' '}
         {mono('(10 - 2) - 3')}. Os unários agrupam da direita para a esquerda, então {mono('!!x')} e {mono('- -3')}
-        funcionam. As comparações não se encadeiam: {mono('1 < 2 < 3')} compara o {mono('bool')} {mono('true')} com o{' '}
+        funcionam. As comparações de ordem ({mono('<')}, {mono('>')}, {mono('<=')}, {mono('>=')}) não se encadeiam: {mono('1 < 2 < 3')} compara o {mono('bool')} {mono('true')} com o{' '}
         {mono('int')} {mono('3')} e é erro de tipo.
       </P>
       <Code lang="flux" example>
@@ -305,10 +305,13 @@ Operador '==' não aceita int e string.`}
         e {mono('|')} sozinhos não existem e são erro léxico.
       </P>
       <P>
-        Os operandos são avaliados da esquerda para a direita, e o lado direito de {mono('&&')} e {mono('||')} só é
-        avaliado quando o lado esquerdo ainda não decide o resultado. Isso permite escrever uma verificação antes do
-        cálculo que ela protege.
+        Os operandos são avaliados da esquerda para a direita.
       </P>
+      <Callout kind="nota">
+        O compilador atual avalia o lado direito de {mono('&&')} e {mono('||')} só quando necessário (curto-circuito):
+        quando o lado esquerdo já decide o resultado, o direito nem é executado. Isso não está nas regras escritas da
+        linguagem, então não o trate como garantia. O exemplo abaixo mostra o que o compilador faz hoje.
+      </Callout>
       <Code lang="flux" example>
         {`func avaliar(texto:string):bool {
     terminal.log(texto);

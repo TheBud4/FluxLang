@@ -400,11 +400,17 @@ func main () {
       <H2 title="Conversões de tipo" />
       <H3 title="Conversão implícita" />
       <P>
-        A única conversão implícita é de {mono('int')} para {mono('float')}. Ela acontece em operadores
-        ({mono('1 + 2.5')} é {mono('float')}), em atribuições ({mono('var f:float = 3;')}), em argumentos de função,
-        no valor de {mono('return')} e nos elementos de um literal de lista. O caminho inverso não existe: um{' '}
-        {mono('float')} nunca vira {mono('int')} sozinho, e nenhum valor vira {mono('string')} sozinho.
+        A única conversão implícita é de {mono('int')} para {mono('float')}. Pelas regras da linguagem, ela acontece
+        em operadores ({mono('1 + 2.5')} é {mono('float')}) e em atribuições ({mono('var f:float = 3;')}). O caminho
+        inverso não existe: um {mono('float')} nunca vira {mono('int')} sozinho, e nenhum valor vira {mono('string')}{' '}
+        sozinho.
       </P>
+      <Callout kind="nota">
+        O compilador atual também promove {mono('int')} para {mono('float')} em argumentos de função, no{' '}
+        {mono('return')} de uma função declarada com {mono(':float')} e nos elementos de um literal de lista. Isso não
+        faz parte das regras escritas da linguagem, então não conte com esse comportamento como garantia. O exemplo a
+        seguir o usa só para mostrar o que o compilador faz hoje.
+      </Callout>
       <Code lang="flux" example>
         {`func metade(x:float):float {
     return x / 2;

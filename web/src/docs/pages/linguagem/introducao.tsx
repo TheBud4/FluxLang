@@ -127,10 +127,14 @@ feito
       <H3 title="Na linha de comando" />
       <P>Com o compilador construído ({mono('make')}), os modos mais usados são:</P>
       <Code lang="bash">
-        {`./flux programa.flux            # confere o programa (lexer e parser)
-./flux --semantic programa.flux  # confere também tipos e escopo
-./flux --run programa.flux       # compila para C, executa e apaga o executável`}
+        {`./flux programa.flux
+./flux --semantic programa.flux
+./flux --run programa.flux`}
       </Code>
+      <P>
+        O primeiro comando confere o programa (lexer e parser), o segundo confere também tipos e escopo, e o terceiro
+        compila para C, executa e apaga o executável.
+      </P>
       <P>
         A saída termina com Programa aceito. ou Programa rejeitado., e {mono('--run')} termina com o código de saída do
         próprio programa FluxLang. Todas as opções estão na seção Compilador.
