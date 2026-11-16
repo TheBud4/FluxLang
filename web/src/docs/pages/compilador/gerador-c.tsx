@@ -10,7 +10,7 @@ interface Part {
 
 const PARTS: Part[] = [
   { title: 'Comentário de abertura', note: 'uma linha: Gerado pelo compilador FluxLang', by: 'fputs' },
-  { title: 'Biblioteca de execução', note: 'flux_runtime_source, 1255 linhas hoje', by: 'fputs(flux_runtime_source)' },
+  { title: 'Biblioteca de execução', note: 'flux_runtime_source, pouco mais de mil linhas', by: 'fputs(flux_runtime_source)' },
   { title: 'Separador do programa', note: 'a linha ---------- programa ----------', by: 'fputs' },
   { title: 'Globais', note: 'static FxValue v_nome;, um por nome', by: 'fprintf' },
   { title: 'Protótipos', note: 'um por func, workflow e main', by: 'signature(f, 1)' },
@@ -136,7 +136,7 @@ export function GeradorC() {
  * É embutida em todo programa C que o compilador gera (./flux --c), então o`}
       </Code>
       <P>
-        Dali em diante vêm as 1255 linhas da biblioteca (o programa mínimo da seção de exemplo gera um arquivo de 1365 linhas, a maior parte dela). As partes do programa começam no separador. Este é o trecho
+        Dali em diante vem a biblioteca, com pouco mais de mil linhas (o programa pequeno da seção de exemplo gera um arquivo só um pouco maior, e a biblioteca é quase todo ele). As partes do programa começam no separador. Este é o trecho
         real, do separador aos protótipos, para o exemplo da seção seguinte:
       </P>
       <Code lang="c">
@@ -251,7 +251,7 @@ var c = marca("c", true) || marca("d", true);`}
       <P>
         Onde a linguagem espera um tipo, {mono('convert')} calcula a expressão e ajusta o valor ao tipo esperado. Há dois casos. Um {mono('int')} onde se espera {mono('float')} vira {mono('fx_to_float(v)')}. Um valor
         de tipo dinâmico (o campo de um {mono('object')}, cujo tipo só se sabe na execução) onde se espera {mono('int')}, {mono('float')}, {mono('bool')}, {mono('string')}, {mono('list')} ou {mono('object')} passa por{' '}
-        {mono('fx_as_int')}, {mono('fx_as_float')} e as outras da família {mono('fx_as_')}, que dão o erro R5 se a etiqueta for outra. Nos demais casos o valor passa sem mudança.
+        {mono('fx_as_int')}, {mono('fx_as_float')} e as outras da família {mono('fx_as_')}, que dão o erro R5 se a etiqueta for outra. Há duas exceções: {mono('null')} passa em todas, e {mono('fx_as_float')} aceita também um {mono('int')} e o promove a {mono('float')}. Medido: com {mono('var o = {a: 1};')}, {mono('var f: float = o.a;')} roda sem erro e {mono('f / 2')} dá {mono('0.5')}. Nos demais casos o valor passa sem mudança.
       </P>
       <P>
         A conversão é usada onde há um tipo esperado conhecido: o valor de um {mono('var')} com tipo declarado, o lado direito de uma atribuição (o tipo do alvo), cada argumento de uma chamada (o tipo do
@@ -283,7 +283,7 @@ var c = marca("c", true) || marca("d", true);`}
       </P>
       <H3 title="Chamadas" />
       <P>
-        {mono('gen_call')} trata três casos pelo que está à esquerda do parêntese.
+        {mono('gen_call')} trata três casos pelo que está à esquerda do parêntese: as quatro conversões, as funções do usuário e as ações de {mono('terminal')} e de lista, em sete formas no total.
       </P>
       <Table
         head={['Chamada', 'C gerado']}
@@ -346,7 +346,7 @@ var c = marca("c", true) || marca("d", true);`}
       </Code>
       <Callout kind="aviso">
         O alvo de uma atribuição ({mono('base')} e {mono('indice')} de {mono('l[i] = v')}) é calculado depois do valor. Medido, com {mono('l[v("indice", 1)] = v("valor", 99);')}, em que {mono('v')} escreve o
-        nome que recebe: a saída é {mono('valor')} e depois {mono('indice')}. O resto do gerador segue a ordem do código; esta é a única forma em que o lado direito vem antes do esquerdo.
+        nome que recebe: a saída é {mono('valor')} e depois {mono('indice')}. Isto é um desvio da regra de esquerda para a direita desta página, e não um desenho da linguagem: é o comportamento atual do gerador. O resto segue a ordem do código; esta é a única forma em que o lado direito vem antes do esquerdo.
       </Callout>
       <Callout kind="aviso">
         Numa atribuição por {mono('call')} (por exemplo {mono('q, e = call w()')}, com {mono('q')} do tipo {mono('float')} e o workflow devolvendo {mono('int')}), o valor é copiado sem {mono('convert')}. Medido: {mono('q')}
@@ -563,7 +563,7 @@ Executável gerado: mini.exe`}
       </Why>
       <Callout kind="nota">
         Como {mono('run_program')} usa {mono('execvp')}, o valor de {mono('FLUX_CC')} é só o nome de um programa, achado no {mono('PATH')}; argumentos ali não funcionam. Medido: {mono('FLUX_CC="gcc -O2"')} dá a
-        mensagem {mono('gcc -O2: No such file or directory')}, o código 127 e o erro {mono('Erro interno: o gcc não conseguiu compilar o C gerado')} (o C é mantido e o caminho vai na mensagem). Para flags, use{' '}
+        mensagem {mono('gcc -O2: No such file or directory')}, o código 127 (o status do processo filho; o {mono('flux')} em si sai com 3, o que {mono('run_codegen')} devolve) e o erro {mono('Erro interno: o gcc não conseguiu compilar o C gerado')} (o C é mantido e o caminho vai na mensagem). Para flags, use{' '}
         {mono('FLUX_CC_FLAGS')}.
       </Callout>
       <H3 title="Executar o programa e o wine" />
@@ -607,7 +607,7 @@ func main () {
 }`}
       </Code>
       <P>
-        Com {mono('./flux --c')} o resultado tem 1365 linhas, das quais as da seção do programa são as últimas 107. As seções acima mostraram os trechos: o separador e os protótipos, o {mono('w_dupla')}, o laço do
+        Com {mono('./flux --c')} o resultado passa de mil linhas, das quais a seção do programa são as últimas cento e poucas. As seções acima mostraram os trechos: o separador e os protótipos, o {mono('w_dupla')}, o laço do
         {' '}{mono('f_main')} e o final com {mono('fx_program')}. A {mono('f_dobra')}, a menor função, é assim:
       </P>
       <Code lang="c">

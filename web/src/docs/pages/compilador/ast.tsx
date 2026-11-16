@@ -455,7 +455,7 @@ export function Ast() {
       </Fn>
       <Fn name="print_func" signature="static void print_func(const Func *f, int depth, FILE *out)">
         Imprime o cabeçalho da função: {mono('Func')} ou {mono('Workflow')}, o nome e, entre parênteses, cada parâmetro como {mono('nome:tipo')}, separados por vírgula e
-        espaço; depois o tipo de retorno, {' '}{mono(':tipo')}, se há; em seguida o corpo, como um {mono('Block')}.
+        espaço; depois o tipo de retorno, {mono(':tipo')}, se há; em seguida o corpo, como um {mono('Block')}.
       </Fn>
       <Fn name="print_stmt" signature="static void print_stmt(const Stmt *s, int depth, FILE *out)">
         Imprime um comando conforme o tipo, na forma da tabela de comandos acima. Imprime o {mono('Else')} com o bloco dele um nível mais fundo, e o corpo dos laços
