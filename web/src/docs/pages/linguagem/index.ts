@@ -1,9 +1,14 @@
 import type { DocPage } from '../../types'
+import { Biblioteca } from './biblioteca'
+import { CallRunErros } from './call-run-erros'
+import { ControleDeFluxo } from './controle-de-fluxo'
 import { Estrutura } from './estrutura'
+import { Funcoes } from './funcoes'
 import { Introducao } from './introducao'
 import { ListasObjetos } from './listas-objetos'
 import { Operadores } from './operadores'
 import { Tipos } from './tipos'
+import { Workflows } from './workflows'
 
 export const linguagemPages: DocPage[] = [
   {
@@ -40,5 +45,40 @@ export const linguagemPages: DocPage[] = [
     title: 'Operadores e precedência',
     summary: 'Todos os operadores, os oito níveis de precedência e as regras de tipo de cada um.',
     Component: Operadores,
+  },
+  {
+    id: 'linguagem/controle-de-fluxo',
+    section: 'linguagem',
+    title: 'Controle de fluxo',
+    summary: 'if e else, while, for, break e continue, condições bool e o escopo dos blocos.',
+    Component: ControleDeFluxo,
+  },
+  {
+    id: 'linguagem/funcoes',
+    section: 'linguagem',
+    title: 'Funções',
+    summary: 'Declaração, parâmetros, valor de retorno, funções sem retorno e recursão.',
+    Component: Funcoes,
+  },
+  {
+    id: 'linguagem/workflows',
+    section: 'linguagem',
+    title: 'Workflows',
+    summary: 'A unidade de automação: retorno (resultado, erro), chamada com call e erros próprios.',
+    Component: Workflows,
+  },
+  {
+    id: 'linguagem/call-run-erros',
+    section: 'linguagem',
+    title: 'call, run e erros',
+    summary: 'Onde call e run aparecem, o que run devolve, stop if, abort if, proceed if e os erros de execução.',
+    Component: CallRunErros,
+  },
+  {
+    id: 'linguagem/biblioteca',
+    section: 'linguagem',
+    title: 'Biblioteca',
+    summary: 'terminal, as conversões toString, toInt, toFloat e toBool e o que já vem declarado.',
+    Component: Biblioteca,
   },
 ]
