@@ -17,7 +17,7 @@ void report_error(const char *kind, int line, int column, const char *fmt,
                   ...) {
   va_list args;
   va_start(args, fmt);
-  if (json_enabled()) { /* no modo --json o stdout é só o JSON */
+  if (json_enabled()) {
     char message[1024];
     vsnprintf(message, sizeof message, fmt, args);
     json_record_error(kind, line, column, message);
@@ -53,7 +53,6 @@ static int list_tokens(void) {
   while ((tok = yylex()) != 0) {
     if (tok == YYerror)
       continue;
-    /* só identificadores e literais mostram o texto */
     int has_text = tok == IDENTIFIER || tok == INT_LITERAL ||
                    tok == FLOAT_LITERAL || tok == STRING_LITERAL;
     printf("%d:%d\t%-20s %s\n", yylloc.first_line, yylloc.first_column,
@@ -62,7 +61,6 @@ static int list_tokens(void) {
   return error_count > 0;
 }
 
-/* O nome do executável: o do arquivo sem a extensão, na pasta atual. */
 static char *default_exe_name(const char *file) {
   if (!file)
     return mem_strdup(is_windows_target() ? "a.exe" : "a.out");
@@ -80,7 +78,6 @@ static char *default_exe_name(const char *file) {
   return name;
 }
 
-/* --c, --build e --run. `program` é NULL se o programa tem erros (já impressos). */
 static int run_codegen(Program *program, int c_mode, int build_mode, const char *outfile,
                        const char *file) {
   if (!program) {
@@ -106,8 +103,7 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
 
   if (build_mode) {
     snprintf(exe_path, sizeof exe_path, "%s", outfile ? outfile : default_exe_name(file));
-  } else { /* --run: um executável temporário */
-    /* o wine só roda o que termina em .exe */
+  } else {
     const char *suffix = is_windows_target() ? ".exe" : "";
     snprintf(exe_path, sizeof exe_path, "%s/fluxexeXXXXXX%s", tmpdir ? tmpdir : "/tmp", suffix);
     int exe_fd = mkstemps(exe_path, (int)strlen(suffix));
@@ -190,18 +186,14 @@ static int run(int argc, char **argv) {
   if (token_mode)
     return list_tokens();
 
-  /* Com o modo pânico o yyparse() termina com 0 mesmo depois de erros
-     recuperados: o programa só é aceito se nenhum erro foi reportado. */
   if (json_mode)
     json_enable();
   int parsed = yyparse();
 
-  /* Gerar código exige o programa conferido pela análise semântica. */
   int codegen = c_mode || build_mode || run_mode;
   if (codegen)
     semantic_mode = 1;
 
-  /* A análise semântica só roda depois de um parse sem erros. */
   Program *program = NULL;
   if ((ast_mode || semantic_mode) && parsed == 0 && error_count == 0)
     program = build_ast(parse_root);
@@ -227,12 +219,10 @@ static int run(int argc, char **argv) {
   return 1;
 }
 
-int yylex_destroy(void); /* lex.yy.c: libera os buffers do Flex */
+int yylex_destroy(void);
 
 int main(int argc, char **argv) {
   int code = run(argc, argv);
-  /* Tudo o que o compilador alocou é liberado aqui, inclusive o que o Flex
-     guarda; assim o AddressSanitizer pode checar vazamentos de verdade. */
   yylex_destroy();
   if (yyin && yyin != stdin)
     fclose(yyin);
