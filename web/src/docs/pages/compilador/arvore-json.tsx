@@ -196,32 +196,33 @@ Programa aceito.`}
       <P>
         Cada nível de profundidade são dois espaços. As folhas de token mostram o nome do token, o lexema entre aspas simples e a posição{' '}
         {mono('linha:coluna')}; os nós de regra e o ε mostram só o nome. Num programa com expressão aparece a cadeia de precedência da
-        BNF. Este é o trecho de {mono('var a = x + y + z;')}, da regra {mono('additive_expr')} em diante: o primeiro operando fica no
+        BNF. Este é o trecho, recuado como na saída real de {mono('var a = x + y + z;')} dentro de {mono('main')}, da regra{' '}
+        {mono('additive_expr')} em diante (os operandos {mono('y')} e {mono('z')} estão abreviados em uma linha): o primeiro operando fica no
         filho de {mono('additive_expr')} e os demais se aninham em {mono('additive_rest')}, um dentro do outro.
       </P>
       <Code lang="text">
-        {`                            additive_expr
-                              multiplicative_expr
-                                unary_expr
-                                  postfix_expr
-                                    primary
-                                      IDENTIFIER 'x' 2:11
-                                    postfix_rest
-                                      ε
-                                multiplicative_rest
-                                  ε
-                              additive_rest
-                                additive_op
-                                  PLUS '+' 2:13
+        {`                              additive_expr
                                 multiplicative_expr
-                                  ...  (y, 2:15)
+                                  unary_expr
+                                    postfix_expr
+                                      primary
+                                        IDENTIFIER 'x' 2:11
+                                      postfix_rest
+                                        ε
+                                  multiplicative_rest
+                                    ε
                                 additive_rest
                                   additive_op
-                                    PLUS '+' 2:17
+                                    PLUS '+' 2:13
                                   multiplicative_expr
-                                    ...  (z, 2:19)
+                                    ...  (y, 2:15)
                                   additive_rest
-                                    ε`}
+                                    additive_op
+                                      PLUS '+' 2:17
+                                    multiplicative_expr
+                                      ...  (z, 2:19)
+                                    additive_rest
+                                      ε`}
       </Code>
       <P>
         Com um erro recuperado pelo modo pânico, o nó de erro aparece no lugar do trecho descartado, com a posição de onde ele começa. É a
@@ -372,6 +373,10 @@ $ ./flux --json --semantic e4.flux | grep -A1 '"errors"'
       </P>
 
       <H2 title="Funções do json.c" />
+      <P>
+        Os protótipos das funções {mono('json_*')} abaixo estão declarados em {mono('src/fluxc.h')}, o cabeçalho do driver que o lexer, o
+        {' '}{mono('main.c')} e o próprio {mono('json.c')} incluem, e não em {mono('tree.h')}.
+      </P>
       <Fn name="json_enable" signature="void json_enable(void)">
         Liga o registro: põe {mono('enabled')} em 1. Chamada por {mono('main')} antes do {mono('yyparse')}, só com {mono('--json')}.
       </Fn>

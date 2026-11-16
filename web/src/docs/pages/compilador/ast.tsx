@@ -107,8 +107,9 @@ export function Ast() {
       <Why>
         {mono('build_ast')} só roda com a árvore de um programa aceito. Com erro de sintaxe a árvore pode ter nós de erro do modo pânico, e a
         função devolve nulo se achar algum; mas é o {mono('main')} que nem a chama quando houve qualquer erro léxico ou sintático. Assim as
-        funções de construção supõem uma árvore com exatamente o formato da BNF e não conferem nada: não há teste de ponteiro nulo nem de
-        rótulo desconhecido.
+        funções de construção supõem uma árvore com exatamente o formato da BNF e não validam a forma da árvore: nenhuma função emite erro por
+        um nó fora do formato (o {mono('is')} trata ponteiro nulo como "não é", e {mono('op_from_token')} cai em {mono('OP_ADD')}
+        para um operador desconhecido).
       </Why>
       <Why>
         Os nós da AST nunca são liberados: o compilador roda uma vez por arquivo, e tudo vem da arena. Ver{' '}
@@ -187,7 +188,7 @@ export function Ast() {
           [mono('ST_RETURN'), mono('Return'), <>{mono('exprs')} e {mono('n_exprs')}: os valores (podem ser nenhum).</>],
           [<>{mono('ST_BREAK')}, {mono('ST_CONTINUE')}</>, <>{mono('Break')}, {mono('Continue')}</>, 'nenhum'],
           [mono('ST_ERRACT'), mono('Stop if e'), <>{mono('act')} ({mono('ACT_STOP')}, {mono('ACT_ABORT')}, {mono('ACT_PROCEED')}) e {mono('var')} (o operando).</>],
-          [mono('ST_EXPR'), mono('ExprStmt'), <>{mono('exprs[0]')}: a chamada usada como comando.</>],
+          [mono('ST_EXPR'), mono('ExprStmt'), <>{mono('exprs[0]')}: uma expressão, em geral uma chamada. A AST aceita qualquer expressão aqui; as que não são chamada o E24 rejeita depois, na análise semântica (por exemplo, {mono('x + 1;')} chega como {mono('ST_EXPR')}).</>],
           [mono('ST_BLOCK'), mono('Block'), <>{mono('stmts')} e {mono('n_stmts')}.</>],
         ]}
       />
@@ -201,6 +202,7 @@ export function Ast() {
           [mono('RHS_EXPRS'), mono('Values'), <>{mono('exprs')} e {mono('n_exprs')}: uma lista de expressões.</>],
           [mono('RHS_CALL'), mono('CallWorkflow nome'), <>{mono('callee')} (um {mono('Name')}), {mono('args')} e {mono('n_args')}: um {mono('call f(args)')}.</>],
           [mono('RHS_RUN'), mono('Run'), <>{mono('run')}: o literal de objeto que descreve o comando.</>],
+          [mono('pos'), 'Os três: a posição do primeiro token do nó de regra do lado direito.'],
         ]}
       />
       <P>O {mono('Stmt')} é um struct só para todos os comandos, e alguns campos servem a mais de um tipo:</P>
@@ -212,6 +214,7 @@ export function Ast() {
           [mono('var'), <>{mono('ST_FOR')}: a variável do laço. {mono('ST_ERRACT')}: a variável testada.</>],
           [mono('exprs'), <>{mono('ST_RETURN')}: os valores. {mono('ST_EXPR')}: só {mono('exprs[0]')}.</>],
           [mono('rhs'), <>{mono('ST_VAR')} (pode ser nulo) e {mono('ST_ASSIGN')}.</>],
+          [mono('pos'), <>Todos: a posição do primeiro token do nó de regra de onde o comando veio (a regra herda a posição do primeiro filho, em {mono('mknode')}).</>],
         ]}
       />
 
@@ -310,7 +313,9 @@ export function Ast() {
         {mono('root')} é nulo ou se a árvore tem algum nó de erro (de {mono('has_error_node')}); e, nesses casos, não aloca nada. Do contrário, aloca o {mono('Program')} e anda pelas três regras que se alternam: {mono('before_main')} (globais e funções
         antes do {mono('main')}), {mono('after_func')} (o {mono('main')} ou uma função) e {mono('after_main')} (o que vem depois). Em cada passo trata o item (global,
         função ou {mono('main')}) e passa para o resto da cadeia, até um {mono('after_main')} vazio. As declarações vão para um vetor, na ordem do arquivo, e no
-        fim são copiadas por valor para o vetor contíguo {mono('program->decls')}. O {mono('main')} é registrado em {mono('program->main')} e também
+        fim são copiadas por valor para o vetor contíguo {mono('program->decls')}, alocado com {mono('decls.n * sizeof(Decl) + 1')} bytes; o{' '}
+        {mono('+ 1')} só evita uma alocação de tamanho zero quando não há nenhuma declaração (o {mono('mem_alloc')} já trata tamanho 0 como 16 bytes,
+        então o {mono('+ 1')} não muda o resultado). O {mono('main')} é registrado em {mono('program->main')} e também
         entra em {mono('decls')}. Chamada por {mono('main')}, e só quando ela é necessária.
       </Fn>
       <Fn name="has_error_node" signature="static int has_error_node(const Node *n)">

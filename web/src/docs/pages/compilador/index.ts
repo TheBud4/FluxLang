@@ -1,7 +1,7 @@
 import type { DocPage } from '../../types'
 import { Arena } from './arena'
-import { Ast } from './ast'
 import { ArvoreJson } from './arvore-json'
+import { Ast } from './ast'
 import { Lexico } from './lexico'
 import { LinhaDeComando } from './linha-de-comando'
 import { MapaEBuild } from './mapa-e-build'
