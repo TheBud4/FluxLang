@@ -2,12 +2,14 @@ import type { DocPage } from '../../types'
 import { Arena } from './arena'
 import { ArvoreJson } from './arvore-json'
 import { Ast } from './ast'
+import { Coletor } from './coletor'
 import { GeradorC } from './gerador-c'
 import { Lexico } from './lexico'
 import { LinhaDeComando } from './linha-de-comando'
 import { MapaEBuild } from './mapa-e-build'
 import { ModoPanico } from './modo-panico'
 import { Parser } from './parser'
+import { Runtime } from './runtime'
 import { Semantica } from './semantica'
 import { TiposInternos } from './tipos-internos'
 import { VisaoGeral } from './visao-geral'
@@ -96,5 +98,19 @@ export const compiladorPages: DocPage[] = [
     title: 'Gerador de C',
     summary: 'codegen_c.c: como --c, --build e --run viram um programa C e um executável, o C de cada construção, os temporários, o curto-circuito e a chamada do gcc.',
     Component: GeradorC,
+  },
+  {
+    id: 'compilador/runtime',
+    section: 'compilador',
+    title: 'Biblioteca de execução',
+    summary: 'flux_rt.h: o FxValue, os operadores e os erros R1 a R7, terminal (cores e saída etiquetada), run, a entrada do programa e o que muda entre POSIX e Windows.',
+    Component: Runtime,
+  },
+  {
+    id: 'compilador/coletor',
+    section: 'compilador',
+    title: 'Coletor de lixo',
+    summary: 'O coletor conservador de marca e varre da biblioteca: blocos, raízes, varredura da pilha, fx_gc_find, registradores salvos, limites e as variáveis FLUX_GC*.',
+    Component: Coletor,
   },
 ]
