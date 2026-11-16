@@ -1,5 +1,7 @@
 import type { DocPage } from '../../types'
 import { Arena } from './arena'
+import { Ast } from './ast'
+import { ArvoreJson } from './arvore-json'
 import { Lexico } from './lexico'
 import { LinhaDeComando } from './linha-de-comando'
 import { MapaEBuild } from './mapa-e-build'
@@ -56,5 +58,19 @@ export const compiladorPages: DocPage[] = [
     title: 'Modo pânico',
     summary: 'As regras com error, como a recuperação sincroniza em ; ou em blocos, a cascata de erros, a árvore e o exemplo inválido de ponta a ponta.',
     Component: ModoPanico,
+  },
+  {
+    id: 'compilador/arvore-json',
+    section: 'compilador',
+    title: 'Árvore de derivação e JSON',
+    summary: 'tree.c e json.c: o tipo Node, mknode e os nós de folha, a saída de --tree, o esquema exato do --json e o contrato com a interface web.',
+    Component: ArvoreJson,
+  },
+  {
+    id: 'compilador/ast',
+    section: 'compilador',
+    title: 'AST',
+    summary: 'ast.h, ast.c e ast_build.c: cada nó da AST enxuta, como a árvore de derivação vira AST, a saída de --ast e o que a AST descarta.',
+    Component: Ast,
   },
 ]
