@@ -13,6 +13,9 @@ import { useCompile } from './lib/useCompile'
 import { useRun } from './lib/useRun'
 import { InputBox } from './components/InputBox'
 import { OutputPanel } from './components/OutputPanel'
+import { DocsProvider } from './docs/DocsContext'
+import { DocsView } from './docs/DocsView'
+import { useHashRoute } from './docs/useHashRoute'
 
 const SAMPLES = [
   { label: 'Exemplo válido', text: valid },
@@ -32,6 +35,7 @@ export default function App() {
   const [expand, setExpand] = useState({ key: 0, all: true })
   const { result, loading, failure, compileNow } = useCompile(source, semantic)
   const { state: runState, run } = useRun()
+  const { view, pageId, goDoc, goEditor } = useHashRoute()
 
   // o campo de entrada só aparece quando o programa pede entrada
   const usesInput = useMemo(() => /\bterminal\s*\.\s*input\b/.test(source), [source])
@@ -54,6 +58,8 @@ export default function App() {
         onSemantic={setSemantic}
         running={runState.phase === 'running'}
         onRun={() => run(source, stdin)}
+        view={view}
+        onView={(v) => (v === 'docs' ? goDoc(pageId) : goEditor())}
       />
 
       {failure && (
@@ -62,7 +68,7 @@ export default function App() {
         </p>
       )}
 
-      <main className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-2 lg:grid-cols-[1.3fr_0.8fr_1.2fr] lg:grid-rows-[minmax(0,1fr)_11rem]">
+      <main hidden={view === 'docs'} className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-2 lg:grid-cols-[1.3fr_0.8fr_1.2fr] lg:grid-rows-[minmax(0,1fr)_11rem]">
         <Panel title="Código" className="h-96 lg:h-auto">
           <Editor value={source} onChange={setSource} errorLines={errorLines} focus={focus} />
         </Panel>
@@ -112,6 +118,17 @@ export default function App() {
           <OutputPanel state={runState} />
         </Panel>
       </main>
+
+      {view === 'docs' && (
+        <DocsProvider
+          openInEditor={(text) => {
+            setSource(text)
+            goEditor()
+          }}
+        >
+          <DocsView pageId={pageId} />
+        </DocsProvider>
+      )}
     </div>
   )
 }
