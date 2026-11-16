@@ -2,6 +2,7 @@ import type { DocPage } from '../../types'
 import { Arena } from './arena'
 import { ArvoreJson } from './arvore-json'
 import { Ast } from './ast'
+import { GeradorC } from './gerador-c'
 import { Lexico } from './lexico'
 import { LinhaDeComando } from './linha-de-comando'
 import { MapaEBuild } from './mapa-e-build'
@@ -88,5 +89,12 @@ export const compiladorPages: DocPage[] = [
     title: 'Análise semântica',
     summary: 'sema.c: as três passadas, a pilha de escopos, a tipagem das expressões, o estado de fluxo do E3 e do E20, call e run, e qual função levanta cada erro E1 a E24.',
     Component: Semantica,
+  },
+  {
+    id: 'compilador/gerador-c',
+    section: 'compilador',
+    title: 'Gerador de C',
+    summary: 'codegen_c.c: como --c, --build e --run viram um programa C e um executável, o C de cada construção, os temporários, o curto-circuito e a chamada do gcc.',
+    Component: GeradorC,
   },
 ]
