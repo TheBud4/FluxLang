@@ -1,11 +1,22 @@
+import { useRef } from 'react'
 import { PAGES, SECTIONS } from './registry'
+import { useModal } from './useModal'
+import { useOverflowFocus } from './useOverflowFocus'
 
-export function DocsNav({ pageId }: { pageId: string }) {
+interface DocsNavProps {
+  pageId: string
+  className?: string
+  onNavigate?: (id: string) => void
+}
+
+export function DocsNav({ pageId, className = '', onNavigate }: DocsNavProps) {
+  const [navRef, tabIndex] = useOverflowFocus<HTMLElement>()
   return (
     <nav
+      ref={navRef}
       aria-label="Documentação"
-      tabIndex={0}
-      className="max-h-40 overflow-auto border-b border-line bg-panel p-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent lg:max-h-none lg:border-r lg:border-b-0"
+      tabIndex={tabIndex}
+      className={`overflow-auto bg-panel p-3 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent ${className}`}
     >
       {SECTIONS.map((section) => {
         const pages = PAGES.filter((p) => p.section === section.id)
@@ -21,6 +32,7 @@ export function DocsNav({ pageId }: { pageId: string }) {
                     <a
                       href={`#/doc/${p.id}`}
                       aria-current={current ? 'page' : undefined}
+                      onClick={() => onNavigate?.(p.id)}
                       className={`flex min-h-6 items-center rounded px-2 py-1 text-sm hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent ${
                         current ? 'bg-bg font-semibold text-accent' : 'text-ink'
                       }`}
@@ -35,5 +47,41 @@ export function DocsNav({ pageId }: { pageId: string }) {
         )
       })}
     </nav>
+  )
+}
+
+interface DocsDrawerProps {
+  pageId: string
+  onNavigate: (id: string) => void
+  onClose: () => void
+}
+
+export function DocsDrawer({ pageId, onNavigate, onClose }: DocsDrawerProps) {
+  const dialog = useRef<HTMLDivElement>(null)
+  useModal(dialog, onClose, 'nav a')
+
+  return (
+    <div className="fixed inset-0 z-50 lg:hidden">
+      <div className="absolute inset-0 bg-ink/40" onClick={onClose} />
+      <div
+        ref={dialog}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Menu da documentação"
+        className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-line bg-panel"
+      >
+        <div className="flex items-center justify-between border-b border-line p-3">
+          <span className="text-sm font-semibold text-ink">Documentação</span>
+          <button
+            type="button"
+            onClick={onClose}
+            className="min-h-8 rounded border border-line bg-panel px-3 text-sm text-ink hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent"
+          >
+            Fechar
+          </button>
+        </div>
+        <DocsNav pageId={pageId} onNavigate={onNavigate} className="min-h-0 flex-1" />
+      </div>
+    </div>
   )
 }

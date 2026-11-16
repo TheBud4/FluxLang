@@ -140,9 +140,11 @@ export function highlight(lang: Lang, code: string): Piece[] {
         i += num[0].length
       } else if (word) {
         const w = word[0]
-        const afterDot = code[i - 1] === '.'
+        const before = code.slice(Math.max(0, i - 32), i)
+        const afterDot = /\.\s*$/.test(before)
+        const afterTerminal = /\bterminal\s*\.\s*$/.test(before)
         let cls: TokenClass | undefined
-        if (lang === 'flux' && afterDot) cls = library.members.has(w) ? 'fn' : undefined
+        if (lang === 'flux' && afterDot) cls = afterTerminal && library.members.has(w) ? 'fn' : undefined
         else if (spec.types.has(w)) cls = 'type'
         else if (lang === 'flux' && library.fns.has(w)) cls = 'fn'
         else if (spec.keywords.has(w)) cls = 'kw'

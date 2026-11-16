@@ -62,7 +62,7 @@ export default function App() {
         onView={(v) => (v === 'docs' ? goDoc(pageId) : goEditor())}
       />
 
-      {failure && (
+      {view === 'editor' && failure && (
         <p role="alert" className="border-b border-line bg-bad/15 px-3 py-2 text-sm text-bad">
           {failure}
         </p>

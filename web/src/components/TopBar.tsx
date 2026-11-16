@@ -47,16 +47,22 @@ export function TopBar({
   }
 
   function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>) {
-    if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return
+    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return
     e.preventDefault()
-    const next = TABS[(TABS.findIndex((t) => t.id === view) + 1) % TABS.length]
+    const at = TABS.findIndex((t) => t.id === view)
+    const step = e.key === 'ArrowRight' ? at + 1 : e.key === 'ArrowLeft' ? at - 1 : e.key === 'Home' ? 0 : TABS.length - 1
+    const next = TABS[(step + TABS.length) % TABS.length]
     onView(next.id)
     requestAnimationFrame(() => document.getElementById(`tab-${next.id}`)?.focus())
   }
 
   return (
     <header className="flex flex-wrap items-center gap-x-4 gap-y-2 border-b border-line bg-panel px-3 py-2">
-      <h1 className="text-base font-bold tracking-tight">FluxLang</h1>
+      {view === 'docs' ? (
+        <p className="text-base font-bold tracking-tight">FluxLang</p>
+      ) : (
+        <h1 className="text-base font-bold tracking-tight">FluxLang</h1>
+      )}
 
       <div role="tablist" aria-label="Telas" className="flex items-center gap-1">
         {TABS.map((t) => {
