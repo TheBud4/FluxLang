@@ -3,7 +3,9 @@ import { Biblioteca } from './biblioteca'
 import { CallRunErros } from './call-run-erros'
 import { ControleDeFluxo } from './controle-de-fluxo'
 import { Erros } from './erros'
+import { EscopoV1 } from './escopo-v1'
 import { Estrutura } from './estrutura'
+import { ExemploIntegrado } from './exemplo-integrado'
 import { Funcoes } from './funcoes'
 import { Introducao } from './introducao'
 import { ListasObjetos } from './listas-objetos'
@@ -104,5 +106,19 @@ export const linguagemPages: DocPage[] = [
     title: 'Catálogo de erros',
     summary: 'Os erros L1 a L6, S1 a S3, E1 a E24 e R1 a R7: causa, formato da mensagem, exemplo e recuperação.',
     Component: Erros,
+  },
+  {
+    id: 'linguagem/exemplo-integrado',
+    section: 'linguagem',
+    title: 'Exemplo integrado',
+    summary: 'O programa do README comentado, mais os arquivos valido.flux e invalido.flux com os sete erros.',
+    Component: ExemploIntegrado,
+  },
+  {
+    id: 'linguagem/escopo-v1',
+    section: 'linguagem',
+    title: 'Escopo da v1',
+    summary: 'O que está na primeira versão, o que ficou para depois e o que ainda está em aberto.',
+    Component: EscopoV1,
   },
 ]
