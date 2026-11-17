@@ -4,6 +4,7 @@ import { ArvoreJson } from './arvore-json'
 import { Ast } from './ast'
 import { Coletor } from './coletor'
 import { GeradorC } from './gerador-c'
+import { InterfaceWeb } from './interface-web'
 import { Lexico } from './lexico'
 import { LinhaDeComando } from './linha-de-comando'
 import { MapaEBuild } from './mapa-e-build'
@@ -112,5 +113,12 @@ export const compiladorPages: DocPage[] = [
     title: 'Coletor de lixo',
     summary: 'O coletor conservador de marca e varre da biblioteca: blocos, raízes, varredura da pilha, fx_gc_find, registradores salvos, limites e as variáveis FLUX_GC*.',
     Component: Coletor,
+  },
+  {
+    id: 'compilador/interface-web',
+    section: 'compilador',
+    title: 'Interface web',
+    summary: 'A interface do web/: como rodar, o servidor (/api/compile e /api/run, a segurança do Executar), a execução etiquetada, os componentes, os tokens de cor e o sistema desta documentação.',
+    Component: InterfaceWeb,
   },
 ]
