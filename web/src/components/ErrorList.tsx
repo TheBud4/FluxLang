@@ -5,7 +5,6 @@ interface ErrorListProps {
   onSelect: (line: number, column: number) => void
 }
 
-/** Mensagens de erro (léxicas e sintáticas). Clicar leva à posição no código. */
 export function ErrorList({ errors, onSelect }: ErrorListProps) {
   if (errors.length === 0) {
     return <p className="p-3 text-sm text-muted">Nenhum erro.</p>

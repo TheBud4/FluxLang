@@ -43,7 +43,7 @@ export function TopBar({
   async function handleFile(file: File | undefined) {
     if (!file) return
     onOpenFile(file.name, await file.text())
-    if (fileInput.current) fileInput.current.value = '' // permite abrir o mesmo arquivo de novo
+    if (fileInput.current) fileInput.current.value = ''
   }
 
   function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>) {

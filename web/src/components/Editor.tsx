@@ -1,31 +1,21 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Focus } from '../lib/types'
 
-// Altura de uma linha e margem interna do texto, em px. Têm de bater com as
-// classes leading-5 (1.25rem) e p-2 (0.5rem) abaixo: a calha de números e o
-// realce das linhas com erro são posicionados com estes valores.
 const LINE_HEIGHT = 20
 const PADDING = 8
 
 interface EditorProps {
   value: string
   onChange: (value: string) => void
-  /** Linhas (a partir de 1) a realçar. */
   errorLines: ReadonlySet<number>
   focus: Focus | null
 }
 
-/**
- * Editor simples: um textarea com calha de números e, atrás dele, faixas que
- * pintam as linhas com erro. Um textarea não colore linhas sozinho, então o
- * realce é uma camada à parte com a rolagem sincronizada.
- */
 export function Editor({ value, onChange, errorLines, focus }: EditorProps) {
   const textarea = useRef<HTMLTextAreaElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
   const lineCount = useMemo(() => value.split('\n').length, [value])
 
-  // Clique em erro, token ou nó da árvore: seleciona o trecho e rola até ele.
   useEffect(() => {
     const el = textarea.current
     if (!focus || !el) return

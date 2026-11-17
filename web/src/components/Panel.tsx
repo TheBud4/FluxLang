@@ -2,13 +2,11 @@ import type { ReactNode } from 'react'
 
 interface PanelProps {
   title: string
-  /** Controles à direita do título. */
   actions?: ReactNode
   className?: string
   children: ReactNode
 }
 
-/** Moldura de um painel: título fixo em cima e corpo que rola sozinho. */
 export function Panel({ title, actions, className = '', children }: PanelProps) {
   return (
     <section
@@ -18,7 +16,6 @@ export function Panel({ title, actions, className = '', children }: PanelProps) 
         <h2 className="text-xs font-semibold tracking-wide whitespace-nowrap text-muted uppercase">{title}</h2>
         {actions}
       </header>
-      {/* o corpo rola, então precisa ser alcançável pelo teclado (Tab, depois as setas) */}
       <div
         role="region"
         aria-label={title}

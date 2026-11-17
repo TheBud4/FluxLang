@@ -5,7 +5,6 @@ interface TokenListProps {
   onSelect: (line: number, column: number, length: number) => void
 }
 
-/** Tokens reconhecidos, na ordem do código. Clicar seleciona o trecho no editor. */
 export function TokenList({ tokens, onSelect }: TokenListProps) {
   if (tokens.length === 0) {
     return <p className="p-3 text-sm text-muted">Nenhum token reconhecido.</p>

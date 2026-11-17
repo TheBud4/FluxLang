@@ -4,9 +4,7 @@ import type { TreeNode } from '../lib/types'
 
 interface TreeViewProps {
   root: TreeNode | null
-  /** Esconde os nós *_rest e as folhas ε (a árvore fiel fica no --json). */
   hideRest: boolean
-  /** Muda quando o usuário pede Expandir tudo ou Recolher tudo. */
   expandKey: number
   expandAll: boolean
   onSelect: (line: number, column: number, length?: number) => void
@@ -21,7 +19,6 @@ export function TreeView({ root, hideRest, expandKey, expandAll, onSelect }: Tre
   if (roots.length === 0) {
     return <p className="p-3 text-sm text-muted">Sem árvore: nenhuma regra foi concluída.</p>
   }
-  // Trocar a key recria os nós, então todos nascem abertos ou fechados.
   return (
     <ul className="w-max min-w-full p-2 font-mono text-xs" key={`${expandKey}-${hideRest}`}>
       {roots.map((node, i) => (
@@ -39,7 +36,6 @@ interface NodeProps {
   onSelect: TreeViewProps['onSelect']
 }
 
-// Sem pedido de Expandir/Recolher tudo, abre só os primeiros níveis.
 const INITIAL_DEPTH = 4
 
 function Node({ node, depth, expandAll, expandKey, onSelect }: NodeProps) {

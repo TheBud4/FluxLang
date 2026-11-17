@@ -37,7 +37,6 @@ export default function App() {
   const { state: runState, run } = useRun()
   const { view, pageId, goDoc, goEditor } = useHashRoute()
 
-  // o campo de entrada só aparece quando o programa pede entrada
   const usesInput = useMemo(() => /\bterminal\s*\.\s*input\b/.test(source), [source])
 
   const errorLines = useMemo(() => new Set(result?.errors.map((e) => e.line) ?? []), [result])
