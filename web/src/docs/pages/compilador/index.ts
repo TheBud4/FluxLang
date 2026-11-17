@@ -3,6 +3,7 @@ import { Arena } from './arena'
 import { ArvoreJson } from './arvore-json'
 import { Ast } from './ast'
 import { Coletor } from './coletor'
+import { Documentacao } from './documentacao'
 import { GeradorC } from './gerador-c'
 import { InterfaceWeb } from './interface-web'
 import { Lexico } from './lexico'
@@ -118,7 +119,14 @@ export const compiladorPages: DocPage[] = [
     id: 'compilador/interface-web',
     section: 'compilador',
     title: 'Interface web',
-    summary: 'A interface do web/: como rodar, o servidor (/api/compile e /api/run, a segurança do Executar), a execução etiquetada, os componentes, os tokens de cor e o sistema desta documentação.',
+    summary: 'A interface do web/: como rodar, o servidor (/api/compile e /api/run, a segurança do Executar), a execução etiquetada, os componentes, os tokens de cor e a acessibilidade.',
     Component: InterfaceWeb,
+  },
+  {
+    id: 'compilador/documentacao',
+    section: 'compilador',
+    title: 'A documentação do projeto',
+    summary: 'O sistema de web/src/docs: DocPage e o registro, a rota #/doc, os blocos, o realce, a busca, o Nesta página, o menu, os diálogos e a regra de que o código não leva comentário.',
+    Component: Documentacao,
   },
 ]

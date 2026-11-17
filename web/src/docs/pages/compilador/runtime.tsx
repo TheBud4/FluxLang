@@ -347,7 +347,7 @@ typedef struct {
         objeto é dinâmico e pode chegar até aqui. Medido: com {mono('o = { x: [1], y: [1] }')}, {mono('o.x == o.y')} é {mono('false')} e {mono('o.x == o.x')} é {mono('true')}.
       </P>
       <H3 title="Funções dos operadores" />
-      <Fn name="fx_is_num"signature="FX_FN int fx_is_num(FxValue v)">
+      <Fn name="fx_is_num" signature="FX_FN int fx_is_num(FxValue v)">
         Verdadeiro se a etiqueta é {mono('FX_INT')} ou {mono('FX_FLOAT')}.
       </Fn>
       <Fn name="fx_num" signature="FX_FN double fx_num(FxValue v)">
@@ -583,7 +583,7 @@ Divisão por zero.^[[0m`}
         no Windows, {mono('fx_init')} põe a saída padrão e a de erro em modo binário quando o modo etiquetado está ligado.
       </Why>
       <H3 title="Funções do terminal" />
-      <Fn name="fx_use_color"signature="FX_FN int fx_use_color(int fd)">
+      <Fn name="fx_use_color" signature="FX_FN int fx_use_color(int fd)">
         Diz se o descritor {mono('fd')} (1 ou 2) deve receber cor: {mono('NO_COLOR')} não vazia dá 0; {mono('FORCE_COLOR')} não vazia e diferente de {mono('0')} dá 1; senão {mono('fx_isatty(fd)')}. Chamada por{' '}
         {mono('fx_print')} e {mono('fx_die')}.
       </Fn>

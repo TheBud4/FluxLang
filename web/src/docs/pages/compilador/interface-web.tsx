@@ -272,12 +272,12 @@ export default defineConfig({
         Cria o plugin ({mono("name: 'flux-api'")}). Guarda o caminho do compilador em {mono('configResolved')} e registra {mono('handler')} nos dois servidores. Chamada em {mono('vite.config.ts')}. As funções
         abaixo são internas a ela.
       </Fn>
-      <Fn name="compile (interna)" signature="const compile = async (req: IncomingMessage, res: ServerResponse) => void">
+      <Fn name="compile (interna)" signature="const compile = async (req: IncomingMessage, res: ServerResponse) => Promise<void>">
         Lê o corpo (413), confere o binário (503), lê {mono('semantic')} da URL e roda {mono('spawn(fluxPath, ["--json"] ou ["--json", "--semantic"])')} com o código na entrada padrão. Junta a saída padrão e a de
         erro; um temporizador de 5 segundos mata o processo e responde 504. No fim do processo, 200 com o JSON se o código é 0 ou 1 e houve saída; senão 500 com a saída de erro ou o código. Um erro ao iniciar o
         processo vira 500.
       </Fn>
-      <Fn name="run (interna)" signature="const run = async (req: IncomingMessage, res: ServerResponse) => void">
+      <Fn name="run (interna)" signature="const run = async (req: IncomingMessage, res: ServerResponse) => Promise<void>">
         Na ordem: {mono('isTrustedRunRequest')} (403), {mono('readBody')} (413), o binário (503), {mono('JSON.parse')} (400), os tipos de {mono('source')} e {mono('stdin')} (400). Depois{' '}
         {mono("runProgram(fluxPath, source, stdin ?? '')")}: o resultado vai com 200, e uma exceção vira 500 com a mensagem.
       </Fn>
@@ -303,7 +303,7 @@ export default defineConfig({
       <Table
         head={['Tipo', 'Campos']}
         rows={[
-          [mono('OutputKind'), <>{mono('log')}, {mono('info')}, {mono('warn')}, {mono('error')} (as quatro do {mono('terminal')}), {mono('fatal')} (erro de execução ou {mono('abort if')}), {mono('prompt')} e {mono('answer')} (o prompt e a resposta do {mono('terminal.input')}), {mono('raw')} (texto fora de registro) e {mono('stderr')} (algo que o programa escreveu na saída de erro).</>],
+          [mono('OutputKind'), <>{mono('log')}, {mono('info')}, {mono('warn')}, {mono('error')} (as quatro do {mono('terminal')}), {mono('fatal')} (erro de execução ou {mono('abort if')}), {mono('prompt')} e {mono('answer')} (o prompt e a resposta do {mono('terminal.input')}), {mono('raw')} (texto fora de registro) e {mono('stderr')} (algo que o programa escreveu na saída de erro; não deveria haver, porque no modo etiquetado {mono('warn')}, {mono('error')} e o erro de execução também vão para a saída padrão; é, por exemplo, uma falha do sistema).</>],
           [mono('OutputLine'), <>{mono('kind: OutputKind')} e {mono('text: string')}.</>],
           [mono('RunResult'), <>{mono('status')}: {mono('ok')} (o programa rodou, com qualquer código de saída), {mono('rejected')} (não passou na análise), {mono('internal-error')} (o compilador falhou ou demorou) ou {mono('timeout')}; {mono('exitCode')} ({mono('null')} se não rodou ou morreu por sinal); {mono('output')}; {mono('truncated')}; {mono('message')} opcional: as mensagens do compilador se rejeitado, o motivo se erro interno ou sinal.</>],
           [<>{mono('Exec')} (interno)</>, <>O resultado de {mono('exec')}: {mono('code')}, {mono('signal')}, {mono('stdout')} e {mono('stderr')} ({mono('Buffer')}), {mono('timedOut')} e {mono('truncated')}.</>],
@@ -317,7 +317,7 @@ export default defineConfig({
           ['2', <>Roda {mono('flux --build -o <pasta>/programa')} com o código na entrada padrão (30 segundos). O {mono('--build')} já liga a análise semântica.</>],
           ['3', <>Tempo esgotado: {mono('internal-error')} com {mono('A compilação demorou mais de 30 segundos.')} Código 1: {mono('rejected')}, com a saída de erro do compilador (as mensagens e {mono('Programa rejeitado.')}). Outro código diferente de 0: {mono('internal-error')} com a saída de erro ou {mono('O compilador terminou com código N.')}</>],
           ['4', <>Roda o executável, com o texto do campo como entrada padrão e {mono('FLUX_TAGGED=1')} somado ao ambiente do servidor (10 segundos).</>],
-          ['5', <>{mono('parseTagged')} lê a saída padrão; se a saída de erro não está vazia, vira uma última linha {mono('stderr')}.</>],
+          ['5', <>{mono('parseTagged')} lê a saída padrão; se a saída de erro não está vazia (não deveria: no modo etiquetado toda impressão vai para a saída padrão; por exemplo, uma falha do sistema), ela vira uma última linha {mono('stderr')}.</>],
           ['6', <>Monta o {mono('RunResult')}: {mono('timeout')} se o tempo esgotou, senão {mono('ok')}; {mono('message')} diz o sinal se o programa morreu por um.</>],
           ['7', <>No {mono('finally')}, apaga a pasta com {mono('rm(dir, { recursive: true, force: true })')}, mesmo se algo falhou. Medido: depois dos testes desta página não sobrou nenhuma pasta {mono('flux-web-*')}.</>],
         ]}
@@ -442,7 +442,7 @@ export default defineConfig({
       <P>
         {mono('App')} é o único dono do estado da tela; os componentes só recebem valores e funções. A barra de topo é sempre visível; abaixo dela há a tela do editor ({mono('main')}, escondida com{' '}
         {mono('hidden')} na documentação, para não perder o estado) ou a documentação. A tela é escolhida pelo endereço: {mono('#/editor')} (ou qualquer outro) é o editor, {mono('#/doc/...')} é a documentação
-        (ver &quot;A rota da documentação&quot; abaixo).
+        (ver <PageLink to="compilador/documentacao">A documentação do projeto</PageLink>).
       </P>
       <Table
         head={['Estado', 'Começa com', 'Para quê']}
@@ -588,7 +588,7 @@ export default defineConfig({
       </Why>
       <Why>
         {mono('InputBox.tsx')}: a página não é um terminal interativo; o programa roda de uma vez com esse texto como entrada padrão, uma linha para cada {mono('terminal.input')}, na ordem. Quando as linhas acabam,
-        o {mono('terminal.input')} devolve o texto vazio (medido, ver &quot;O caminho de um pedido de execução&quot;). AGENTS.md registra isso como limite conhecido.
+        o {mono('terminal.input')} devolve o texto vazio (medido, ver &quot;O caminho de um pedido de execução&quot;). AGENTS.md registra isso como escolha ainda não confirmada pelo usuário (mudável).
       </Why>
       <H3 title="OutputPanel" />
       <P>
@@ -673,7 +673,7 @@ export default defineConfig({
         da do texto atual e sobrescrevê-la.
       </Why>
       <H3 title="lib/useRun.ts" />
-      <Fn name="useRun" signature="export function useRun(): { state: RunState; run: (source: string, stdin: string) => void }">
+      <Fn name="useRun" signature="export function useRun(): { state: RunState; run: (source: string, stdin: string) => Promise<void> }">
         Executa pelo servidor: {mono('POST /api/run')} com {mono('{ source, stdin }')} em JSON e o cabeçalho {mono('X-Flux-Run: 1')}. {mono('RunState')} é {mono('idle')}, {mono('running')},{' '}
         {mono('done')} (com o {mono('RunResult')}) ou {mono('failed')} (com a mensagem do erro da rota). Como em {mono('useCompile')}, um pedido novo aborta o anterior.
       </Fn>
@@ -720,7 +720,7 @@ export default defineConfig({
         rows={[
           ['Áreas que rolam entram na ordem do Tab', <>O corpo de cada {mono('Panel')} ({mono('tabIndex')} 0, {mono('role="region"')}); na documentação, só quando o conteúdo de fato transborda ({mono('useOverflowFocus')}).</>],
           ['Alvos de pelo menos 24 por 24 pixels', <>Botões e caixas com {mono('min-h-6')} ou {mono('size-6')} (1,5 rem): abas, botões pequenos da árvore, linhas de tokens, caixas de marcar.</>],
-          ['Foco sempre visível', <>{mono('focus-visible:outline-2')} na cor de destaque em todo elemento interativo.</>],
+          ['Foco visível', <>{mono('focus-visible:outline-2')} na cor de destaque nos botões, links, abas, caixas, regiões que rolam e campos. A exceção, hoje, é o {mono('textarea')} do editor, que usa {mono('outline-none')}: ali o foco aparece só pelo cursor de texto.</>],
           ['Mudanças anunciadas', <>O resultado da compilação e o da execução em {mono('role="status"')} com {mono('aria-live="polite"')}; a falha do servidor em {mono('role="alert"')}.</>],
           ['Um só h1 por tela', <>&quot;FluxLang&quot; é {mono('h1')} no editor e parágrafo na documentação, que tem o título da página como {mono('h1')}; os painéis usam {mono('h2')}.</>],
           ['Cor nunca sozinha', 'O tipo de cada linha de saída é escrito ao lado; erros têm o tipo escrito; o selo diz "aceito" ou "rejeitado".'],
@@ -735,166 +735,9 @@ export default defineConfig({
 
       <H2 title="A documentação (web/src/docs)" />
       <P>
-        Esta documentação é parte da interface: a aba Documentação mostra páginas escritas em TSX, sem gerador de site nem Markdown. O sistema todo mora em {mono('web/src/docs/')} e nasceu sem comentários de
-        código, como o resto do projeto agora.
-      </P>
-      <H3 title="Os arquivos" />
-      <Table
-        head={['Arquivo', 'O que tem']}
-        rows={[
-          [mono('types.ts'), <>{mono('DocSection')} ({mono('linguagem')} ou {mono('compilador')}) e {mono('DocPage')}.</>],
-          [mono('registry.ts'), <>{mono('SECTIONS')}, {mono('PAGES')}, {mono('findPage')} e {mono('neighbors')}.</>],
-          [<>{mono('pages/linguagem/')}, {mono('pages/compilador/')}</>, <>Uma página por arquivo e um {mono('index.ts')} por seção, com a lista na ordem do menu.</>],
-          [mono('blocks.tsx'), 'Os blocos com que as páginas são escritas.'],
-          [mono('highlight.ts'), 'O realce de código dos blocos Code.'],
-          [mono('DocsView.tsx'), 'A tela: barra com Menu e Buscar, menu lateral, página, páginas vizinhas e "Nesta página".'],
-          [mono('DocsNav.tsx'), <>{mono('DocsNav')} (a lista de páginas) e {mono('DocsDrawer')} (a mesma lista como gaveta, em telas estreitas).</>],
-          [<>{mono('DocsSearch.tsx')}, {mono('searchIndex.ts')}</>, 'O diálogo de busca e o índice.'],
-          [mono('DocsToc.tsx'), 'O "Nesta página".'],
-          [mono('DocsContext.tsx'), <>{mono('DocsProvider')} e {mono('useDocs')}.</>],
-          [<>{mono('useHashRoute.ts')}, {mono('useModal.ts')}, {mono('useOverflowFocus.ts')}</>, 'Os ganchos de rota, de diálogo e de rolagem.'],
-        ]}
-      />
-      <H3 title="DocPage e o registro" />
-      <P>
-        Uma página é um {mono('DocPage')}: {mono('id')} ({mono('<secao>/<slug>')}), {mono('section')}, {mono('title')}, {mono('summary')} (a linha abaixo do título, que também entra na busca) e {mono('Component')} (uma
-        função sem propriedades que devolve o conteúdo). {mono('PAGES')} é a lista da linguagem seguida da do compilador; a ordem dela é a do menu e a das páginas vizinhas. Para acrescentar uma página: criar o
-        arquivo em {mono('pages/<secao>/')}, exportando o componente, e pôr a entrada no {mono('index.ts')} da seção, na posição desejada. Esta página, por exemplo, começa assim:
-      </P>
-      <Code lang="ts">
-        {`import { Callout, Code, Diagram, Fn, H2, H3, P, PageLink, Table, Why } from '../../blocks'
-
-const mono = (text: string) => <code className="font-mono">{text}</code>
-
-export function InterfaceWeb() {
-  return (
-    <>
-      <H2 title="O que é a interface web" />
-      <P>
-        A pasta {mono('web/')} tem a interface gráfica do compilador: ...`}
-      </Code>
-      <P>e a entrada dela em {mono('pages/compilador/index.ts')}:</P>
-      <Code lang="ts">
-        {`  {
-    id: 'compilador/interface-web',
-    section: 'compilador',
-    title: 'Interface web',
-    summary: 'A interface do web/: como rodar, o servidor (/api/compile e /api/run, a segurança do Executar), a execução etiquetada, os componentes, os tokens de cor e o sistema desta documentação.',
-    Component: InterfaceWeb,
-  },`}
-      </Code>
-      <Fn name="findPage" signature="export function findPage(id: string): DocPage | undefined">
-        A página com aquele {mono('id')}, ou {mono('undefined')}.
-      </Fn>
-      <Fn name="neighbors" signature="export function neighbors(id: string): { prev?: DocPage; next?: DocPage }">
-        A página anterior e a seguinte em {mono('PAGES')}, para os links &quot;Anterior&quot; e &quot;Próxima&quot; no pé da página. A última da linguagem tem como &quot;Próxima&quot; a primeira do compilador.
-      </Fn>
-      <H3 title="A rota da documentação" />
-      <P>
-        O endereço decide a tela: {mono('#/doc/<secao>/<slug>')} abre aquela página; {mono('#/doc')} sozinho ou um {mono('id')} desconhecido abrem a primeira página (a Introdução da linguagem), e o endereço é
-        corrigido para o canônico com {mono('history.replaceState')}, sem criar entrada no histórico; qualquer outro endereço é o editor. Os links entre páginas são âncoras comuns ({mono('href="#/doc/..."')}),
-        então o botão Voltar do navegador funciona.
-      </P>
-      <Fn name="useHashRoute" signature="export function useHashRoute(): { view: 'editor' | 'docs'; pageId: string; goDoc(id: string): void; goEditor(): void }">
-        Lê {mono('location.hash')}, ouve {mono('hashchange')} e devolve a tela e a página. Lembra a última página vista ({mono('lastId')}): ao voltar do editor para a aba Documentação, {mono('App')} chama{' '}
-        {mono('goDoc(pageId)')} e a mesma página reabre. {mono('goDoc')} põe {mono('#/doc/<id>')}; {mono('goEditor')} põe {mono('#/editor')}.
-      </Fn>
-      <Fn name="parse (interna)" signature="function parse(hash: string, lastId: string): Route">
-        Converte o {mono('hash')} em {mono('{ view, pageId, canonical }')}, com as regras do parágrafo acima.
-      </Fn>
-      <H3 title="Os blocos" />
-      <P>
-        As páginas são escritas só com os blocos de {mono('blocks.tsx')}, que já trazem as classes de tokens, o foco e os rótulos de acessibilidade. Uma página não escreve classes de cor nem HTML solto, salvo o{' '}
-        {mono('<code className="font-mono">')} do atalho {mono('mono')} e os SVG dos diagramas (com classes de token como {mono('fill-ink')} e {mono('stroke-line')}).
-      </P>
-      <Table
-        head={['Bloco', 'Propriedades', 'O que gera']}
-        rows={[
-          [<>{mono('H2')}, {mono('H3')}</>, mono('title'), <>Um título com {mono('id')} tirado do texto e um botão {mono('#')} que leva até ele (visível ao passar o mouse, ou sempre em telas de toque). Os títulos de uma página têm de ser únicos: o {mono('id')} repetido ganha {mono('-2')}, mas o &quot;Nesta página&quot; fica ambíguo.</>],
-          [mono('P'), mono('children'), 'Um parágrafo.'],
-          [mono('Code'), <>{mono('lang')} ({mono('flux')}, {mono('c')}, {mono('ts')}, {mono('bash')}, {mono('text')}), {mono('example?')}, {mono('children')} (texto)</>, <>Um bloco de código com realce, botão Copiar (anuncia &quot;Copiado&quot; ou &quot;Falha ao copiar&quot; por 2,5 segundos) e, com {mono('example')}, o botão &quot;Abrir no editor&quot;. Tira as quebras de linha do começo e os espaços do fim.</>],
-          [mono('Table'), <>{mono('head: string[]')} (únicos), {mono('rows: ReactNode[][]')}</>, 'Uma tabela que rola na horizontal se não couber.'],
-          [mono('Callout'), <>{mono('kind')} ({mono('nota')} ou {mono('aviso')}), {mono('children')}</>, 'Uma caixa com borda à esquerda, na cor de info ou de warn.'],
-          [mono('Why'), mono('children'), <>Uma caixa &quot;Por quê&quot;: a razão de uma decisão ou uma armadilha, citando o arquivo. É onde vão os porquês que antes eram comentários.</>],
-          [mono('Fn'), <>{mono('name')}, {mono('signature')}, {mono('children')}</>, <>A entrada de uma função: nome, assinatura em fonte fixa (rola se for longa) e a descrição. É um {mono('role="group"')} rotulado pelo nome.</>],
-          [mono('Diagram'), <>{mono('title')}, {mono('label')}, {mono('children')} (SVG)</>, <>Uma figura com legenda ({mono('title')}); {mono('label')} é a descrição do desenho para leitores de tela ({mono('role="img"')}).</>],
-          [mono('PageLink'), <>{mono('to')} (um {mono('id')}), {mono('children')}</>, <>Um link para {mono('#/doc/<to>')}. Um {mono('id')} que não existe cai na primeira página.</>],
-        ]}
-      />
-      <Fn name="slugify" signature="export function slugify(text: string): string">
-        O {mono('id')} de um título: tira os acentos (normalização NFD e remoção das marcas combinantes), passa para minúsculas, troca cada sequência de caracteres fora de {mono('a-z0-9')} por um hífen e tira os hífens
-        das pontas. &quot;A rota da documentação&quot; vira {mono('a-rota-da-documentacao')}.
-      </Fn>
-      <Fn name="useHeadingId (interna)" signature="function useHeadingId(title: string): string">
-        Reserva um {mono('id')} único na página: usa {mono('useId')} como chave no mapa de {mono('HeadingIdsContext')} (um mapa novo por página, criado em {mono('DocsView')}) e acrescenta {mono('-2')},{' '}
-        {mono('-3')}... se o {mono('slug')} já foi pego. Fora do contexto (na montagem do índice de busca), devolve só o {mono('slug')}.
-      </Fn>
-      <Fn name="scrollProps (interna)" signature="function scrollProps(label: string, tab: 0 | undefined)">
-        Com {mono('tab')} 0, devolve {mono('role="region"')}, {mono('aria-label')} e {mono('tabIndex')} 0 para uma área que rola; senão, nada. Usada por Code, Table, Fn e Diagram com {mono('useOverflowFocus')}.
-      </Fn>
-      <H3 title="O realce de código" />
-      <P>
-        {mono('highlight.ts')} divide o texto em pedaços com classe ({mono('kw')}, {mono('type')}, {mono('str')}, {mono('num')}, {mono('cmt')}, {mono('fn')}), e {mono('TOKEN_COLOR')} dá a classe de token de cada
-        um ({mono('text-accent')}, {mono('text-info')}, {mono('text-ok')}, {mono('text-warn')}, {mono('text-muted')} e negrito). As palavras da FluxLang vêm da gramática do VS Code
-        ({mono('fluxlang.tmLanguage.json')}, em {mono('tools/vscode-fluxlang/syntaxes/')}): palavras-chave, declarações, constantes, tipos e as funções da biblioteca (os membros de {mono('terminal')} só são realçados depois de{' '}
-        {mono('terminal.')}). Assim a documentação e o editor do VS Code realçam as mesmas palavras. C, TypeScript e bash têm listas fixas; {mono('text')} não é realçado.
-      </P>
-      <Fn name="highlight" signature="export function highlight(lang: Lang, code: string): Piece[]">
-        Percorre o texto da esquerda para a direita: comentário de linha ({mono('//')}, ou {mono('#')} no bash) até o fim da linha; comentário de bloco (exceto bash e texto); texto entre aspas até a aspa de
-        fechamento ou o fim da linha, respeitando a barra invertida; número que não segue uma letra; palavra, classificada pelas listas da linguagem. Pedaços vizinhos com a mesma classe são juntados.
-      </Fn>
-      <Fn name="specFor, libraryWords, wordsOf, endOfString (internas)" signature="function specFor(lang: Lang): Spec  ·  function libraryWords()  ·  function wordsOf(name: string)  ·  function endOfString(code: string, start: number): number">
-        {mono('specFor')} dá as palavras, os tipos, os marcadores de comentário e as aspas de cada linguagem. {mono('wordsOf')} e {mono('libraryWords')} tiram as palavras dos grupos {mono('(a|b|c)')} das regras da
-        gramática. {mono('endOfString')} acha o fim de um texto entre aspas.
-      </Fn>
-      <H3 title="A busca" />
-      <P>
-        A busca não tem índice pronto: na primeira vez que o diálogo abre, {mono('getIndex')} monta o índice renderizando cada página com {mono('renderToStaticMarkup')} (do {mono('react-dom/server')}) dentro de um{' '}
-        {mono('DocsProvider')} que não faz nada, e tira o texto do HTML. Por isso tudo o que está numa página, inclusive tabelas, assinaturas e trechos de código, é encontrado, e uma página nova entra na busca sem
-        nenhum passo extra. O índice fica guardado até a página do navegador recarregar.
-      </P>
-      <Fn name="buildIndex" signature="export function buildIndex(pages: DocPage[]): IndexEntry[]">
-        Para cada página, {mono('{ id, title, text }')}, em que {mono('text')} é o resumo seguido do texto da página.
-      </Fn>
-      <Fn name="getIndex" signature="export function getIndex(): IndexEntry[]">
-        {mono('buildIndex(PAGES)')} na primeira chamada; a mesma lista nas seguintes.
-      </Fn>
-      <Fn name="toText (interna)" signature="function toText(markup: string): string">
-        Tira do HTML a barra dos blocos de código (Copiar, Abrir no editor) e todos os botões (os {mono('#')} dos títulos); troca etiquetas de bloco por espaço e apaga as de texto ({mono('span')}, {mono('code')},{' '}
-        {mono('a')}, {mono('strong')}, {mono('em')}) sem espaço, para uma palavra partida entre dois elementos continuar inteira; decodifica as entidades HTML e junta os espaços.
-      </Fn>
-      <Fn name="normalize" signature="export function normalize(s: string): string">
-        Tira os acentos e passa para minúsculas: buscar &quot;funcao&quot; acha &quot;função&quot;.
-      </Fn>
-      <Fn name="search" signature="export function search(index: IndexEntry[], query: string): SearchHit[]">
-        Divide a busca em palavras; uma página entra só se tem todas (no título ou no texto). A pontuação soma, por palavra, 20 por ocorrência no título e as ocorrências no texto até 10. Devolve as páginas em ordem
-        de pontuação, cada uma com um trecho de até 60 caracteres para cada lado da primeira ocorrência ({mono('snippetOf')}, interna; {mono('count')}, interna, conta ocorrências sem sobreposição).
-      </Fn>
-      <H3 title="DocsView, o menu, a busca e o Nesta página" />
-      <Table
-        head={['Componente', 'Propriedades', 'O que faz']}
-        rows={[
-          [mono('DocsView'), mono('pageId'), <>A tela da documentação: barra com Menu (só abaixo de {mono('lg')}) e Buscar (com a dica Ctrl K), menu lateral (a partir de {mono('lg')}), o artigo (título, resumo, página, Anterior e Próxima) e o &quot;Nesta página&quot; (a partir de {mono('xl')}, 80 rem). Ao trocar de página, rola para o topo e põe o foco no {mono('h1')}. {mono('Ctrl+K')} ou {mono('Cmd+K')} abre a busca. Com um diálogo aberto, o resto fica {mono('inert')}; ao fechar, o foco volta a quem abriu. O menu fecha sozinho se a janela crescer até {mono('lg')}.</>],
-          [mono('DocsNav'), <>{mono('pageId')}, {mono('className?')}, {mono('onNavigate?')}</>, <>A lista de páginas por seção, com {mono('aria-current="page"')} na atual.</>],
-          [mono('DocsDrawer'), <>{mono('pageId')}, {mono('onNavigate')}, {mono('onClose')}</>, <>O {mono('DocsNav')} numa gaveta à esquerda ({mono('role="dialog"')}, {mono('aria-modal')}), com botão Fechar e véu que fecha ao clicar. O foco começa no primeiro link.</>],
-          [mono('DocsSearch'), <>{mono('onChoose')}, {mono('onClose')}</>, <>O diálogo de busca: um campo {mono('role="combobox"')} com {mono('aria-activedescendant')}, até 8 resultados ({mono('MAX_HITS')}) numa {mono('role="listbox"')}, setas para escolher, Enter para abrir, Esc ou clique fora para fechar, e uma linha {mono('role="status"')} com a contagem.</>],
-          [mono('DocsToc'), <>{mono('pageId')}, {mono('scroller')} (a área que rola)</>, <>O &quot;Nesta página&quot;: depois de a página renderizar, lê os {mono('h2')} e {mono('h3')} com {mono('id')} do artigo e marca como atual o último título cujo topo passou da primeira quarta parte da área visível ({mono('BAND')} 0,25, com um {mono('IntersectionObserver')}). Clicar rola até o título e o foca.</>],
-          [mono('DocsProvider'), <>{mono('openInEditor')}, {mono('children')}</>, <>Dá às páginas a função de abrir um exemplo no editor; {mono('useDocs')} a lê (e lança se usada fora do provedor).</>],
-        ]}
-      />
-      <Fn name="useModal" signature="export function useModal(ref: RefObject<HTMLElement | null>, onClose: () => void, initial?: string): void">
-        Faz de {mono('ref')} um diálogo: ao montar, foca o elemento que casa com o seletor {mono('initial')} (ou o primeiro focável); Esc chama {mono('onClose')}; Tab e Shift+Tab giram dentro do diálogo, e um Tab com o
-        foco fora dele o traz de volta. Não devolve o foco ao fechar: isso é de {mono('DocsView')}. Usado por {mono('DocsDrawer')} e {mono('DocsSearch')}.
-      </Fn>
-      <Fn name="useOverflowFocus" signature="export function useOverflowFocus<T extends HTMLElement>(dep?: unknown): readonly [RefObject<T | null>, 0 | undefined]">
-        Devolve uma {mono('ref')} e o {mono('tabIndex')} certo para ela: 0 se o conteúdo transborda (na largura ou na altura), senão nada. Mede de novo quando o elemento ou um filho direto muda de tamanho
-        ({mono('ResizeObserver')}) e quando {mono('dep')} muda. Assim uma tabela larga ou um código longo podem ser rolados pelo teclado, e os que cabem não viram paradas inúteis do Tab.
-      </Fn>
-      <H3 title="A regra: o código não leva comentário" />
-      <P>
-        No projeto, o código-fonte não leva comentário: a explicação vai na página. O que um comentário dizia sobre o que o código faz virou texto e entradas {mono('Fn')}; todo &quot;porquê&quot; (uma decisão, uma
-        armadilha, uma restrição) virou uma caixa {mono('Why')} citando o arquivo. Ficam no código só as diretivas que têm efeito (como {mono('@ts-expect-error')}). Quem muda um arquivo muda a página que o
-        documenta no mesmo commit.
+        A aba Documentação mostra páginas escritas em TSX, que moram em {mono('web/src/docs/')}. O sistema ({mono('DocPage')} e o registro, a rota {mono('#/doc/...')}, os blocos, o realce de código, a busca, o
+        &quot;Nesta página&quot;, o menu, os diálogos, {mono('useModal')} e {mono('useOverflowFocus')}) e a regra de que o código não leva comentário estão em{' '}
+        <PageLink to="compilador/documentacao">A documentação do projeto</PageLink>.
       </P>
 
       <H2 title="O que está em outras páginas" />
