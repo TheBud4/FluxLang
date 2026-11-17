@@ -1034,7 +1034,7 @@ function buildIndex(): [string, IndexEntry[]][] {
     for (const file of area.files)
       for (const item of file.items)
         if (!NOT_INDEXED.has(item.kind))
-          for (const name of item.name.split(', ')) entries.push({ name, file: baseName(file.path), page: item.page ?? file.page })
+          for (const name of item.name.split(', ')) entries.push({ name, file: baseName(file.path), page: item.page })
   entries.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.file.localeCompare(b.file))
   const groups = new Map<string, IndexEntry[]>()
   for (const e of entries) {
@@ -1056,7 +1056,7 @@ function NameIndex() {
             <Fragment key={`${e.name}-${e.file}`}>
               {i > 0 && ', '}
               {mono(e.name)} <span className="text-muted">{e.file}</span>
-              {e.page && <> <span className="whitespace-nowrap">({link(e.page)})</span></>}
+              {e.page ? <> <span className="whitespace-nowrap">({link(e.page)})</span></> : <> <span className="text-muted">(só aqui)</span></>}
             </Fragment>
           ))}
         </span>,
@@ -1090,7 +1090,7 @@ export function Referencia() {
         marcados como só aqui.
       </P>
       <P>
-        Para achar onde um nome mora, use o índice no fim da página (nome, arquivo e página) ou a busca da documentação. As constantes de uma enumeração aparecem na linha do tipo dela; os protótipos dos
+        Para achar onde um nome mora, use o índice no fim da página (nome, arquivo e, quando há, a página) ou a busca da documentação. As constantes de uma enumeração aparecem na linha do tipo dela; os protótipos dos
         cabeçalhos aparecem na seção do cabeçalho, mas o índice aponta para o arquivo que define.
       </P>
 
@@ -1116,7 +1116,7 @@ export function Referencia() {
       </P>
 
       <H2 title="Índice de nomes" />
-      <P>Em ordem alfabética, com o arquivo em que cada nome aparece nesta página e a página que o explica. Quase sempre é o arquivo que define o nome; as exceções são {mono('yyin')} e {mono('yylex_destroy')}, só declarados em {mono('main.c')}, e {mono('flux_runtime_source')}, só declarado em {mono('codegen_c.c')} (a linha de cada um diz onde é definido). Nomes iguais em arquivos diferentes aparecem uma vez para cada arquivo.</P>
+      <P>Em ordem alfabética, com o arquivo em que cada nome aparece nesta página e, quando outra página o explica, o link para ela; os marcados como só aqui são explicados apenas na seção do arquivo, acima. Quase sempre é o arquivo que define o nome; as exceções são {mono('yyin')} e {mono('yylex_destroy')}, só declarados em {mono('main.c')}, e {mono('flux_runtime_source')}, só declarado em {mono('codegen_c.c')} (a linha de cada um diz onde é definido). Nomes iguais em arquivos diferentes aparecem uma vez para cada arquivo.</P>
       <NameIndex />
     </>
   )
