@@ -317,7 +317,7 @@ export default defineConfig({
           ['2', <>Roda {mono('flux --build -o <pasta>/programa')} com o código na entrada padrão (30 segundos). O {mono('--build')} já liga a análise semântica.</>],
           ['3', <>Tempo esgotado: {mono('internal-error')} com {mono('A compilação demorou mais de 30 segundos.')} Código 1: {mono('rejected')}, com a saída de erro do compilador (as mensagens e {mono('Programa rejeitado.')}). Outro código diferente de 0: {mono('internal-error')} com a saída de erro ou {mono('O compilador terminou com código N.')}</>],
           ['4', <>Roda o executável, com o texto do campo como entrada padrão e {mono('FLUX_TAGGED=1')} somado ao ambiente do servidor (10 segundos).</>],
-          ['5', <>{mono('parseTagged')} lê a saída padrão; se a saída de erro não está vazia (não deveria: no modo etiquetado toda impressão vai para a saída padrão; por exemplo, uma falha do sistema), ela vira uma última linha {mono('stderr')}.</>],
+          ['5', <>{mono('parseTagged')} lê a saída padrão; se a saída de erro não está vazia (não deveria: no modo etiquetado as impressões do programa vão para a saída padrão; o relatório do coletor com {mono('FLUX_GC_STATS')} definida no ambiente do servidor vai para a saída de erro, e também uma falha do sistema), ela vira uma última linha {mono('stderr')}.</>],
           ['6', <>Monta o {mono('RunResult')}: {mono('timeout')} se o tempo esgotou, senão {mono('ok')}; {mono('message')} diz o sinal se o programa morreu por um.</>],
           ['7', <>No {mono('finally')}, apaga a pasta com {mono('rm(dir, { recursive: true, force: true })')}, mesmo se algo falhou. Medido: depois dos testes desta página não sobrou nenhuma pasta {mono('flux-web-*')}.</>],
         ]}
@@ -720,7 +720,7 @@ export default defineConfig({
         rows={[
           ['Áreas que rolam entram na ordem do Tab', <>O corpo de cada {mono('Panel')} ({mono('tabIndex')} 0, {mono('role="region"')}); na documentação, só quando o conteúdo de fato transborda ({mono('useOverflowFocus')}).</>],
           ['Alvos de pelo menos 24 por 24 pixels', <>Botões e caixas com {mono('min-h-6')} ou {mono('size-6')} (1,5 rem): abas, botões pequenos da árvore, linhas de tokens, caixas de marcar.</>],
-          ['Foco visível', <>{mono('focus-visible:outline-2')} na cor de destaque nos botões, links, abas, caixas, regiões que rolam e campos. A exceção, hoje, é o {mono('textarea')} do editor, que usa {mono('outline-none')}: ali o foco aparece só pelo cursor de texto.</>],
+          ['Foco visível', <>{mono('focus-visible:outline-2')} na cor de destaque nos botões, links, abas, regiões que rolam e campos. As exceções, hoje: o {mono('textarea')} do editor, que usa {mono('outline-none')} (ali o foco aparece só pelo cursor de texto), e as duas caixas de marcar (Análise semântica, na barra de cima, e ocultar *_rest, no painel da árvore em {mono('App.tsx')}; classe {mono('size-6 accent-accent')}), que usam o anel de foco padrão do navegador.</>],
           ['Mudanças anunciadas', <>O resultado da compilação e o da execução em {mono('role="status"')} com {mono('aria-live="polite"')}; a falha do servidor em {mono('role="alert"')}.</>],
           ['Um só h1 por tela', <>&quot;FluxLang&quot; é {mono('h1')} no editor e parágrafo na documentação, que tem o título da página como {mono('h1')}; os painéis usam {mono('h2')}.</>],
           ['Cor nunca sozinha', 'O tipo de cada linha de saída é escrito ao lado; erros têm o tipo escrito; o selo diz "aceito" ou "rejeitado".'],
