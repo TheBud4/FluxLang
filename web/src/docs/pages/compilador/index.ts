@@ -11,6 +11,7 @@ import { LinhaDeComando } from './linha-de-comando'
 import { MapaEBuild } from './mapa-e-build'
 import { ModoPanico } from './modo-panico'
 import { Parser } from './parser'
+import { Referencia } from './referencia'
 import { Runtime } from './runtime'
 import { Semantica } from './semantica'
 import { TiposInternos } from './tipos-internos'
@@ -128,5 +129,12 @@ export const compiladorPages: DocPage[] = [
     title: 'A documentação do projeto',
     summary: 'O sistema de web/src/docs: DocPage e o registro, a rota #/doc, os blocos, o realce, a busca, o Nesta página, o menu, os diálogos e a regra de que o código não leva comentário.',
     Component: Documentacao,
+  },
+  {
+    id: 'compilador/referencia',
+    section: 'compilador',
+    title: 'Referência por arquivo',
+    summary: 'Cada arquivo do compilador e da interface com tudo o que define (funções, estruturas, enumerações, macros, globais e componentes), a página que explica cada nome e um índice alfabético.',
+    Component: Referencia,
   },
 ]
