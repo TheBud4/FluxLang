@@ -126,7 +126,7 @@ export function GeradorC() {
         não depende de nenhum outro arquivo do projeto. O arquivo do Makefile está em <PageLink to="compilador/mapa-e-build">Mapa do repositório e build</PageLink>.
       </P>
       <P>
-        O começo do arquivo gerado: a linha de abertura e a primeira linha da biblioteca:
+        O começo do arquivo gerado: a linha de abertura e as primeiras linhas da biblioteca:
       </P>
       <Code lang="c">
         {`/* Gerado pelo compilador FluxLang (./flux --c). Compila sozinho com o gcc. */

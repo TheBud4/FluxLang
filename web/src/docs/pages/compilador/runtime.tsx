@@ -83,9 +83,10 @@ export function Runtime() {
         Liga, no MinGW, o {mono('printf')} do padrão C, para {mono('%zu')} e {mono('%lld')} saírem certos.
       </Fn>
       <Why>
-        {mono('flux_rt.h')}: o {mono('printf')} do MinGW precisa dessa definição para entender {mono('%zu')} e {mono('%lld')} direito (sem ela, ele pode usar o {mono('printf')} da biblioteca da Microsoft, que não
-        os conhece em versões antigas). A biblioteca usa {mono('%zu')} em {mono('fx_emit')} (o tamanho do registro etiquetado) e em {mono('fx_gc_report')}. A linha vem antes de qualquer {mono('#include')}
-        porque o cabeçalho do MinGW lê a definição quando é incluído. Não verificado aqui: o efeito da ausência da definição (a suíte do {mono('wine')} passa com ela).
+        {mono('flux_rt.h')}: a definição existe para o {mono('printf')} do MinGW entender {mono('%zu')} e {mono('%lld')} direito. A biblioteca usa {mono('%zu')} em {mono('fx_emit')} (o tamanho do registro
+        etiquetado) e em {mono('fx_gc_report')}, e a linha vem antes de qualquer {mono('#include')}. Duas afirmações da nota que havia no código não foram verificadas aqui: que, sem a definição, o MinGW pode cair
+        no {mono('printf')} da biblioteca da Microsoft, que em versões antigas não conhece esses formatos; e que o cabeçalho do MinGW lê a definição no momento em que é incluído (daí a posição antes dos{' '}
+        {mono('#include')}). Também não verificado: o efeito da ausência da definição (a suíte do {mono('wine')} passa com ela).
       </Why>
 
       <H2 title="FxValue: a representação dos valores" />
@@ -345,7 +346,8 @@ typedef struct {
         diferentes; (4) {mono('bool')} por valor, texto por conteúdo ({mono('strcmp')}), lista e objeto por identidade (o mesmo ponteiro). A análise semântica impede {mono('list == list')} no código, mas um valor de campo de
         objeto é dinâmico e pode chegar até aqui. Medido: com {mono('o = { x: [1], y: [1] }')}, {mono('o.x == o.y')} é {mono('false')} e {mono('o.x == o.x')} é {mono('true')}.
       </P>
-      <Fn name="fx_is_num" signature="FX_FN int fx_is_num(FxValue v)">
+      <H3 title="Funções dos operadores" />
+      <Fn name="fx_is_num"signature="FX_FN int fx_is_num(FxValue v)">
         Verdadeiro se a etiqueta é {mono('FX_INT')} ou {mono('FX_FLOAT')}.
       </Fn>
       <Fn name="fx_num" signature="FX_FN double fx_num(FxValue v)">
@@ -434,6 +436,7 @@ typedef struct {
           [mono('0.0 / 0.0'), mono('nan'), 'IEEE'],
         ]}
       />
+      <H3 title="Funções de texto e formatação" />
       <Callout kind="aviso">
         {mono('fx_repr')} não escapa as aspas de dentro de um texto: com {mono('o.s')} valendo {mono('a"b')}, {mono('terminal.log([o.s])')} escreve {mono('["a"b"]')}. É a saída de depuração, não um formato que
         se leia de volta.
@@ -579,7 +582,8 @@ Divisão por zero.^[[0m`}
         {mono('flux_rt.h')}: os tamanhos do modo etiquetado são em bytes, e no Windows a saída de texto converteria cada {mono('\\n')} em {mono('\\r\\n')}, contando um byte a mais por quebra e quebrando o formato. Por isso,
         no Windows, {mono('fx_init')} põe a saída padrão e a de erro em modo binário quando o modo etiquetado está ligado.
       </Why>
-      <Fn name="fx_use_color" signature="FX_FN int fx_use_color(int fd)">
+      <H3 title="Funções do terminal" />
+      <Fn name="fx_use_color"signature="FX_FN int fx_use_color(int fd)">
         Diz se o descritor {mono('fd')} (1 ou 2) deve receber cor: {mono('NO_COLOR')} não vazia dá 0; {mono('FORCE_COLOR')} não vazia e diferente de {mono('0')} dá 1; senão {mono('fx_isatty(fd)')}. Chamada por{' '}
         {mono('fx_print')} e {mono('fx_die')}.
       </Fn>
@@ -867,8 +871,8 @@ int main(void) { return fx_start(fx_program); }`}
         A suíte tira os {mono('\\r')} antes de comparar. Fora o {mono('run')}, o texto sai igual nos dois sistemas.
       </Callout>
       <Why>
-        {mono('flux_rt.h')}: um {mono('flux')} que roda no Windows ainda é um projeto só de Linux e macOS (AGENTS.md, decisão do usuário); só o programa gerado roda no Windows. Por isso o cabeçalho da biblioteca não
-        diz &quot;POSIX&quot; em lugar nenhum além do bloco do {mono('run')}, e todo o resto é C padrão.
+        AGENTS.md: só o programa gerado roda no Windows; o {mono('flux')} e a interface web exigem Linux ou macOS (no Windows, via WSL). Por isso os blocos {mono('#ifdef _WIN32')} acima existem só na biblioteca
+        de execução, e não no compilador.
       </Why>
 
       <H2 title="O que está em outras páginas" />
