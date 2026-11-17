@@ -1,0 +1,8 @@
+Erro semântico [linha 1, coluna 5]:
+A variável global 'a' precisa de valor inicial.
+Erro semântico [linha 2, coluna 5]:
+A variável global 'b' precisa de valor inicial.
+Erro semântico [linha 2, coluna 8]:
+A variável global 'c' precisa de valor inicial.
+Programa rejeitado.
+[código 1]

@@ -1,0 +1,6 @@
+Erro semântico [linha 2, coluna 14]:
+'run' só pode ser usado em workflow ou na main.
+Erro semântico [linha 11, coluna 3]:
+'stop if' só pode ser usado dentro de workflow.
+Programa rejeitado.
+[código 1]

@@ -1,5 +1,5 @@
 Erro sintático [linha 2, coluna 1]:
 Token encontrado: fim do arquivo
-Esperado: '}'
+Esperado: comando ou '}'
 Programa rejeitado.
 [código 1]

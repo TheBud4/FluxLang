@@ -1,4 +1,4 @@
-Erro sintático [linha 16, coluna 5]:
+Erro sintático [linha 15, coluna 5]:
 Token encontrado: palavra reservada 'stop'
 Esperado: ';'
 Programa rejeitado.

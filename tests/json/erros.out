@@ -1,0 +1,35 @@
+{
+"accepted": false,
+"lines": 5,
+"tokens": [
+  {"line":1,"column":1,"type":"FUNC","text":"func"},
+  {"line":1,"column":6,"type":"MAIN","text":"main"},
+  {"line":1,"column":11,"type":"LPAREN","text":"("},
+  {"line":1,"column":12,"type":"RPAREN","text":")"},
+  {"line":1,"column":14,"type":"LBRACE","text":"{"},
+  {"line":2,"column":3,"type":"VAR","text":"var"},
+  {"line":2,"column":7,"type":"IDENTIFIER","text":"a"},
+  {"line":2,"column":9,"type":"ASSIGN","text":"="},
+  {"line":2,"column":11,"type":"INT_LITERAL","text":"1"},
+  {"line":2,"column":15,"type":"INT_LITERAL","text":"2"},
+  {"line":2,"column":16,"type":"SEMICOLON","text":";"},
+  {"line":3,"column":3,"type":"VAR","text":"var"},
+  {"line":3,"column":7,"type":"IDENTIFIER","text":"b"},
+  {"line":3,"column":9,"type":"ASSIGN","text":"="},
+  {"line":3,"column":11,"type":"SEMICOLON","text":";"},
+  {"line":4,"column":3,"type":"IDENTIFIER","text":"f"},
+  {"line":4,"column":4,"type":"LPAREN","text":"("},
+  {"line":4,"column":5,"type":"RPAREN","text":")"},
+  {"line":4,"column":7,"type":"ASSIGN","text":"="},
+  {"line":4,"column":9,"type":"INT_LITERAL","text":"3"},
+  {"line":4,"column":10,"type":"SEMICOLON","text":";"},
+  {"line":5,"column":1,"type":"RBRACE","text":"}"}
+],
+"errors": [
+  {"kind":"léxico","line":2,"column":13,"message":"Caractere não reconhecido: '@'"},
+  {"kind":"sintático","line":3,"column":11,"message":"Token encontrado: ';'\nEsperado: expressão, 'call' ou 'run'"},
+  {"kind":"sintático","line":4,"column":7,"message":"Token encontrado: '='\nEsperado: ';' (o lado esquerdo não é variável, campo ou índice)"}
+],
+"tree": {"kind":"rule","label":"program","line":1,"column":1,"children":[{"kind":"rule","label":"before_main","line":1,"column":1,"children":[{"kind":"token","label":"FUNC","text":"func","line":1,"column":1},{"kind":"rule","label":"after_func","line":1,"column":6,"children":[{"kind":"token","label":"MAIN","text":"main","line":1,"column":6},{"kind":"token","label":"LPAREN","text":"(","line":1,"column":11},{"kind":"token","label":"RPAREN","text":")","line":1,"column":12},{"kind":"rule","label":"block","line":1,"column":14,"children":[{"kind":"token","label":"LBRACE","text":"{","line":1,"column":14},{"kind":"rule","label":"commands","line":2,"column":3,"children":[{"kind":"rule","label":"command","line":2,"column":3,"children":[{"kind":"error","label":"error","line":2,"column":3},{"kind":"token","label":"SEMICOLON","text":";","line":2,"column":16}]},{"kind":"rule","label":"commands","line":3,"column":3,"children":[{"kind":"rule","label":"command","line":3,"column":3,"children":[{"kind":"error","label":"error","line":3,"column":3},{"kind":"token","label":"SEMICOLON","text":";","line":3,"column":11}]},{"kind":"rule","label":"commands","line":4,"column":3,"children":[{"kind":"rule","label":"command","line":4,"column":3,"children":[{"kind":"rule","label":"command_expression","line":4,"column":3,"children":[{"kind":"rule","label":"expression","line":4,"column":3,"children":[{"kind":"rule","label":"or_expr","line":4,"column":3,"children":[{"kind":"rule","label":"and_expr","line":4,"column":3,"children":[{"kind":"rule","label":"equality_expr","line":4,"column":3,"children":[{"kind":"rule","label":"relational_expr","line":4,"column":3,"children":[{"kind":"rule","label":"additive_expr","line":4,"column":3,"children":[{"kind":"rule","label":"multiplicative_expr","line":4,"column":3,"children":[{"kind":"rule","label":"unary_expr","line":4,"column":3,"children":[{"kind":"rule","label":"postfix_expr","line":4,"column":3,"children":[{"kind":"rule","label":"primary","line":4,"column":3,"children":[{"kind":"token","label":"IDENTIFIER","text":"f","line":4,"column":3}]},{"kind":"rule","label":"postfix_rest","line":4,"column":4,"children":[{"kind":"token","label":"LPAREN","text":"(","line":4,"column":4},{"kind":"rule","label":"args","children":[{"kind":"empty","label":"ε"}]},{"kind":"token","label":"RPAREN","text":")","line":4,"column":5},{"kind":"rule","label":"postfix_rest","children":[{"kind":"empty","label":"ε"}]}]}]}]},{"kind":"rule","label":"multiplicative_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"additive_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"relational_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"equality_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"and_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"or_rest","children":[{"kind":"empty","label":"ε"}]}]}]},{"kind":"rule","label":"assignment_rest","line":4,"column":7,"children":[{"kind":"token","label":"ASSIGN","text":"=","line":4,"column":7},{"kind":"rule","label":"rhs","line":4,"column":9,"children":[{"kind":"rule","label":"expression_list","line":4,"column":9,"children":[{"kind":"rule","label":"expression","line":4,"column":9,"children":[{"kind":"rule","label":"or_expr","line":4,"column":9,"children":[{"kind":"rule","label":"and_expr","line":4,"column":9,"children":[{"kind":"rule","label":"equality_expr","line":4,"column":9,"children":[{"kind":"rule","label":"relational_expr","line":4,"column":9,"children":[{"kind":"rule","label":"additive_expr","line":4,"column":9,"children":[{"kind":"rule","label":"multiplicative_expr","line":4,"column":9,"children":[{"kind":"rule","label":"unary_expr","line":4,"column":9,"children":[{"kind":"rule","label":"postfix_expr","line":4,"column":9,"children":[{"kind":"rule","label":"primary","line":4,"column":9,"children":[{"kind":"token","label":"INT_LITERAL","text":"3","line":4,"column":9}]},{"kind":"rule","label":"postfix_rest","children":[{"kind":"empty","label":"ε"}]}]}]},{"kind":"rule","label":"multiplicative_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"additive_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"relational_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"equality_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"and_rest","children":[{"kind":"empty","label":"ε"}]}]},{"kind":"rule","label":"or_rest","children":[{"kind":"empty","label":"ε"}]}]}]},{"kind":"rule","label":"expression_list_rest","children":[{"kind":"empty","label":"ε"}]}]}]}]},{"kind":"token","label":"SEMICOLON","text":";","line":4,"column":10}]}]},{"kind":"rule","label":"commands","children":[{"kind":"empty","label":"ε"}]}]}]}]},{"kind":"token","label":"RBRACE","text":"}","line":5,"column":1}]},{"kind":"rule","label":"after_main","children":[{"kind":"empty","label":"ε"}]}]}]}]}
+}
+[código 1]

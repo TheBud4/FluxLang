@@ -1,0 +1,63 @@
+Erro sintático [linha 2, coluna 11]:
+Token encontrado: ';'
+Esperado: expressão, 'call' ou 'run'
+program
+  before_main
+    FUNC 'func' 1:1
+    after_func
+      MAIN 'main' 1:6
+      LPAREN '(' 1:11
+      RPAREN ')' 1:12
+      block
+        LBRACE '{' 1:14
+        commands
+          command
+            error 2:3
+            SEMICOLON ';' 2:11
+          commands
+            command
+              variable_declaration
+                VAR 'var' 3:3
+                identifier_list
+                  IDENTIFIER 'y' 3:7
+                  identifier_list_rest
+                    ε
+                variable_rest
+                  ASSIGN '=' 3:9
+                  rhs
+                    expression_list
+                      expression
+                        or_expr
+                          and_expr
+                            equality_expr
+                              relational_expr
+                                additive_expr
+                                  multiplicative_expr
+                                    unary_expr
+                                      postfix_expr
+                                        primary
+                                          INT_LITERAL '1' 3:11
+                                        postfix_rest
+                                          ε
+                                    multiplicative_rest
+                                      ε
+                                  additive_rest
+                                    ε
+                                relational_rest
+                                  ε
+                              equality_rest
+                                ε
+                            and_rest
+                              ε
+                          or_rest
+                            ε
+                      expression_list_rest
+                        ε
+                SEMICOLON ';' 3:12
+            commands
+              ε
+        RBRACE '}' 4:1
+      after_main
+        ε
+Programa rejeitado.
+[código 1]

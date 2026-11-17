@@ -1,0 +1,10 @@
+Erro semântico [linha 3, coluna 11]:
+'soma' espera 2 argumentos, recebeu 1.
+Erro semântico [linha 4, coluna 11]:
+'soma' espera 2 argumentos, recebeu 3.
+Erro semântico [linha 6, coluna 5]:
+'push' espera 1 argumento, recebeu 0.
+Erro semântico [linha 7, coluna 11]:
+'toInt' espera 1 argumento, recebeu 2.
+Programa rejeitado.
+[código 1]

@@ -1,0 +1,4 @@
+Erro semântico [linha 1, coluna 6]:
+A função 'f' deve retornar int em todos os caminhos.
+Programa rejeitado.
+[código 1]

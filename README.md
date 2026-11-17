@@ -55,7 +55,8 @@ func main () {
 - Em `var` e `const`, o `:tipo` pode ser omitido quando há valor inicial: cada
   variável recebe o tipo do valor correspondente. `var x;` (sem tipo e
   sem valor) é inválido. `null` ou `[]` sozinhos também não servem,
-  porque não indicam um tipo.
+  porque não indicam um tipo. Um `var` **global** sempre precisa de valor
+  inicial (`var g:int;` só vale dentro de funções e blocos).
 
 ```flux
 var nome, telefone:string = "Andrew", "99999";
@@ -68,7 +69,8 @@ abort if err;
 nome, telefone = "Carlos", "88888";
 ```
 
-Listas são homogêneas, com índice a partir de 0, e têm três métodos:
+Listas são homogêneas, com índice a partir de 0 (num literal, `int` e `float`
+se unem: `[1, 2.5]` é `list<float>`), e têm três métodos:
 `length()` devolve o tamanho (`int`), `push(valor)` adiciona no fim e
 `remove(índice)` remove a posição indicada. `push` e `remove` não
 devolvem valor, então só podem ser usados como comando.
@@ -110,8 +112,9 @@ headers["Authorization"] = "Bearer abc";
 
 - Os campos são dinâmicos: guardam valores de qualquer tipo, e o
   compilador não conhece o tipo de `user.age`. Um valor lido de um campo
-  pode ser usado onde qualquer tipo é esperado, e o tipo real é conferido
-  na execução. Por isso, `var x = user.age;` não serve: declare o tipo
+  é *dinâmico*: pode ser usado onde qualquer tipo é esperado (operadores,
+  condições, argumentos), o resultado de uma operação com ele também é
+  dinâmico, e o tipo real é conferido na execução. Por isso, `var x = user.age;` não serve: declare o tipo
   (`var x:int = user.age;`).
 - Atribuir a um campo que não existe cria o campo; ler um campo que não
   existe devolve `null`.
@@ -120,6 +123,10 @@ headers["Authorization"] = "Bearer abc";
   sem quebrar o código existente.
 
 Em listas e objetos, a vírgula após o último elemento é opcional.
+
+`list` e `object` são **referências**: `var b = a;` e passar `a` a uma
+função não copiam nada, então mudar um muda o outro (`b.push(1)` também
+altera `a`). `int`, `float`, `bool` e `string` são por valor.
 
 ## 3. Controle de fluxo e expressões
 
@@ -150,8 +157,13 @@ Tipos aceitos pelos operadores:
 | `%` | `int` | `int` |
 | `-` (unário) | `int` ou `float` | o mesmo tipo |
 | `<` `>` `<=` `>=` | `int` ou `float` | `bool` |
-| `==` `!=` | dois valores do mesmo tipo, ou qualquer valor e `null`; `list` e `object` só com `null` | `bool` |
+| `==` `!=` | dois valores do mesmo tipo (`int` e `float` também, promovendo o `int`: `1 == 1.0` é `true`), ou qualquer valor e `null`; `list` e `object` só com `null` | `bool` |
 | `&&` `\|\|` `!` | `bool` | `bool` |
+
+O `int` tem 32 bits (o `int` do C) e um resultado que estoura o intervalo
+encerra o programa com erro de execução (`2147483647 + 1`). O `float` segue
+o padrão IEEE: `1.0 / 0.0` é infinito e `0.0 / 0.0` é NaN, sem erro.
+Divisão e resto inteiros por zero encerram o programa.
 
 A única conversão implícita é de `int` para `float`, em operadores e em
 atribuições: `1 + 2.5` é `float` e `var f:float = 3;` é aceito, mas
@@ -173,9 +185,15 @@ while (ativo) {
 ## 4. Terminal e conversões
 
 - `terminal` concentra entrada e saída: `log`, `info`, `warn`, `error` e `input`.
+- `terminal.log`, `info`, `warn` e `error` aceitam um valor de qualquer
+  tipo e o imprimem como o `toString` faria.
 - `terminal.input(...)` sempre retorna `string`.
-- Conversões explícitas: `toString`, `toInt`, `toFloat` e `toBool`. Uma conversão
-  impossível (`toInt("abc")`) encerra o programa com erro.
+- Conversões explícitas, com estas entradas: `toString(qualquer tipo)`,
+  `toInt(string ou float)` (o `float` é truncado), `toFloat(string ou int)`
+  e `toBool(string)`, que só aceita `"true"` e `"false"`. Entrada de outro
+  tipo (`toInt(true)`) é erro de tipo na compilação; entrada do tipo certo
+  mas impossível (`toInt("abc")`, `toBool("sim")`) encerra o programa com
+  erro de execução.
 
 ```flux
 terminal.info("Iniciando processo");
@@ -273,6 +291,11 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   bloco onde foi declarada; a variável do `for` existe só dentro do laço.
   Não há shadowing: é proibido declarar um nome já visível, seja no mesmo
   escopo ou num escopo externo. Blocos irmãos podem reutilizar o mesmo nome.
+  Os nomes globais (`var`, `const`, `func`, `workflow`) são visíveis em todo
+  o arquivo, também dentro de funções declaradas antes deles; por isso uma
+  variável local não pode reutilizar o nome de um global declarado depois.
+  Só o inicializador de um global segue a ordem do arquivo: ele usa apenas
+  globais declarados acima.
   Os nomes da biblioteca (`terminal`, `toString`, `toInt`, `toFloat`,
   `toBool`) já existem no escopo global, então também não podem ser
   redeclarados.
@@ -284,10 +307,16 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   padrão); usar antes de atribuir é erro. Ela só conta como inicializada
   num ponto se for atribuída em todos os caminhos até ele: um `if` com
   `else` em que os dois lados atribuem garante; um `if` sem `else` ou um
-  laço, não.
+  laço, não. Um caminho que termina em `return`, `break` ou `continue` não
+  precisa atribuir: `if (c) { x = 1; } else { return; }` deixa `x`
+  inicializada depois. Código escrito depois de `return`, `break` ou
+  `continue` é permitido (não há erro de código inalcançável).
 - **Inferência:** em `var` ou `const` sem `:tipo`, cada variável recebe o tipo do
   valor correspondente. `null` e `[]` sozinhos não permitem inferir. Ao
   receber o resultado de um workflow sem `:tipo`, a variável só aceita `null`.
+- **Comandos:** uma expressão sozinha só vale como comando se for uma
+  chamada (`terminal.log(x);`, `f();`); `x + 1;` e `idade;` não fazem nada e
+  são erro.
 - **Quantidade de valores:** em declarações e atribuições múltiplas, o
   número de variáveis deve ser igual ao de valores. `call` e `run`
   produzem dois valores (resultado, erro) e exigem exatamente duas
@@ -299,7 +328,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   inválidos de `null` são detectados em tempo de execução na v1.
 - **Erros de execução:** fora `run` e `call`, que devolvem erro tratável,
   todo erro em tempo de execução (conversão impossível, índice fora da
-  lista, uso de `null`, divisão inteira por zero, campo com tipo errado)
+  lista, uso de `null`, divisão inteira por zero, campo com tipo errado,
+  estouro de `int`)
   encerra o programa como o `abort`. Ver [`ERROS.md`](docs/ERROS.md#7-erros-em-tempo-de-execução).
 - **Operadores:** os operandos seguem a tabela da seção 3; a única
   conversão implícita é `int` → `float`.
@@ -314,7 +344,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   `chave` deve ser `string`.
 - **Funções:** com `:tipo`, retornam com `return valor;`, que precisa
   existir em todos os caminhos (`if` com `else` em que os dois lados
-  retornam garante; laço não). Sem `:tipo`, só
+  retornam garante; laço não; um caminho que termina em `break` ou
+  `continue` sai do laço e não conta como retorno). Sem `:tipo`, só
   `return;` é permitido e a chamada não pode ser usada como valor. Podem
   ser recursivas, mas não podem usar `call` nem `run`.
 - **Workflows:** retornam com `return resultado, erro;`. São chamados só
@@ -333,13 +364,31 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
 
 ## 9. Implementação
 
+**Plataformas.** O compilador `flux` roda em Linux (e deve rodar em macOS; não
+foi testado lá). Os programas que ele gera rodam em Linux, macOS e **Windows**:
+a biblioteca de execução tem uma versão para cada sistema (no Windows o `run`
+usa `CreateProcess`, o console liga as cores ANSI e o programa roda numa thread
+de pilha grande). Para Windows há duas formas: compilar aqui com
+`./flux --build --windows` (gera um `.exe` que leva tudo junto) ou levar o `.c`
+de `./flux --c` e compilá-lo no Windows com o MinGW ou o clang. No Windows, o
+próprio `flux` e a interface web continuam precisando do WSL. Os programas
+gerados foram testados com `gcc` e `clang` no Linux e como `.exe` no `wine`.
+
 O compilador é escrito em C, com lexer em **Flex** e parser em **GNU
-Bison**. O lexer está pronto; o parser ainda só declara os tokens.
+Bison**. O lexer e o parser do Trabalho 1 estão prontos: o compilador
+reporta todos os erros do programa (modo pânico com as regras `error` do
+Bison, versão simples). A árvore de derivação (`--tree`) sai com um nó por não-terminal da BNF. A análise semântica (`--semantic`) roda sobre uma AST enxuta.
 
 - O lexer rastreia linha e coluna de cada token (colunas contam
   caracteres, não bytes; uma tabulação conta como uma coluna).
-- Mapeamento de tipos: `int` → `int`, `float` → `double`,
-  `bool` → `int` (`1`/`0`), `string` → `char *`.
+- A geração de código converte a AST em um programa C e chama o `gcc`
+  (`./flux --c`, `--build` e `--run`). Todo valor em tempo de execução é um
+  `FxValue` com etiqueta (null, int, float, bool, string, list, object), e
+  uma biblioteca de execução (`src/backend/runtime/flux_rt.h`) faz as operações e dá os
+  erros R1 a R7; ela é embutida no `.c` gerado, que compila sozinho. A memória
+  dos programas é gerenciada por um coletor de lixo (marca e varre, que varre a
+  pilha do C de forma conservadora): um laço que concatena textos não cresce
+  sem limite. O próprio compilador usa um arena liberado no fim.
 - Mensagens de erro em português, citando o token encontrado e o
   esperado, na saída de erro. Formato, catálogo e modo pânico estão em
   [`ERROS.md`](docs/ERROS.md).
@@ -355,34 +404,101 @@ Esperado: '='
 
 ### Compilar e usar
 
-Exige `gcc` (ou `clang`), `flex`, `bison` 3.6+ e `make`.
+Exige `gcc` (ou `clang`), `flex`, `bison` 3.6+ e GNU `make` 4.3+ (o
+`Makefile` usa alvos agrupados, `&:`).
 
 ```sh
 make                            # gera ./flux
 ./flux < programa.flux         # lê da entrada padrão (Trabalho 1)
 ./flux programa.flux           # lê de um arquivo (Trabalho 2)
 ./flux -t programa.flux        # --tokens: lista os tokens reconhecidos
+./flux --tree programa.flux    # imprime a árvore de derivação
+./flux --json programa.flux    # tokens, erros e árvore em JSON (para a interface)
+./flux --ast programa.flux     # a AST (a árvore de derivação sem a burocracia da gramática)
+./flux --semantic programa.flux # confere também os erros semânticos (E1 a E24)
+./flux --c programa.flux        # imprime o programa em C (a biblioteca de execução vai junto)
+./flux --build programa.flux    # gera o executável ./programa (via gcc); -o escolhe o nome
+./flux --run programa.flux      # gera, executa e apaga o executável (a saída é colorida num terminal; NO_COLOR desliga)
+./flux --build --windows programa.flux   # gera programa.exe para Windows (precisa do mingw64-gcc)
+./flux --run --windows programa.flux     # idem, e roda o .exe no wine
 ./flux -h                      # --help: mostra as opções
 make test                       # roda os casos de tests/
 make bear                       # gera compile_commands.json (para o clangd)
 ```
 
 A saída deve terminar com `Programa aceito.` (código de saída 0) ou
-`Programa rejeitado.` (código 1); opção desconhecida ou arquivo que não
-pode ser lido dão código 2. No Trabalho 1, o compilador para no primeiro
-erro. O modo `--tokens` roda só o lexer, continua após erros léxicos e
+`Programa rejeitado.` (código 1); com `--c`, `--build` e `--run` o programa
+precisa passar pela análise semântica, e `--run` termina com o código de saída
+do próprio programa FluxLang; com `--json` a saída é só o JSON (mesmo
+código de saída), e os erros não vão para o stderr. Opção desconhecida ou arquivo que não
+pode ser lido dão código 2. O compilador segue depois dos erros
+(modo pânico) e reporta todos. O modo `--tokens` roda só o lexer, continua após erros léxicos e
 sai com código 1 se encontrou algum.
 
 | Arquivo | Conteúdo |
 |---|---|
-| `src/lexer.l` | Analisador léxico (Flex) |
-| `src/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
-| `src/main.c` | Leitura da entrada, modo `--tokens` e resultado |
+| `src/main.c` | Leitura da entrada, modos `--tokens`, `--tree` e `--json` e resultado |
+| `src/json.c` | Saída `--json`: tokens, erros e árvore num objeto JSON |
 | `src/fluxc.h` | Declarações compartilhadas entre lexer, parser e `main.c` |
-| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
+| `src/frontend/lexer.l` | Analisador léxico (Flex) |
+| `src/frontend/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
+| `src/frontend/tree.c`, `src/frontend/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
+| `src/semantic/types.c`, `ast.c`, `ast_build.c` | Tipos da linguagem, a AST e a conversão da árvore de derivação em AST |
+| `src/semantic/sema.c` | Análise semântica (E1 a E24): tabela de símbolos, tipos e análise de fluxo |
+| `src/backend/codegen_c.c`, `src/backend/runtime/flux_rt.h` | Gerador de código C e a biblioteca de execução que ele embute (os valores, os operadores, `run`, `terminal` e os erros R1 a R7) |
+| `src/util/mem.c`, `src/util/mem.h` | Arena de memória do compilador (tudo é liberado no fim) |
+| `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
+| `tools/vscode-fluxlang/` | Extensão do VS Code com o realce de sintaxe da FluxLang |
+| `docs/` | `BNF.txt`, `ERROS.md`, `TAREFAS.md`, `ENUNCIADO.md`, `exemplos/`, `specs/` (desenho da interface) e `entregas/` (artigo e slides) |
+| `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`, `tests/ast/` com `--ast`, `tests/semantico/` com `--semantic`, `tests/exec/` com `--run`: compila para C e confere a saída do programa); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
-`src/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
+`src/frontend/parser.y` deve seguir a `BNF.txt` regra por regra e ser aceito pelo
 Bison sem conflitos.
+
+### Interface web
+
+A pasta `web/` tem a interface gráfica (Vite + React + Tailwind). Ela não
+reimplementa nada: o servidor do Vite expõe `POST /api/compile`, que roda
+`./flux --json` com o código recebido.
+
+```sh
+make web        # compila o flux, instala as dependências e abre http://127.0.0.1:5173
+```
+
+Precisa de Node 20+ e npm. A tela mostra, ao mesmo tempo, o código com
+numeração de linhas (as linhas com erro ficam realçadas), os tokens
+reconhecidos, a árvore sintática, o resultado (`Programa aceito` ou
+`Programa rejeitado`, com a contagem de linhas) e as mensagens de erro.
+Clicar num erro, token ou nó da árvore seleciona o trecho no código. A
+árvore é a de derivação, fiel à gramática LL(1); a opção "ocultar `*_rest`"
+remove os nós criados na fatoração e sobe os filhos deles para o pai. O
+código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E24, o botão **Executar** compila o programa para C e o roda (se o programa usa `terminal.input`, aparece o campo "Entrada do programa": uma linha para cada `terminal.input`, na ordem, e a resposta aparece ao lado do prompt;a saída aparece no painel "Saída", em ordem e colorida pelo tipo: `log` em azul, `info` em ciano, `warn` em amarelo, `error` e os erros de execução em vermelho, cada linha com o nome do tipo ao lado; o painel mostra também o código de saída; um programa que passa de 10 segundos é interrompido e a saída é cortada em 1 MB), e há botões
+para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
+`invalido.flux`.
+
+**Segurança do Executar.** Executar roda o programa de verdade neste computador,
+inclusive os comandos que ele pedir em `run`. O servidor só escuta em
+`127.0.0.1`, e a rota `POST /api/run` ainda confere o `Host`, o `Origin` e um
+cabeçalho próprio (`X-Flux-Run`), para que uma página qualquer aberta no
+navegador não consiga mandar um programa para ela. Use a interface só em
+computador seu e não a exponha na rede.
+
+**Formato do `--json`** (a interface lê este objeto):
+
+```json
+{
+"accepted": false,
+"lines": 5,
+"tokens": [ {"line":2,"column":3,"type":"VAR","text":"var"}, ... ],
+"errors": [ {"kind":"sintático","line":3,"column":11,"message":"Token encontrado: ';'\nEsperado: ..."}, ... ],
+"tree": {"kind":"rule","label":"program","line":1,"column":1,"children":[ ... ]}
+}
+```
+
+`kind` do erro é `léxico` ou `sintático`. Cada nó da árvore tem `kind`
+(`rule` para não-terminal, `token`, `empty` para ε, `error` para o trecho
+descartado pelo modo pânico), `label` e, quando há token, `text`, `line` e
+`column`; `children` só existe se o nó tem filhos.
 
 ## 10. Exemplo integrado
 

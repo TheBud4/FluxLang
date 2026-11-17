@@ -1,0 +1,60 @@
+program
+  before_main
+    FUNC 'func' 1:1
+    after_func
+      MAIN 'main' 1:6
+      LPAREN '(' 1:11
+      RPAREN ')' 1:12
+      block
+        LBRACE '{' 1:14
+        commands
+          command
+            variable_declaration
+              VAR 'var' 2:3
+              identifier_list
+                IDENTIFIER 'x' 2:7
+                identifier_list_rest
+                  ε
+              variable_rest
+                COLON ':' 2:8
+                type
+                  TYPE_INT 'int' 2:9
+                initializer
+                  ASSIGN '=' 2:13
+                  rhs
+                    expression_list
+                      expression
+                        or_expr
+                          and_expr
+                            equality_expr
+                              relational_expr
+                                additive_expr
+                                  multiplicative_expr
+                                    unary_expr
+                                      postfix_expr
+                                        primary
+                                          INT_LITERAL '1' 2:15
+                                        postfix_rest
+                                          ε
+                                    multiplicative_rest
+                                      ε
+                                  additive_rest
+                                    ε
+                                relational_rest
+                                  ε
+                              equality_rest
+                                ε
+                            and_rest
+                              ε
+                          or_rest
+                            ε
+                      expression_list_rest
+                        ε
+              SEMICOLON ';' 2:16
+          commands
+            ε
+        RBRACE '}' 3:1
+      after_main
+        ε
+Programa aceito.
+[código 0]

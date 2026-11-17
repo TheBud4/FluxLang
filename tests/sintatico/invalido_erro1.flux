@@ -1,5 +1,4 @@
 // Exemplo inválido da FluxLang: sete erros, um em cada linha marcada.
-// A definição de cada erro está em ERROS.md, seção 5.
 
 const versao:string;                    // erro 1
 

@@ -1,0 +1,8 @@
+Erro semântico [linha 2, coluna 7]:
+Não é possível inferir o tipo de 'x'; declare o tipo.
+Erro semântico [linha 3, coluna 7]:
+Não é possível inferir o tipo de 'l'; declare o tipo.
+Erro semântico [linha 5, coluna 7]:
+Não é possível inferir o tipo de 'a'; declare o tipo.
+Programa rejeitado.
+[código 1]

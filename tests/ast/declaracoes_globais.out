@@ -1,0 +1,26 @@
+Program
+  Const versao :string
+    Values
+      String "1.0"
+  Var a b :int
+    Values
+      Int 1
+      Int 2
+  Func soma(x:int, y:int) :int
+    Block
+      Return
+        Binary +
+          Ident x
+          Ident y
+  Workflow build(dir:string) :string
+    Block
+      Return
+        Ident dir
+        Null
+  Func main()
+    Block
+  Var depois
+    Values
+      Int 3
+Programa aceito.
+[código 0]

@@ -1,0 +1,7 @@
+<ESC>[94mum log<ESC>[0m
+<ESC>[36muma info<ESC>[0m
+<ESC>[33mum aviso<ESC>[0m
+<ESC>[31mum erro<ESC>[0m
+<ESC>[1;31mErro de execução [linha 7]:
+Divisão por zero.<ESC>[0m
+[código 1]

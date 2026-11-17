@@ -1,103 +1,42 @@
 # Tarefas
 
-## Trabalho 1 (01/10/2026)
+## Concluído
 
-### 1. BNF (`docs/BNF.txt`)
-
-- [x] Corrigir o conflito de `FUNC` em `<program>` (`<before_main>` / `<after_func>` / `<after_main>`)
-- [x] Fatorar `<parameters>` com `<parameters_rest>`
-- [x] Corrigir `<comands>` para `<commands>`
-- [x] Trocar `<variable>` por `<variable_declaration>` e incluir `<constant_declaration>` no nível global
-- [x] Mudar `<type>` para `TYPE_LIST LOWER_THAN <type> GREATER_THAN`
-- [x] Adicionar o token `PROCEED`
-- [x] Trocar "GTE" por `GREATER_THAN_EQUAL` no aviso de maior casamento
-- [x] Renumerar as seções (falta a 3)
-- [x] Escrever `<variable_declaration>` e `<constant_declaration>` (resto próprio: o `const` exige valor)
-- [x] Escrever `<workflow>`
-- [x] Escrever `<rhs>` (`call`, `run` ou lista de expressões)
-- [x] Escrever `<command_if>`, `<command_while>` e `<command_for>`
-- [x] Escrever `<command_return>`, `<command_break>` e `<command_continue>`
-- [x] Escrever `<command_error>` (`stop` / `abort` / `proceed if`)
-- [x] Escrever `<command_expression>` (expressão, atribuição simples e múltipla)
-- [x] Escrever as expressões com os 8 níveis de precedência
-- [x] Escrever os literais de lista e de objeto (`<field_key>`)
-- [x] Escrever `<args>`
-- [x] Pedir a validação da BNF (FIRST/FOLLOW)
-- [x] Remover os comentários `[erro]` e `[pendente]` validados
-
-### 2. Documentação
-
-- [x] Revisar o README da seção 8 em diante e tirar o `# TODO`
-- [x] Conferir se `docs/exemplos/valido.flux` e `docs/exemplos/invalido.flux` batem com a BNF final
-- [x] Commitar README, ERROS, BNF e exemplos
-
-### 3. Implementação
-
-- [x] `Makefile` (gera `./flux`, alvo `test`)
-- [x] `src/lexer.l`: tokens, linha e coluna, erros L1–L6
-- [x] `src/parser.y`: BNF regra por regra, sem conflitos no Bison
-- [x] Mensagens em português com token encontrado e esperado (`parse.error custom`)
-- [x] Verificação S3 (lado esquerdo da atribuição)
-- [x] `src/main.c`: entrada padrão, `Programa aceito.` / `Programa rejeitado.`, códigos de saída
-- [x] Modo `--tokens`
-- [x] `tests/`: um caso por linha das tabelas das seções 2 e 3 do ERROS.md
-- [x] Rodar `valido.flux` (aceito)
-- [x] Rodar `invalido.flux` e conferir as mensagens e posições da seção 5 do ERROS.md
-- [x] Commitar código e binário
-
-### 4. Artigo (formato SBC)
-
-- [x] Montar o template SBC
-- [x] Definição de compiladores
-- [x] Análise léxica
-- [x] Análise sintática
-- [x] Análise semântica
-- [x] Apresentação da FluxLang
-- [x] BNF
-- [x] Exemplo válido
-- [x] Exemplo inválido com a definição dos erros
-- [x] Catálogo de erros (léxicos, sintáticos e semânticos)
-- [x] Referências
-- [x] Revisão final com o grupo
-
-### 5. Apresentação
-
-- [x] Slides da linguagem
-- [x] Slides da implementação
-- [x] Demonstração com `valido.flux` e `invalido.flux`
-- [ ] Ensaio com o grupo
+- **Trabalho 1 (entregue em 01/10/2026):** BNF LL(1) validada (FIRST/FOLLOW), README e exemplos
+  (`docs/exemplos/`), lexer e parser com erros L1–L6 e S1–S3, `Makefile`, testes por linha do
+  ERROS.md, artigo SBC e slides (arquivos em `docs/entregas/`).
+- **Auditoria de 02/10:** testes positivos e `invalido_erroN` alinhados ao ERROS.md, `make asan`,
+  artefatos fora do git, decisões D1–D8 refeitas em 14/11 (ver README e AGENTS.md). As decisões ficam
+  no handoff do `AGENTS.md`; não há `DECISOES.md`.
 
 ## Trabalho 2 (26/11/2026)
 
 ### 6. Compilador
 
-- [ ] Leitura de arquivo (`./flux programa.flux`)
-- [ ] Lexer entregando token de erro sem segunda mensagem
-- [ ] Modo pânico no parser (seção 6 do ERROS.md)
-- [ ] Pular blocos `{ ... }` com chaves balanceadas ao descartar tokens
-- [ ] Conferir que `invalido.flux` reporta os 7 erros sem cascata
-- [ ] Definir a forma dos nós da AST
-- [ ] Construir a AST nas ações do parser
-- [ ] Definir como a interface recebe tokens, erros e AST do compilador
+- [x] Leitura de arquivo (`./flux programa.flux`)
+- [x] Modo pânico no parser, com regras `error` do Bison (seção 6 do ERROS.md; versão simples)
+- [x] Pular blocos `{ ... }` ao descartar tokens (`error block`: o bloco é lido inteiro)
+- [x] Refinar o pânico (retomar em `}`, palavras de comando e `func`): testado, aumenta os erros em cascata; versão simples mantida (medição em ERROS.md, seção 6)
+- [x] Lexer entregando token de erro sem segunda mensagem
+- [x] Conferir que `invalido.flux` reporta os 7 erros sem cascata
+- [x] Árvore de derivação (nós = não-terminais da BNF; `./flux --tree`)
+- [x] `./flux --json` com tokens, erros e árvore
 
 ### 7. Interface
 
-- [ ] Escolher a tecnologia
-- [ ] Exibir o código
-- [ ] Contagem de linhas
-- [ ] Tokens reconhecidos
-- [ ] Aceito / rejeitado
-- [ ] Mensagens de erro
-- [ ] Árvore sintática
-- [ ] Documentar a interface no README
+- [x] Interface web local que chama o `./flux --json`
+- [x] Exibir o código e a contagem de linhas
+- [x] Tokens reconhecidos
+- [x] Aceito / rejeitado e mensagens de erro
+- [x] Árvore sintática
+- [x] Documentar a interface no README
 
 ### 8. LL(1)
 
-- [ ] Escrever a demonstração da transformação para LL(1) (pares antes/depois)
+- [x] Dispensada: a linguagem foi escrita LL(1) desde o início (decisão do usuário, 14/11). Se o professor exigir, o material está no histórico git da BNF (7c94f9c → e9a06e3)
 
 ### 9. Apresentação
 
-- [ ] Slides da transformação para LL(1)
 - [ ] Slides do modo pânico (código)
 - [ ] Slides da interface
 - [ ] Demonstração da interface
@@ -105,7 +44,19 @@
 
 ## Pontos extras
 
-- [ ] Realce das linhas com erro na interface
-- [ ] Análise semântica (E1–E22)
-- [ ] Geração de código C e chamada do `gcc`
-- [ ] Checagens de execução R1–R5 no código gerado
+- [x] Realce das linhas com erro na interface
+- [x] Análise semântica (E1–E24): `./flux --semantic`, com a chave na interface
+- [x] Geração de código C e chamada do `gcc` (`--c`, `--build`, `--run`)
+- [x] Checagens de execução R1–R7 no código gerado (biblioteca `src/backend/runtime/flux_rt.h`)
+- [x] Coletor de lixo na biblioteca de execução e arena de memória no compilador (sem vazamentos sob o LeakSanitizer)
+- [x] Saída do programa colorida por tipo, no terminal e na interface (`NO_COLOR` e `FORCE_COLOR`)
+- [x] Campo de entrada (stdin) e botão Executar na interface
+- [x] O programa gerado roda no Windows (`--build --windows`; testado como `.exe` no wine)
+
+## Em aberto (opcional)
+
+- [ ] Perguntar ao professor (item acima)
+- [ ] Testes automáticos da interface web (hoje só tipos, build e gates de acessibilidade)
+- [ ] Colorir as mensagens do próprio compilador no terminal
+- [ ] Testar em macOS
+- [ ] x86-64 nativo, sem passar por C (só se o usuário pedir)

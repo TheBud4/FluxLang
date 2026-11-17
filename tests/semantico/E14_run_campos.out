@@ -1,0 +1,14 @@
+Erro semântico [linha 2, coluna 18]:
+'run' sem o campo obrigatório 'command'.
+Erro semântico [linha 3, coluna 45]:
+'run' tem o campo 'command' repetido.
+Erro semântico [linha 4, coluna 43]:
+'run' não aceita o campo 'extra'.
+Erro semântico [linha 5, coluna 30]:
+O campo 'command' de 'run' deve ser string, encontrado int.
+Erro semântico [linha 5, coluna 40]:
+O campo 'flags' de 'run' deve ser list<string>, encontrado string.
+Erro semântico [linha 5, coluna 57]:
+O campo 'workingDir' de 'run' deve ser string, encontrado int.
+Programa rejeitado.
+[código 1]

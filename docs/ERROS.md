@@ -53,13 +53,17 @@ obrigatório. Por isso um `;` esquecido gera `Esperado: ';'` em vez de uma
 lista com todos os operadores possíveis.
 
 Pela mesma regra, `call` ou `run` fora do lugar geram só o próximo
-terminal obrigatório (`'}'`, `')'`...). Como isso sozinho não explica o
+terminal obrigatório (`')'`...). A exceção são os pontos de recuperação do
+modo pânico (seção 6): neles o Bison não reduz o vazio por padrão, e a
+lista inclui o que inicia um comando (`Esperado: comando ou '}'`) ou, depois
+da `main`, um item global (`Esperado: fim do arquivo, 'var', 'const', 'func'
+ou 'workflow'`). Como isso sozinho não explica o
 erro, quando o token encontrado é `call` ou `run` a mensagem ganha a
 explicação `(call e run só aparecem logo depois do '=' de um var ou de uma
 atribuição)`.
 
-No Bison, as mensagens padrão são em inglês. O `src/parser.y` vai usar
-`%define parse.error custom` e escrever as mensagens em
+No Bison, as mensagens padrão são em inglês. O `src/frontend/parser.y` usa
+`%define parse.error custom` e escreve as mensagens em
 `yyreport_syntax_error`, com a lista de tokens esperados vinda de
 `yypcontext_expected_tokens`. A ordem da lista segue a ordem das
 declarações `%token`.
@@ -94,7 +98,7 @@ caracteres, e uma tabulação conta como uma coluna.
 | Código | Erro | Mensagem |
 |---|---|---|
 | S1 | Token inesperado | `Token encontrado: X` / `Esperado: Y` |
-| S2 | Fim de arquivo inesperado | `Token encontrado: fim do arquivo` / `Esperado: '}'` |
+| S2 | Fim de arquivo inesperado | `Token encontrado: fim do arquivo` / `Esperado: comando ou '}'` |
 | S3 | Alvo de atribuição inválido | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` |
 
 S1 e S2 saem direto da gramática. S3 é verificado pelo parser na ação da
@@ -131,14 +135,16 @@ Casos comuns (mensagens esperadas):
 | Tipo faltando | `var x: = 1;` | `'='` | `tipo` |
 | Palavra reservada como nome | `var list:int;` | `palavra reservada 'list'` | `identificador` |
 
-Cada linha desta tabela e da tabela de erros léxicos deve virar um caso
-em `tests/casos/`, conferido com `make test`.
+Cada linha desta tabela e da tabela de erros léxicos tem um caso em
+`tests/sintatico/` ou `tests/lexico/`, conferido com `make test`.
 
 ## 4. Erros semânticos
 
-Verificados só depois de um parse sem erros. No Trabalho 1 eles entram
-no artigo (etapa de análise semântica), mas não precisam estar
-implementados.
+Verificados só depois de um parse sem erros. Estão implementados em
+`src/semantic/sema.c` e rodam com `./flux --semantic` (a interface web tem a chave
+"Análise semântica", ligada por padrão). Todos os erros são coletados e
+impressos ordenados por linha e coluna, no formato
+`Erro semântico [linha L, coluna C]:` e a mensagem.
 
 | Código | Regra | Exemplo inválido | Mensagem |
 |---|---|---|---|
@@ -164,6 +170,41 @@ implementados.
 | E20 | `func` com `:tipo` sem `return` em todos os caminhos | `func f(x:int):int { if (x > 0) { return 1; } }` | `A função 'f' deve retornar int em todos os caminhos.` |
 | E21 | Número de argumentos errado | `soma(1)` para `func soma(a:int, b:int)` | `'soma' espera 2 argumentos, recebeu 1.` |
 | E22 | Chamada de algo que não é função nem método | `idade.push(1)` (int), `terminal.foo()`, `user.name()` | `'idade' não tem o método 'push'.` |
+| E23 | `var` global sem valor inicial | `var g:int;` no nível global | `A variável global 'g' precisa de valor inicial.` |
+| E24 | Expressão solta como comando | `x + 1;`, `idade;`, `l[0];` | `Esta expressão não faz nada: só chamadas podem ser usadas como comando.` |
+
+Decisões de 14/11 que afetam esta tabela (detalhes na seção 8 do README):
+valor de campo de `object` é dinâmico e passa em E4 e E5 (conferido em R5);
+globais valem em todo o arquivo, então E2 também vale para um local que
+reusa o nome de um global declarado depois; para E3 e E20, um caminho que
+termina em `return`, `break` ou `continue` conta, e código inalcançável não
+é erro; `toInt`, `toFloat` e `toBool` só aceitam as entradas da seção 4 do
+README (outro tipo de argumento é E4).
+
+**Mensagens além das do catálogo.** Cada regra tem variantes, para dizer o
+que exatamente deu errado:
+
+- E1: `'b' só é declarado depois deste ponto.` (um inicializador de global usa um global declarado abaixo, D3).
+- E4: `Operador '-' não aceita string.`; `'soma' é uma função, não um valor.` (também para `terminal.log`); os argumentos e os elementos de um literal de lista são conferidos um a um.
+- E7: no plural e no singular (`1 variável e 2 valores.`).
+- E12: `A função 'f' não retorna valor.` e `A função 'g' deve retornar um valor int.`
+- E14: `'run' tem o campo 'command' repetido.`, `'run' não aceita o campo 'extra'.`, `O campo 'flags' de 'run' deve ser list<string>, encontrado string.`
+- E15: `'soma' é uma função e deve ser chamada sem 'call'.` e `'x' não é um workflow.`
+- E17: `O segundo valor de 'run' deve ir para uma variável de erro.`
+- E19: `Chave de object deve ser string, encontrado int.` e `'idade' não é uma lista nem um object e não aceita [ ].`
+- E22: `'x' não é uma função.` e `Isso não é uma função e não pode ser chamado.`
+
+**Decisões de 14/11 sobre esta tabela:** todo `var` global precisa de valor
+inicial (E23, então o E3 só existe para locais); um comando que é só uma
+expressão só vale se for uma chamada (E24); um literal de lista é conferido
+elemento a elemento contra o tipo esperado (`var l:list<float> = [1, 2];`
+vale) e, sem tipo esperado, os elementos `int` e `float` se unem em
+`list<float>`.
+
+**Escolhas de implementação** (estilo, podem ser mudadas): um valor que já
+teve erro não gera uma segunda mensagem (o E9 também não sai para um `run`
+fora de lugar); `terminal.input` aceita 0 ou 1 argumento; as posições são a
+do nome, a do operador ou a do valor errado.
 
 Sobre E7: `call` e `run` produzem **dois** valores (resultado, erro), então
 exigem exatamente duas variáveis: `var r, e = call build(x);`. Que eles
@@ -172,24 +213,23 @@ estejam sozinhos do lado direito do `=` já é garantido pela gramática.
 ## 5. Erros do exemplo inválido
 
 [`exemplos/invalido.flux`](exemplos/invalido.flux) tem sete erros, cada
-um numa linha marcada com comentário. As posições foram calculadas a
-partir do arquivo, e as mensagens seguem as seções 1 a 3. Quando o
-`flux` existir, elas devem ser conferidas isolando um erro por vez (com
-os outros seis corrigidos):
+um numa linha marcada com comentário. As mensagens seguem as seções 1 a
+3, e as posições foram conferidas com o `flux` em 02/10/2026, isolando um
+erro por vez (com os outros seis corrigidos):
 
 | # | Linha:coluna | Classe | Mensagem | Causa |
 |---|---|---|---|---|
-| 1 | 4:20 | Sintático | `Token encontrado: ';'` / `Esperado: '='` | `const` exige valor inicial |
-| 2 | 16:5 | Sintático | `Token encontrado: palavra reservada 'stop'` / `Esperado: ';'` | Falta `;` depois do `}` do `run` (linha 15): a instrução que contém `run` termina com `;` |
-| 3 | 21:24 | Léxico | `Caractere não reconhecido: '@'` | `@` não pertence ao alfabeto da linguagem |
-| 4 | 22:9 | Léxico | `Número malformado: '2itens'` | Identificador não pode começar com dígito |
-| 5 | 27:12 | Sintático | `Token encontrado: palavra reservada 'if'` / `Esperado: '{'` | Não existe `else if`: aninhe o `if` dentro do bloco do `else` |
-| 6 | 31:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
-| 7 | 32:16 | Sintático (S3) | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` | Chamada de função não pode receber atribuição |
+| 1 | 3:20 | Sintático | `Token encontrado: ';'` / `Esperado: '='` | `const` exige valor inicial |
+| 2 | 15:5 | Sintático | `Token encontrado: palavra reservada 'stop'` / `Esperado: ';'` | Falta `;` depois do `}` do `run` (linha 14): a instrução que contém `run` termina com `;` |
+| 3 | 20:24 | Léxico | `Caractere não reconhecido: '@'` | `@` não pertence ao alfabeto da linguagem |
+| 4 | 21:9 | Léxico | `Número malformado: '2itens'` | Identificador não pode começar com dígito |
+| 5 | 26:12 | Sintático | `Token encontrado: palavra reservada 'if'` / `Esperado: '{'` | Não existe `else if`: aninhe o `if` dentro do bloco do `else` |
+| 6 | 30:5 | Sintático | `Token encontrado: palavra reservada 'call'` / `Esperado: comando ou '}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` | `call` não é comando isolado: o resultado e o erro precisam de duas variáveis (`var r, e = call build(...);`) |
+| 7 | 31:16 | Sintático (S3) | `Token encontrado: '='` / `Esperado: ';' (o lado esquerdo não é variável, campo ou índice)` | Chamada de função não pode receber atribuição |
 
-No Trabalho 1, o compilador reporta só o erro 1 (o primeiro da entrada).
-Com o modo pânico do Trabalho 2, ele deverá reportar os sete, sem erros
-em cascata.
+No Trabalho 1, o compilador reportava só o erro 1 (o primeiro da entrada).
+Com o modo pânico (seção 6), ele reporta os sete, sem erros em cascata
+(caso `tests/sintatico/invalido_completo.flux`).
 
 ## 6. Recuperação de erros (modo pânico)
 
@@ -217,7 +257,7 @@ aparecem no meio de expressões, então não servem para sincronizar. `call`
 e `run` só aparecem depois de um `=`, no meio do comando, e também não
 servem.
 
-**Erro sintático no nível global** (`<declaration_list>`): descarta tokens até
+**Erro sintático no nível global** (`<before_main>` e `<after_main>`): descarta tokens até
 `func`, `workflow`, `var`, `const` ou fim do arquivo. Se encontrar `;`,
 consome e continua.
 
@@ -228,15 +268,46 @@ o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 **Fim do arquivo:** se ainda falta fechar um bloco, reporta
 `Token encontrado: fim do arquivo` / `Esperado: '}'` e encerra.
 
-No Bison, esses pontos viram regras com o token `error`, por exemplo
-`command: error SEMICOLON` e `declaration: error SEMICOLON`, com
-`yyerrok` na ação. Num parser descendente recursivo, cada função de
-`<commands>` e `<declaration_list>` recebe o conjunto de sincronização acima.
+**Como está implementado (versão simples, `src/frontend/parser.y`):** as regras
+com o token `error` são os pontos de recuperação, um por construção, como
+no código feito em sala (`try/catch` + `consumeUntil`):
+
+```
+command:        error SEMICOLON | error block
+global_no_func: error SEMICOLON | error block
+after_func:     MAIN error block after_main      // main com o cabeçalho quebrado
+```
+
+Ao achar um erro, o Bison desempilha estados até um que aceite `error` e
+descarta tokens até `;` (que é consumido) ou `{` (o bloco é lido inteiro,
+o que evita cascata em `else if (...) { }` e em `if x > 5 { }`). O
+`yyerrok` de cada regra libera a mensagem do próximo erro; sem ele o Bison
+só reportaria de novo depois de 3 tokens lidos com sucesso. Um erro léxico
+entra como o token `YYerror`, sem segunda mensagem. O erro S3 só reporta
+(o comando já terminou) e o programa fica rejeitado.
+
+O que a versão simples **não** faz, em relação ao texto acima: retomar a
+análise em `}` e nas palavras que iniciam comando (ela descarta até o
+próximo `;` ou bloco) e voltar ao nível global em `func`/`workflow`. Por
+isso um bloco de função aberto engole as funções seguintes e gera erros
+extras no fim do arquivo, e um `;` esquecido antes de um `}` também.
+
+Isso foi tentado e medido em 14/11/2026, e **não compensa**. Um filtro de
+tokens entre o lexer e o parser (entregava um `;` falso ao parser, depois o
+token verdadeiro, e os `}` que faltavam ao achar `func`) resolvia os dois
+casos acima, mas, em 3.950 programas obtidos por mutação de um programa
+válido, reportou mais erros que a versão simples em todos os tipos de
+mutação (esquecer um token: 983 contra 1.180; token repetido: 932 contra
+1.253; troca por palavra reservada: 1.029 contra 2.251). Retomar em palavra
+de comando ou em `}` falha quando o erro está dentro de uma expressão com
+chaves, como um literal de objeto (`run { command: "npm", ... }`): o resto
+do objeto passa a ser lido como comandos e o `}` do objeto fecha o bloco
+errado. Restringir a retomada a `}` e `func`/`workflow` não ajudou. A
+versão simples (regras `error` + bloco lido inteiro) foi mantida.
 
 ## 7. Erros em tempo de execução
 
-Só aparecem quando o programa é executado, por exemplo com a geração de
-código C (ponto extra do Trabalho 2). São de dois tipos.
+Só aparecem quando o programa é executado (`./flux --run`, com o código C gerado). São de dois tipos.
 
 **Erros tratáveis:** só `run` e `call` devolvem erro, no par
 `(resultado, erro)`, e ele deve ser tratado com `stop if`, `abort if` ou
@@ -255,6 +326,53 @@ a mensagem na saída de erro e código de saída 1.
 | R3 | Uso inválido de `null` | `user.name` com `user` valendo `null` | `Uso de valor null.` |
 | R4 | Divisão inteira por zero | `10 / 0`, `10 % 0` | `Divisão por zero.` |
 | R5 | Valor de campo com tipo diferente do esperado | `var n:int = user.name;` com `name` valendo uma string; `user.name.x` | `Esperado int, encontrado string.` |
+| R6 | Estouro de `int` (32 bits) | `2147483647 + 1`, `-x` com `x` valendo -2147483648 | `Estouro de inteiro.` |
+| R7 | Estouro de pilha (recursão sem fim ou funda demais) | `func f(n:int):int { return f(n + 1); }` | `Estouro de pilha: recursão profunda demais.` |
+
+**Comportamentos de execução** que a especificação não dizia e a
+implementação fixou (14/11; podem ser mudados): `terminal.log` e `info` vão
+para a saída padrão e `warn` e `error` para a de erro, sem prefixo; um
+`float` aparece na forma mais curta que volta ao mesmo número, com `.0` se for
+inteiro (`3.0`, `0.30000000000000004`), e `inf`/`nan` nos casos do IEEE;
+`terminal.input` devolve `""` no fim da entrada; o `run` devolve a saída
+padrão inteira (inclusive o `\n` final) e, quando o comando não pode ser
+iniciado, o erro é `comando 'x' não pôde ser iniciado: <motivo>`; listas e
+objetos aparecem como `[1, 2]` e `{a: 1}`, com as strings entre aspas.
+
+**Cores no terminal.** Quando a saída é um terminal, as impressões saem
+coloridas pelo tipo (as mesmas da interface web): `log` em azul, `info` em
+ciano, `warn` em amarelo, `error` em vermelho e o erro de execução em vermelho
+forte. Cada fluxo é decidido sozinho: com `warn` e `error` no terminal e a
+saída padrão num arquivo, só os dois primeiros ganham cor. `NO_COLOR` (com
+qualquer valor) desliga as cores e `FORCE_COLOR` liga mesmo sem terminal; num
+pipe ou arquivo não há cor, então os testes e a saída redirecionada continuam
+limpos.
+
+**Windows.** O programa gerado também roda no Windows (`./flux --build
+--windows`, com o `mingw64-gcc`, ou compilando o `.c` lá). As diferenças que se
+veem: `run` não usa shell, então os comandos internos do `cmd`, como `echo`,
+precisam de `command: "cmd", flags: ["/c", "echo oi"]`; a mensagem de um
+comando que não pôde ser iniciado vem do sistema, no idioma dele; e a saída de
+texto usa `\r\n` nas quebras de linha, como o Windows faz.
+
+**Memória dos programas.** A biblioteca de execução tem um coletor de lixo
+(marca e varre). Ele roda quando o programa alocou uns 4 MB desde a última
+coleta, acha o que ainda é alcançável (os globais e a pilha do C, varrida de
+forma conservadora) e libera o resto. Variáveis de ambiente para depurar:
+`FLUX_GC=0` desliga o coletor, `FLUX_GC_STRESS=1` coleta a cada alocação (os
+testes de `tests/exec` rodam também assim, e a saída tem de ser idêntica) e
+`FLUX_GC_STATS=1` imprime quantas coletas houve ao sair. Um laço de 3 milhões
+de concatenações usa cerca de 9 MB, contra 330 MB sem o coletor, e leva cerca
+de 30% mais tempo.
+
+**Saída etiquetada** (`FLUX_TAGGED=1`, usada pela interface web): para a
+interface colorir cada linha pelo tipo de quem a imprimiu, a biblioteca de
+execução, com essa variável no ambiente, escreve tudo na saída padrão, em
+ordem, como registros `\x1e <tipo> <bytes> : <texto>`. Os tipos são `L`
+(`log`), `I` (`info`), `W` (`warn`), `E` (`error`), `F` (erro de execução, com o
+cabeçalho e a mensagem juntos) `P` (o prompt do `terminal.input`) e `A` (a resposta que ele leu). Sem a
+variável, o formato é o normal, descrito acima. O teste `tests/exec_tagged/`
+confere os registros (o separador aparece como `<RS>`).
 
 ```text
 Erro de execução [linha 12]:
