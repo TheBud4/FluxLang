@@ -72,7 +72,7 @@ const driver: Area = {
         { name: 'report_error', kind: 'função', page: 'linha-de-comando', what: <>Imprime um erro no formato {mono('Erro <categoria> [linha L, coluna C]:')} na saída de erro (ou o grava com {mono('json_record_error')} no modo JSON) e soma um em {mono('error_count')}. Usada pelo lexer, pelo parser e pela semântica.</> },
         { name: 'error_count', kind: 'variável estática', page: 'linha-de-comando', what: <>Quantos erros {mono('report_error')} já contou. Zero no fim quer dizer programa aceito.</> },
         { name: 'help', kind: 'função estática', page: 'linha-de-comando', what: <>Imprime o texto de uso; chamada por {mono('-h')}/{mono('--help')} e depois de uma opção desconhecida.</> },
-        { name: 'list_tokens', kind: 'função estática', page: 'linha-de-comando', what: <>O modo {mono('-t')}: chama {mono('yylex')} até o fim e imprime posição, nome e texto de cada token.</> },
+        { name: 'list_tokens', kind: 'função estática', page: 'linha-de-comando', what: <>O modo {mono('-t')}: chama {mono('yylex')} até o fim e imprime posição e nome de cada token, mais o texto só para identificadores e literais de número e de texto; os {mono('YYerror')} (erros léxicos, já reportados) são pulados.</> },
         { name: 'default_exe_name', kind: 'função estática', page: 'linha-de-comando', what: <>O nome do executável do {mono('--build')} sem {mono('-o')}: o nome do arquivo sem a extensão ({mono('a.out')} sem arquivo), com {mono('.exe')} no alvo Windows.</> },
         { name: 'run_codegen', kind: 'função estática', page: 'linha-de-comando', what: <>{mono('--c')}, {mono('--build')} e {mono('--run')}: escreve o C, chama {mono('compile_c')} e, no {mono('--run')}, {mono('execute_program')}, apagando os temporários.</> },
         { name: 'run', kind: 'função estática', page: 'linha-de-comando', what: <>Lê as opções, abre o arquivo, roda as etapas pedidas e devolve o código de saída.</> },
@@ -144,7 +144,7 @@ const frontend: Area = {
       role: <>A especificação do Flex: as regras de cada token e, nas partes em C, a contagem de linha e coluna e duas funções auxiliares.</>,
       items: [
         { name: 'RET', kind: 'macro', page: 'lexico', what: <>Termina toda regra que devolve token: cria a folha com {mono('token_node')}, grava o token para o JSON e devolve o código.</> },
-        { name: 'YY_USER_ACTION', kind: 'macro', page: 'lexico', what: <>Roda antes de cada regra: preenche {mono('yylloc')} com a posição atual e avança a posição com {mono('next')}.</> },
+        { name: 'YY_USER_ACTION', kind: 'macro', page: 'lexico', what: <>Roda antes de cada regra: preenche {mono('yylloc')} com a posição atual, zera {mono('yylval.node')} e avança a posição com {mono('next')}.</> },
         { name: 'line', kind: 'variável estática', page: 'lexico', what: <>Linha do próximo caractere, a partir de 1; anda junto com {mono('column')}.</> },
         { name: 'column', kind: 'variável estática', page: 'lexico', what: <>Coluna do próximo caractere, em caracteres (não bytes), a partir de 1.</> },
         { name: 'comment_line', kind: 'variável estática', page: 'lexico', what: <>Onde começou o comentário de bloco aberto, com {mono('comment_column')}, para o erro de comentário não terminado.</> },
@@ -257,12 +257,12 @@ const semantic: Area = {
         { name: 'Name', kind: 'typedef struct', page: 'ast', what: <>Um nome com a posição.</> },
         { name: 'ExprKind', kind: 'typedef enum', page: 'ast', what: <>{mono('EX_INT')}, {mono('EX_FLOAT')}, {mono('EX_STRING')}, {mono('EX_BOOL')}, {mono('EX_NULL')}, {mono('EX_IDENT')}, {mono('EX_UNARY')}, {mono('EX_BINARY')}, {mono('EX_INDEX')}, {mono('EX_FIELD')}, {mono('EX_CALL')}, {mono('EX_LIST')}, {mono('EX_OBJECT')}.</> },
         { name: 'Op', kind: 'typedef enum', page: 'ast', what: <>{mono('OP_OR')}, {mono('OP_AND')}, {mono('OP_EQ')}, {mono('OP_NE')}, {mono('OP_LT')}, {mono('OP_LE')}, {mono('OP_GT')}, {mono('OP_GE')}, {mono('OP_ADD')}, {mono('OP_SUB')}, {mono('OP_MUL')}, {mono('OP_DIV')}, {mono('OP_MOD')} e os unários {mono('OP_NEG')}, {mono('OP_NOT')}.</> },
-        { name: 'Expr', kind: 'struct', page: 'ast', what: <>Uma expressão; os campos usados dependem do {mono('kind')}, e {mono('type')} é preenchido pela semântica.</> },
+        { name: 'Expr', kind: 'typedef struct', page: 'ast', what: <>Uma expressão; os campos usados dependem do {mono('kind')}, e {mono('type')} é preenchido pela semântica.</> },
         { name: 'StmtKind', kind: 'typedef enum', page: 'ast', what: <>{mono('ST_VAR')}, {mono('ST_ASSIGN')}, {mono('ST_IF')}, {mono('ST_WHILE')}, {mono('ST_FOR')}, {mono('ST_RETURN')}, {mono('ST_BREAK')}, {mono('ST_CONTINUE')}, {mono('ST_ERRACT')}, {mono('ST_EXPR')}, {mono('ST_BLOCK')}.</> },
-        { name: 'ErrAction', kind: 'typedef enum', page: 'ast', what: <>{mono('ACT_STOP')}, {mono('ACT_ABORT')}, {mono('ACT_PROCEED')}: a ação de um {mono('stop if')}, {mono('abort if')} ou {mono('proceed if')}.</> },
+        { name: 'ErrAction', kind: 'typedef enum', what: <>{mono('ACT_STOP')}, {mono('ACT_ABORT')}, {mono('ACT_PROCEED')}: a ação de um {mono('stop if')}, {mono('abort if')} ou {mono('proceed if')}.</> },
         { name: 'RhsKind', kind: 'typedef enum', page: 'ast', what: <>{mono('RHS_EXPRS')}, {mono('RHS_CALL')}, {mono('RHS_RUN')}: o lado direito de uma declaração ou atribuição.</> },
         { name: 'Rhs', kind: 'typedef struct', page: 'ast', what: <>Lado direito: lista de expressões, {mono('call')} com argumentos ou {mono('run')} com o objeto.</> },
-        { name: 'Stmt', kind: 'struct', page: 'ast', what: <>Um comando; os campos usados dependem do {mono('kind')}.</> },
+        { name: 'Stmt', kind: 'typedef struct', page: 'ast', what: <>Um comando; os campos usados dependem do {mono('kind')}.</> },
         { name: 'Param', kind: 'typedef struct', page: 'ast', what: <>Um parâmetro: nome e tipo.</> },
         { name: 'Func', kind: 'typedef struct', page: 'ast', what: <>Função, workflow ou {mono('main')}: nome, parâmetros, tipo de retorno e corpo.</> },
         { name: 'Decl', kind: 'typedef struct', page: 'ast', what: <>Uma declaração global: {mono('var')} ou {mono('func')}, na ordem do arquivo.</> },
@@ -426,8 +426,8 @@ const semantic: Area = {
         },
         { name: 'SymKind', kind: 'typedef enum', page: 'semantica', what: <>{mono('SYM_VAR')}, {mono('SYM_FUNC')}, {mono('SYM_WORKFLOW')}, {mono('SYM_LIBFN')} (as conversões) e {mono('SYM_TERMINAL')}.</> },
         { name: 'MAX_SYMS', kind: 'macro', page: 'semantica', what: <>8192: quantas variáveis por função o estado de fluxo acompanha.</> },
-        { name: 'Symbol', kind: 'struct', page: 'semantica', what: <>Uma entrada da tabela: nome, tipo, se é constante, o índice no fluxo, o estado de variável de erro e a função ligada.</> },
-        { name: 'Scope', kind: 'struct', page: 'semantica', what: <>Um escopo: a lista de símbolos e o escopo pai.</> },
+        { name: 'Symbol', kind: 'typedef struct', page: 'semantica', what: <>Uma entrada da tabela: nome, tipo, se é constante, o índice no fluxo, o estado de variável de erro e a função ligada.</> },
+        { name: 'Scope', kind: 'typedef struct', page: 'semantica', what: <>Um escopo: a lista de símbolos e o escopo pai.</> },
         { name: 'scope', kind: 'variável estática', page: 'semantica', what: <>O escopo atual, topo da pilha.</> },
         { name: 'globals', kind: 'variável estática', page: 'semantica', what: <>O escopo global; atribuída e nunca lida.</> },
         { name: 'next_flow_id', kind: 'variável estática', page: 'semantica', what: <>O próximo índice livre do estado de fluxo; volta a 0 em cada função.</> },
@@ -604,8 +604,8 @@ const runtime: Area = {
         { name: 'FX_FN', kind: 'macro', page: 'runtime', what: <>{mono('static __attribute__((unused))')}: o prefixo de toda função da biblioteca.</> },
         { name: 'FxTag', kind: 'typedef enum', page: 'runtime', what: <>{mono('FX_NULL')}, {mono('FX_INT')}, {mono('FX_FLOAT')}, {mono('FX_BOOL')}, {mono('FX_STRING')}, {mono('FX_LIST')}, {mono('FX_OBJECT')}.</> },
         { name: 'FxValue', kind: 'typedef struct', page: 'runtime', what: <>Um valor: a etiqueta e a união {mono('as')} ({mono('i')}, {mono('f')}, {mono('b')}, {mono('s')}, {mono('l')}, {mono('o')}).</> },
-        { name: 'FxList', kind: 'struct', page: 'runtime', what: <>{mono('n')}, {mono('cap')} e o vetor {mono('v')}.</> },
-        { name: 'FxObj', kind: 'struct', page: 'runtime', what: <>{mono('n')}, {mono('cap')}, {mono('keys')} e {mono('vals')}, em ordem de inserção.</> },
+        { name: 'FxList', kind: 'typedef struct', page: 'runtime', what: <>{mono('n')}, {mono('cap')} e o vetor {mono('v')}.</> },
+        { name: 'FxObj', kind: 'typedef struct', page: 'runtime', what: <>{mono('n')}, {mono('cap')}, {mono('keys')} e {mono('vals')}, em ordem de inserção.</> },
         { name: 'FxPair', kind: 'typedef struct', page: 'runtime', what: <>{mono('result')} e {mono('error')}: o retorno de workflow e de {mono('run')}.</> },
         { name: 'fx_line', kind: 'variável estática', page: 'runtime', what: <>A linha FluxLang em execução, para os erros.</> },
         { name: 'FX_LINE', kind: 'macro', page: 'runtime', what: <>Grava {mono('fx_line')}; o gerador a põe antes de cada comando.</> },
@@ -753,7 +753,7 @@ const util: Area = {
       role: <>O alocador de arena: blocos grandes, pedaços alinhados a 16 bytes, liberação de tudo de uma vez.</>,
       items: [
         { name: 'CHUNK_SIZE', kind: 'macro', page: 'arena', what: <>256 KiB, o tamanho padrão de um bloco.</> },
-        { name: 'Chunk', kind: 'struct', page: 'arena', what: <>O cabeçalho de um bloco: anterior, usado e tamanho.</> },
+        { name: 'Chunk', kind: 'typedef struct', page: 'arena', what: <>O cabeçalho de um bloco: anterior, usado e tamanho.</> },
         { name: 'chunks', kind: 'variável estática', page: 'arena', what: <>O bloco mais recente, o único que recebe alocações.</> },
         { name: 'die_no_memory', kind: 'função estática', page: 'arena', what: <>{mono('Memória esgotada.')} e saída com código 2.</> },
         { name: 'mem_alloc', kind: 'função', page: 'arena', what: <>Um pedaço zerado e alinhado; nunca devolve nulo.</> },
@@ -780,7 +780,7 @@ const server: Area = {
         { name: 'sendJson', kind: 'função', page: 'interface-web', what: <>Responde com JSON (texto pronto ou objeto), se ainda não respondeu.</> },
         { name: 'fail', kind: 'constante (função)', page: 'interface-web', what: <>Responde {mono('{ error }')} com o código dado.</> },
         { name: 'readBody', kind: 'função', page: 'interface-web', what: <>Lê o corpo até o limite; acima dele responde 413 e devolve nulo.</> },
-        { name: 'isTrustedRunRequest', kind: 'função', page: 'interface-web', what: <>Host local, cabeçalho {mono('X-Flux-Run')} e origem igual ao host: só então o Executar roda.</> },
+        { name: 'isTrustedRunRequest', kind: 'função', page: 'interface-web', what: <>Host local, cabeçalho {mono('X-Flux-Run')} igual a 1 e cabeçalho {mono('Origin')} ausente ou igual a {mono('http://')} mais o host: só então o Executar roda.</> },
         { name: 'fluxApi', kind: 'função exportada', page: 'interface-web', what: <>O plugin: resolve o caminho do {mono('./flux')} e instala {mono('handler')} (que despacha para {mono('compile')} ou {mono('run')}) no servidor de desenvolvimento e no de prévia.</> },
       ],
     },
@@ -969,7 +969,7 @@ const webApp: Area = {
       page: 'interface-web',
       role: <>O gancho que compila o código a cada mudança.</>,
       items: [
-        { name: 'DEBOUNCE_MS', kind: 'constante', page: 'interface-web', what: <>400: a espera depois da última mudança antes de compilar.</> },
+        { name: 'DEBOUNCE_MS', kind: 'constante', what: <>400: a espera depois da última mudança antes de compilar.</> },
         { name: 'State', kind: 'interface', what: <>{mono('result')}, {mono('loading')} e {mono('failure')}.</> },
         { name: 'useCompile', kind: 'gancho', page: 'interface-web', what: <>Chama {mono('/api/compile')} (cancelando o pedido anterior) e devolve o estado e {mono('compileNow')}.</> },
       ],
@@ -1001,8 +1001,9 @@ function FileSection({ file }: { file: SourceFile }) {
   const local = file.items.filter((i) => i.sig)
   return (
     <>
-      <H3 title={file.path} />
+      <H3 title={file.path.startsWith('web/src/') ? file.path.slice('web/src/'.length) : file.path} />
       <P>
+        {file.path.startsWith('web/src/') && <>{mono(file.path)}. </>}
         {file.role} Cerca de {file.lines} linhas.{file.page && <> Página: {link(file.page)}.</>}
       </P>
       {rows.length > 0 && (
@@ -1024,6 +1025,7 @@ function FileSection({ file }: { file: SourceFile }) {
 interface IndexEntry {
   name: string
   file: string
+  page?: Slug
 }
 
 function buildIndex(): [string, IndexEntry[]][] {
@@ -1031,7 +1033,8 @@ function buildIndex(): [string, IndexEntry[]][] {
   for (const area of AREAS)
     for (const file of area.files)
       for (const item of file.items)
-        if (!NOT_INDEXED.has(item.kind)) entries.push({ name: item.name, file: baseName(file.path) })
+        if (!NOT_INDEXED.has(item.kind))
+          for (const name of item.name.split(', ')) entries.push({ name, file: baseName(file.path), page: item.page ?? file.page })
   entries.sort((a, b) => a.name.toLowerCase().localeCompare(b.name.toLowerCase()) || a.file.localeCompare(b.file))
   const groups = new Map<string, IndexEntry[]>()
   for (const e of entries) {
@@ -1045,7 +1048,7 @@ function buildIndex(): [string, IndexEntry[]][] {
 function NameIndex() {
   return (
     <Table
-      head={['Inicial', 'Nomes e arquivos']}
+      head={['Inicial', 'Nomes, arquivos e páginas']}
       rows={buildIndex().map(([letter, list]) => [
         letter,
         <span key={letter}>
@@ -1053,6 +1056,7 @@ function NameIndex() {
             <Fragment key={`${e.name}-${e.file}`}>
               {i > 0 && ', '}
               {mono(e.name)} <span className="text-muted">{e.file}</span>
+              {e.page && <> <span className="whitespace-nowrap">({link(e.page)})</span></>}
             </Fragment>
           ))}
         </span>,
@@ -1081,11 +1085,12 @@ export function Referencia() {
       <H2 title="Como usar esta página" />
       <P>
         Uma consulta rápida: cada arquivo do compilador e da interface com tudo o que ele define, funções, estruturas, enumerações, macros, variáveis globais e componentes, e a página que explica cada
-        um em detalhe. O que já tem explicação completa noutra página aparece aqui numa linha só, com o link; o que não tem (auxiliares pequenas) aparece aqui inteiro, com a assinatura, o que faz e
-        quem chama.
+        um em detalhe. O que já tem explicação completa noutra página aparece numa linha da tabela do arquivo, com o link. As funções auxiliares que nenhuma outra página explica aparecem num quadro
+        próprio, depois da tabela, com a assinatura, o que fazem e quem as chama. Os demais nomes que só esta página cobre (variáveis, constantes e tipos pequenos) ficam na tabela, numa linha só,
+        marcados como só aqui.
       </P>
       <P>
-        Para achar onde um nome mora, use o índice no fim da página (nome e arquivo) ou a busca da documentação. As constantes de uma enumeração aparecem na linha do tipo dela; os protótipos dos
+        Para achar onde um nome mora, use o índice no fim da página (nome, arquivo e página) ou a busca da documentação. As constantes de uma enumeração aparecem na linha do tipo dela; os protótipos dos
         cabeçalhos aparecem na seção do cabeçalho, mas o índice aponta para o arquivo que define.
       </P>
 
@@ -1111,7 +1116,7 @@ export function Referencia() {
       </P>
 
       <H2 title="Índice de nomes" />
-      <P>Em ordem alfabética, com o arquivo que define cada nome. Nomes iguais em arquivos diferentes aparecem uma vez para cada arquivo.</P>
+      <P>Em ordem alfabética, com o arquivo em que cada nome aparece nesta página e a página que o explica. Quase sempre é o arquivo que define o nome; as exceções são {mono('yyin')} e {mono('yylex_destroy')}, só declarados em {mono('main.c')}, e {mono('flux_runtime_source')}, só declarado em {mono('codegen_c.c')} (a linha de cada um diz onde é definido). Nomes iguais em arquivos diferentes aparecem uma vez para cada arquivo.</P>
       <NameIndex />
     </>
   )
