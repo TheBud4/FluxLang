@@ -4,3 +4,5 @@ build/
 flux
 *.vsix
 .superpowers/
+.playwright-mcp/
+.impeccable/

@@ -476,6 +476,13 @@ código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise s
 para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
 `invalido.flux`.
 
+**Documentação.** A aba **Documentação** da interface (endereço `#/doc`; cada
+página fica em `#/doc/<seção>/<página>`, como `#/doc/linguagem/tipos`) traz o
+manual da linguagem, que explica cada regra em detalhe com exemplos e as
+mensagens reais do compilador, e a documentação do compilador (cada etapa
+e uma referência arquivo por arquivo), com uma busca. Este README continua sendo a especificação da
+linguagem; o manual a explica por inteiro e os dois devem dizer a mesma coisa.
+
 **Segurança do Executar.** Executar roda o programa de verdade neste computador,
 inclusive os comandos que ele pedir em `run`. O servidor só escuta em
 `127.0.0.1`, e a rota `POST /api/run` ainda confere o `Host`, o `Origin` e um
@@ -495,7 +502,8 @@ computador seu e não a exponha na rede.
 }
 ```
 
-`kind` do erro é `léxico` ou `sintático`. Cada nó da árvore tem `kind`
+`kind` do erro é `léxico`, `sintático` ou, com `--semantic` (que a interface
+liga por padrão), `semântico`. Cada nó da árvore tem `kind`
 (`rule` para não-terminal, `token`, `empty` para ε, `error` para o trecho
 descartado pelo modo pânico), `label` e, quando há token, `text`, `line` e
 `column`; `children` só existe se o nó tem filhos.

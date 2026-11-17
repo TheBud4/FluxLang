@@ -52,6 +52,7 @@
 - [x] Saída do programa colorida por tipo, no terminal e na interface (`NO_COLOR` e `FORCE_COLOR`)
 - [x] Campo de entrada (stdin) e botão Executar na interface
 - [x] O programa gerado roda no Windows (`--build --windows`; testado como `.exe` no wine)
+- [x] Documentação completa da linguagem e do compilador na interface web (aba Documentação, `#/doc`: 15 páginas da linguagem, 17 do compilador); comentários removidos do código
 
 ## Em aberto (opcional)
 
@@ -60,3 +61,31 @@
 - [ ] Colorir as mensagens do próprio compilador no terminal
 - [ ] Testar em macOS
 - [ ] x86-64 nativo, sem passar por C (só se o usuário pedir)
+
+### Decisões pendentes com o usuário (achados da documentação)
+
+Achados ao escrever o manual. As páginas documentam o comportamento atual
+do compilador; nada aqui foi mudado. Cada item espera uma decisão: corrigir,
+ratificar no README ou deixar como está.
+
+Defeitos do compilador:
+
+- [ ] `./flux --build prog` com o fonte sem extensão grava o executável por cima do fonte
+- [ ] `q, e = call w()` com `q:float` e `w` devolvendo `int` copia sem converter (`q / 2` dá 0, não 0.5)
+- [ ] `l[f()] = g()` avalia o valor (`g`) antes do alvo (`f`), contra a ordem da esquerda para a direita
+- [ ] Inicializadores globais rodam na ordem do arquivo: uma função chamada ali lê os globais de baixo como `null` (R3)
+- [ ] `fx_line` não é restaurada no retorno de função: um erro de execução pode citar a linha do fim da função chamada
+- [ ] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução
+- [ ] Com mais de 8192 variáveis locais, o E3 deixa de ser detectado
+- [ ] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`)
+- [ ] Pânico: um comando quebrado sem `;` antes do `}` (`x = 1 +` e `}`) tem o `}` descartado, a função fica aberta e sai `tree: null` ou um erro extra no fim do arquivo; `1 +;` solto no nível global, sem `func main` depois, dá o mesmo segundo erro e `tree: null`
+- [ ] `FLUX_CC` também troca o compilador do alvo `--windows` (com `FLUX_CC=clang`, as passadas Windows falham)
+
+Lacunas do README (o compilador já faz; falta ratificar ou mudar):
+
+- [ ] Promoção de `int` para `float` também em argumentos, no `return` de função `:float` e nos elementos de literal de lista
+- [ ] `&&` e `||` em curto-circuito
+- [ ] Parâmetros de função e a variável do `for` podem ser reatribuídos
+- [ ] Chave repetida em literal de objeto (`{a: 1, a: 2}`) é aceita; vale a última
+- [ ] `toInt(" 42")` (com espaço) devolve 42
+- [ ] O item "Forma dos nós da AST" em "Em aberto" do README está desatualizado (`--ast` existe)

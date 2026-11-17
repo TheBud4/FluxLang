@@ -29,6 +29,7 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
 | `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` (`/api/compile`) e executa programas (`/api/run`, botão Executar) | Agente, com revisão do usuário |
+| `web/src/docs/` | Aba Documentação da interface: `registry.ts` (a lista de páginas), `blocks.tsx` (os blocos de texto, código, tabela e links), a navegação, a busca e as páginas em `pages/linguagem/` (o manual da linguagem) e `pages/compilador/` (cada etapa do compilador e a referência arquivo por arquivo) | Agente, com revisão do usuário |
 | `src/` | Driver: `main.c` (opções, `report_error`), `json.c` (saída `--json`), `fluxc.h` | Agente |
 | `src/frontend/` | `lexer.l`, `parser.y`, `tree.c`/`tree.h` (análise léxica e sintática, árvore de derivação) | Agente |
 | `src/semantic/` | `types.c`, `ast.c`, `ast_build.c`, `sema.c` (+ `.h`): tipos, AST e análise semântica | Agente |
@@ -59,7 +60,8 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 4. **Toda mudança na gramática deve continuar LL(1).** Confira à mão os
    conflitos FIRST/FIRST e FIRST/FOLLOW e reporte-os.
 5. **Consistência entre arquivos.** Uma decisão tomada precisa aparecer em
-   README, ERROS.md, exemplos e (como `[pendente]`) na BNF. Os links do
+   README, ERROS.md, exemplos, nas páginas do manual
+   (`web/src/docs/pages/`) e (como `[pendente]`) na BNF. Os links do
    README usam o prefixo `docs/`; os do ERROS.md são relativos a `docs/`.
 6. **Idioma:** documentação e mensagens do compilador em português; a
    BNF usa nomes de não-terminais em inglês (`<before_main>`,
@@ -75,15 +77,23 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 9. **Medir antes de afirmar.** Tentativas que pioraram o resultado ficam
    registradas na documentação com o número que as derrubou (ver o
    refinamento do pânico em ERROS.md, seção 6) para ninguém repeti-las.
+10. **O código não leva comentário.** Vale para `src/` e `web/`; ficam só as
+    diretivas que têm efeito (como `@ts-expect-error`). A explicação, inclusive
+    o porquê de cada escolha, vai na página de documentação correspondente em
+    `web/src/docs/pages/` (a página `compilador/referencia` diz qual página
+    cobre cada arquivo). Mudou o código, atualize a página na mesma mudança.
 
-## Estado atual (15/11/2026): handoff
+## Estado atual (17/11/2026): handoff
 
 **Resumo.** O Trabalho 2 vence em 26/11/2026. O compilador está completo para
 o enunciado e para os dois extras: lexer, parser com modo pânico, árvore de
 derivação, `--json`, interface web, AST, análise semântica (E1 a E24) e um
-gerador de C com biblioteca de execução. O que falta não é código: os slides,
-a demonstração e o ensaio (feitos por outras pessoas) e a pergunta ao
-professor (ver `docs/TAREFAS.md`). O Trabalho 1 foi entregue em 01/10.
+gerador de C com biblioteca de execução. A interface tem uma aba Documentação
+(`#/doc`) com o manual da linguagem (15 páginas) e a documentação do compilador
+(17 páginas, com a referência arquivo por arquivo); os comentários do código
+foram para essas páginas (regra 10). O que falta não é código: os slides, a
+demonstração e o ensaio (feitos por outras pessoas), a pergunta ao professor e
+as decisões pendentes listadas em "Em aberto" (ver `docs/TAREFAS.md`). O Trabalho 1 foi entregue em 01/10.
 
 ### Como construir e testar
 
@@ -126,6 +136,19 @@ valor é um `FxValue` com etiqueta, cada subexpressão vai para um temporário
 `src/backend/runtime/flux_rt.h` é embutido em todo `.c` gerado (o Makefile o transforma em
 `build/runtime_src.c`) e tem os operadores, `run`, `terminal`, o coletor de
 lixo e as versões Windows/POSIX. O compilador aloca de um arena (`mem.c`).
+
+### Documentação na interface (`web/src/docs/`)
+
+A aba Documentação lê `registry.ts`, que junta as listas de
+`pages/linguagem/index.ts` e `pages/compilador/index.ts`; cada página é um
+componente `.tsx` feito com os blocos de `blocks.tsx`, e a busca e o "Nesta
+página" saem do texto delas. A rota é `#/doc/<seção>/<página>`. Para criar ou
+mudar uma página, siga a página `compilador/documentacao` (o sistema, os
+blocos e o passo a passo); confira que todo `PageLink` aponta para um id
+registrado e rode `npx tsc -b` e os gates do hook de design. O manual
+documenta o comportamento atual do compilador; onde ele diverge do README ou
+tem um defeito conhecido, a página diz isso e o item está em "Em aberto" do
+`docs/TAREFAS.md`, à espera do usuário.
 
 ### Testes (`tests/run.sh`)
 
@@ -202,7 +225,9 @@ escuro (contraste).
 ### Para retomar
 
 Leia, nesta ordem: este arquivo, `docs/TAREFAS.md` (o que falta), `docs/ERROS.md`
-(erros, formatos de saída, coletor, Windows) e o README seção 9 (uso). A memória do
+(erros, formatos de saída, coletor, Windows) e o README seção 9 (uso). O porquê
+de cada parte do código está nas páginas do compilador na aba Documentação
+(`make web`, depois `#/doc/compilador/visao-geral`). A memória do
 agente (`~/.claude/projects/.../memory/`) guarda as decisões do usuário e os motivos.
 
 ## A linguagem em uma página
@@ -251,7 +276,8 @@ Nada acontece se `e` for `null`. O operando precisa ser uma variável de
 erro (a segunda variável de um `call`/`run`). Um workflow cria um erro
 próprio com `return null, "mensagem";`. Os outros erros de execução
 (conversão impossível, índice fora da lista, uso de `null`, divisão
-inteira por zero, tipo errado de campo, estouro de `int`) são fatais: R1–R6.
+inteira por zero, tipo errado de campo, estouro de `int`, estouro de pilha)
+são fatais: R1–R7.
 
 **Controle de fluxo:** `if (cond) { } else { }` sem `else if` (o `else`
 é seguido de bloco); `while (cond) { }`; `for item in lista { }`, sem
