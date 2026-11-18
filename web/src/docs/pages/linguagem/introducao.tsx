@@ -111,7 +111,7 @@ feito
       <H3 title="No editor da interface" />
       <P>
         Na aba Editor, escreva ou cole o programa (ou use Abrir no editor em qualquer exemplo desta documentação, que
-        troca o código do editor e volta para a aba Editor). O código é recompilado sozinho depois que você para de
+        substitui o código que estiver no editor pelo do exemplo e volta para a aba Editor, com o cursor no início do código). O código é recompilado sozinho depois que você para de
         digitar, e as mensagens de erro aparecem com a linha e a coluna. A chave Análise semântica liga a
         verificação de tipos e de escopo, além da análise léxica e sintática.
       </P>

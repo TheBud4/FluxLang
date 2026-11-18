@@ -835,7 +835,7 @@ const webApp: Area = {
     },
     {
       path: 'web/src/App.tsx',
-      lines: 130,
+      lines: 140,
       page: 'interface-web',
       role: <>O componente raiz: o estado da tela, os cinco painéis do editor e a troca entre editor e documentação.</>,
       items: [
@@ -847,14 +847,14 @@ const webApp: Area = {
     },
     {
       path: 'web/src/components/Editor.tsx',
-      lines: 70,
+      lines: 80,
       page: 'interface-web',
       role: <>O editor: um {mono('textarea')} com a coluna de números de linha e as faixas das linhas com erro.</>,
       items: [
         { name: 'LINE_HEIGHT', kind: 'constante', page: 'interface-web', what: <>20, a altura de uma linha, para posicionar faixas e rolagem.</> },
         { name: 'PADDING', kind: 'constante', page: 'interface-web', what: <>8, o recuo interno do {mono('textarea')}.</> },
-        { name: 'EditorProps', kind: 'interface', page: 'interface-web', what: <>{mono('value')}, {mono('onChange')}, {mono('errorLines')}, {mono('focus')}.</> },
-        { name: 'Editor', kind: 'componente', page: 'interface-web', what: <>Seleciona o trecho de {mono('focus')} e rola até ele quando o foco muda.</> },
+        { name: 'EditorProps', kind: 'interface', page: 'interface-web', what: <>{mono('value')}, {mono('onChange')}, {mono('errorLines')}, {mono('focus')}, {mono('focusKey')}.</> },
+        { name: 'Editor', kind: 'componente', page: 'interface-web', what: <>Seleciona o trecho de {mono('focus')} e rola até ele quando o foco muda; foca o início do código quando {mono('focusKey')} muda.</> },
       ],
     },
     {

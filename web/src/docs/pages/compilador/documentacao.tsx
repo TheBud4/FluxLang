@@ -131,7 +131,7 @@ export function Documentacao() {
         nenhum passo extra. O índice fica guardado até a página do navegador recarregar.
       </P>
       <Fn name="buildIndex" signature="export function buildIndex(pages: DocPage[]): IndexEntry[]">
-        Para cada página, {mono('{ id, title, text }')}, em que {mono('text')} é o resumo seguido do texto da página.
+        Para cada página, {mono('{ id, title, summary, headings, text }')}: {mono('headings')} junta o texto dos títulos {mono('<h2>')} e {mono('<h3>')} do HTML, e {mono('text')} é o resumo seguido do texto da página.
       </Fn>
       <Fn name="getIndex" signature="export function getIndex(): IndexEntry[]">
         {mono('buildIndex(PAGES)')} na primeira chamada; a mesma lista nas seguintes.
@@ -144,8 +144,10 @@ export function Documentacao() {
         Tira os acentos e passa para minúsculas: buscar &quot;funcao&quot; acha &quot;função&quot;.
       </Fn>
       <Fn name="search" signature="export function search(index: IndexEntry[], query: string): SearchHit[]">
-        Divide a busca em palavras; uma página entra só se tem todas (no título ou no texto). A pontuação soma, por palavra, 20 por ocorrência no título e as ocorrências no texto até 10. Devolve as páginas em ordem
-        de pontuação, cada uma com um trecho de até 60 caracteres para cada lado da primeira ocorrência ({mono('snippetOf')}, interna; {mono('count')}, interna, conta ocorrências sem sobreposição).
+        Divide a busca em palavras; uma página entra só se tem todas (no título ou no texto). A pontuação soma, por palavra, 20 por ocorrência no título da página, 10 por ocorrência num título de seção, 5 por
+        ocorrência no resumo e as ocorrências no texto até 10. O teto do texto impede que uma página longa ganhe só por repetir a palavra; os pesos dos títulos e do resumo põem na frente a página em que o
+        assunto é o tema, como o catálogo para {mono('E11')}. Uma palavra com ponto, como {mono('terminal.log')}, soma ainda 5 por ocorrência de cada parte (com mais de dois
+        caracteres) num título de seção e 2 no resumo: assim a Biblioteca, que tem a seção &quot;O terminal&quot;, passa à frente das páginas que só usam {mono('terminal.log')} nos exemplos. No empate, vence a densidade: as ocorrências no texto divididas pelo tamanho dele. Devolve as páginas em ordem de pontuação, cada uma com um trecho de até 60 caracteres para cada lado da primeira ocorrência ({mono('snippetOf')}, interna; {mono('count')}, interna, conta ocorrências sem sobreposição).
       </Fn>
       <H2 title="DocsView, o menu, a busca e o Nesta página" />
       <Table

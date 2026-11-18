@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import invalid from '../../docs/exemplos/invalido.flux?raw'
 import valid from '../../docs/exemplos/valido.flux?raw'
 import { ErrorList } from './components/ErrorList'
@@ -33,9 +33,17 @@ export default function App() {
   const [semantic, setSemantic] = useState(true)
   const [stdin, setStdin] = useState('')
   const [expand, setExpand] = useState({ key: 0, all: true })
+  const [editorFocus, setEditorFocus] = useState(0)
+  const focusPending = useRef(false)
   const { result, loading, failure, compileNow } = useCompile(source, semantic)
   const { state: runState, run } = useRun()
   const { view, pageId, goDoc, goEditor } = useHashRoute()
+
+  useEffect(() => {
+    if (view !== 'editor' || !focusPending.current) return
+    focusPending.current = false
+    setEditorFocus((n) => n + 1)
+  }, [view])
 
   const usesInput = useMemo(() => /\bterminal\s*\.\s*input\b/.test(source), [source])
 
@@ -69,7 +77,7 @@ export default function App() {
 
       <main hidden={view === 'docs'} className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-2 lg:grid-cols-[1.3fr_0.8fr_1.2fr] lg:grid-rows-[minmax(0,1fr)_11rem]">
         <Panel title="Código" className="h-96 lg:h-auto">
-          <Editor value={source} onChange={setSource} errorLines={errorLines} focus={focus} />
+          <Editor value={source} onChange={setSource} errorLines={errorLines} focus={focus} focusKey={editorFocus} />
         </Panel>
 
         <Panel title={`Tokens (${result?.tokens.length ?? 0})`} className="h-72 lg:h-auto">
@@ -122,6 +130,7 @@ export default function App() {
         <DocsProvider
           openInEditor={(text) => {
             setSource(text)
+            focusPending.current = true
             goEditor()
           }}
         >

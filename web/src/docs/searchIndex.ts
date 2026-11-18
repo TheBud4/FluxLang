@@ -7,6 +7,8 @@ import type { DocPage } from './types'
 export interface IndexEntry {
   id: string
   title: string
+  summary: string
+  headings: string
   text: string
 }
 
@@ -51,7 +53,8 @@ export function buildIndex(pages: DocPage[]): IndexEntry[] {
     const body = renderToStaticMarkup(
       createElement(DocsProvider, { openInEditor: () => {}, children: createElement(page.Component) }),
     )
-    return { id: page.id, title: page.title, text: toText(`${page.summary} ${body}`) }
+    const headings = [...body.matchAll(/<h[23]\b[^>]*>([\s\S]*?)<\/h[23]>/g)].map((m) => toText(m[1])).join(' ')
+    return { id: page.id, title: page.title, summary: page.summary, headings, text: toText(`${page.summary} ${body}`) }
   })
 }
 
@@ -83,16 +86,24 @@ export function search(index: IndexEntry[], query: string): SearchHit[] {
   const words = normalize(query).split(/\s+/).filter(Boolean)
   if (words.length === 0) return []
 
-  const scored: { entry: IndexEntry; norm: string; score: number }[] = []
+  const scored: { entry: IndexEntry; norm: string; score: number; density: number }[] = []
   for (const entry of index) {
     const title = normalize(entry.title)
+    const headings = normalize(entry.headings)
+    const summary = normalize(entry.summary)
     const norm = normalize(entry.text)
     if (!words.every((w) => title.includes(w) || norm.includes(w))) continue
     let score = 0
-    for (const w of words) score += count(title, w) * 20 + Math.min(count(norm, w), 10)
-    scored.push({ entry, norm, score })
+    let hits = 0
+    for (const w of words) {
+      const body = count(norm, w)
+      hits += body
+      score += count(title, w) * 20 + count(headings, w) * 10 + count(summary, w) * 5 + Math.min(body, 10)
+      for (const part of w.includes('.') ? w.split('.').filter((x) => x.length > 2) : []) score += count(headings, part) * 5 + count(summary, part) * 2
+    }
+    scored.push({ entry, norm, score, density: hits / Math.max(norm.length, 1) })
   }
-  scored.sort((a, b) => b.score - a.score)
+  scored.sort((a, b) => b.score - a.score || b.density - a.density)
   return scored.map((s) => ({
     id: s.entry.id,
     title: s.entry.title,

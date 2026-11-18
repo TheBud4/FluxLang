@@ -453,6 +453,8 @@ export default defineConfig({
           [mono('semantic'), mono('true'), <>A chave &quot;Análise semântica&quot;: vira {mono('?semantic=1')}.</>],
           [mono('stdin'), 'texto vazio', 'O campo "Entrada do programa".'],
           [mono('expand'), mono('{ key: 0, all: true }'), <>Os botões Expandir e Recolher da árvore: cada clique soma 1 em {mono('key')} e põe {mono('all')}.</>],
+          [mono('editorFocus'), mono('0'), <>Um contador: cada aumento pede ao editor que receba o foco do teclado com o cursor no início (a propriedade {mono('focusKey')}).</>],
+          [<>{mono('focusPending')} (uma {mono('ref')})</>, mono('false'), <>Marca que um &quot;Abrir no editor&quot; está esperando a tela do editor aparecer.</>],
           [<>{mono('result')}, {mono('loading')}, {mono('failure')}</>, <>de {mono('useCompile')}</>, 'O último JSON, se há um pedido em curso e a falha do servidor.'],
           [mono('runState'), <>de {mono('useRun')}</>, 'A fase da execução e o resultado.'],
           [<>{mono('view')}, {mono('pageId')}</>, <>de {mono('useHashRoute')}</>, 'A tela atual e a página da documentação.'],
@@ -465,8 +467,10 @@ export default defineConfig({
       </P>
       <P>
         Os painéis ficam numa grade: em telas a partir de {mono('lg')} (64 rem), três colunas (Código, Tokens, Árvore) e uma segunda faixa de altura fixa com Erros (ocupando duas colunas) e Saída; abaixo
-        disso, um painel embaixo do outro, cada um com altura própria. Na documentação, {mono('App')} põe {mono('DocsView')} dentro de {mono('DocsProvider')}, cujo {mono('openInEditor')} troca o código e volta ao
-        editor (o botão &quot;Abrir no editor&quot; dos exemplos desta documentação).
+        disso, um painel embaixo do outro, cada um com altura própria. Na documentação, {mono('App')} põe {mono('DocsView')} dentro de {mono('DocsProvider')}, cujo {mono('openInEditor')} troca o código, marca {mono('focusPending')} e volta ao
+        editor (o botão &quot;Abrir no editor&quot; dos exemplos desta documentação). A troca de tela só acontece no evento {mono('hashchange')}, depois do clique, e um {mono('textarea')} dentro do{' '}
+        {mono('main')} escondido não recebe foco; por isso um efeito de {mono('App')} espera {mono('view')} virar {mono('editor')} e, se há um pedido pendente, soma 1 em {mono('editorFocus')}. Voltar ao editor
+        pela aba ou pelo Voltar do navegador não move o foco.
       </P>
       <Fn name="App" signature="export default function App(): JSX.Element">
         O componente raiz, montado por {mono('main.tsx')}. Guarda o estado da tabela acima e liga os componentes: {mono('TopBar')}, os cinco {mono('Panel')} e {mono('DocsView')}.
@@ -518,6 +522,7 @@ export default defineConfig({
           [mono('onChange'), mono('(value: string) => void'), 'Cada tecla.'],
           [mono('errorLines'), mono('ReadonlySet<number>'), 'As linhas (a partir de 1) a realçar.'],
           [mono('focus'), mono('Focus | null'), 'O pedido de seleção (ver o efeito abaixo).'],
+          [mono('focusKey'), mono('number (opcional)'), <>Quando muda para um valor diferente de 0, foca o {mono('textarea')}, põe o cursor no início e rola ao topo. Usado pelo &quot;Abrir no editor&quot;.</>],
         ]}
       />
       <Why>
@@ -534,7 +539,7 @@ export default defineConfig({
         linha no meio. A coluna do {mono('flux')} conta caracteres (medido: em {mono('var s = "olá"; var x')}, o {mono(';')} depois do texto está na coluna 29, cinco depois da aspa de abertura), e o tamanho dos
         tokens é contado em pontos de código ({mono('[...text].length')}), então acentos não deslocam a seleção.
       </P>
-      <Fn name="Editor" signature="export function Editor({ value, onChange, errorLines, focus }: EditorProps): JSX.Element">
+      <Fn name="Editor" signature="export function Editor({ value, onChange, errorLines, focus, focusKey }: EditorProps): JSX.Element">
         O componente descrito acima. O número de linhas vem de {mono("value.split('\\n').length")}.
       </Fn>
       <H3 title="TokenList e ErrorList" />

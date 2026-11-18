@@ -9,9 +9,10 @@ interface EditorProps {
   onChange: (value: string) => void
   errorLines: ReadonlySet<number>
   focus: Focus | null
+  focusKey?: number
 }
 
-export function Editor({ value, onChange, errorLines, focus }: EditorProps) {
+export function Editor({ value, onChange, errorLines, focus, focusKey }: EditorProps) {
   const textarea = useRef<HTMLTextAreaElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
   const lineCount = useMemo(() => value.split('\n').length, [value])
@@ -28,6 +29,14 @@ export function Editor({ value, onChange, errorLines, focus }: EditorProps) {
     el.setSelectionRange(start, end)
     el.scrollTop = Math.max(0, PADDING + lineIndex * LINE_HEIGHT - el.clientHeight / 2)
   }, [focus])
+
+  useEffect(() => {
+    const el = textarea.current
+    if (!focusKey || !el) return
+    el.focus({ preventScroll: true })
+    el.setSelectionRange(0, 0)
+    el.scrollTop = 0
+  }, [focusKey])
 
   return (
     <div className="flex h-full min-h-0 font-mono text-sm leading-5">
