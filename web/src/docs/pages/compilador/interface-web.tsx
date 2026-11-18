@@ -413,7 +413,7 @@ export default defineConfig({
         head={['Programa', 'Resposta']}
         rows={[
           [<>{mono('terminal.log("antes");')} seguido de {mono('while (true) { }')}</>, <>{mono('timeout')} com {mono('output')} vazio: o {mono('antes')} ainda estava no buffer da biblioteca C (a saída é um cano, não um terminal) e se perdeu com o {mono('SIGKILL')}.</>],
-          [<>Um objeto que contém a si mesmo, impresso ({mono('o.me = o; terminal.log(o);')})</>, <>{mono('ok')}, {mono('exitCode: null')} e {mono('message')} {mono('O programa foi encerrado pelo sinal SIGSEGV.')} (o estouro de pilha descrito em <PageLink to="compilador/runtime">Biblioteca de execução</PageLink>).</>],
+          [<>{mono('terminal.log("antes");')} e um objeto que contém a si mesmo, impresso ({mono('o.me = o; terminal.log(o);')})</>, <>{mono('ok')}, {mono('exitCode: 1')} e duas linhas: {mono('antes')} como {mono('log')} e o erro R7 como {mono('fatal')} ({mono('Erro de execução [linha 5]:')} e {mono('Estrutura circular ou profunda demais para imprimir.')}). Aqui o {mono('antes')} não se perde: {mono('fx_die')} esvazia a saída padrão antes de escrever o erro (ver <PageLink to="compilador/runtime">Biblioteca de execução</PageLink>).</>],
         ]}
       />
       <H3 title="Funções de run-program.ts" />

@@ -250,7 +250,7 @@ Programa aceito.`}
 Programa rejeitado.`}
       </Code>
       <Callout kind="nota">
-        Se a análise termina sem fechar a regra {mono('program')}, como num arquivo vazio ou que começa por {mono('}')}, {mono('parse_root')}
+        Se a análise termina sem fechar a regra {mono('program')}, como num arquivo vazio ou que começa por {mono('}')}, {mono('parse_root')}{' '}
         fica nulo: o {mono('--tree')} não imprime nenhuma linha de árvore e só diz {mono('Programa rejeitado.')}. As opções {mono('--tree')} e{' '}
         {mono('--ast')} podem vir juntas: a árvore sai primeiro, depois a AST, depois a linha de aceito ou rejeitado.
       </Callout>
@@ -390,7 +390,7 @@ $ ./flux --json --semantic e4.flux | grep -A1 '"errors"'
         {mono('RET')} a cada token entregue ao parser.
       </Fn>
       <Fn name="json_record_error" signature="void json_record_error(const char *kind, int line, int column, const char *message)">
-        Acrescenta um erro ao vetor, copiando {mono('kind')} e {mono('message')}. Não consulta {mono('enabled')}: só o {mono('report_error')}
+        Acrescenta um erro ao vetor, copiando {mono('kind')} e {mono('message')}. Não consulta {mono('enabled')}: só o {mono('report_error')}{' '}
         a chama, e só no modo JSON.
       </Fn>
       <Fn name="json_print" signature="void json_print(FILE *out, int accepted, int lines)">

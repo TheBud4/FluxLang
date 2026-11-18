@@ -109,13 +109,13 @@ export function Arena() {
         Entrega um pedaço de pelo menos {mono('size')} bytes, zerado e alinhado a 16. Arredonda {mono('size')} para cima
         até múltiplo de 16 (e um pedido de 0 bytes vira 16). Se não há bloco ou o bloco do topo não tem espaço, cria um
         novo com {mono('calloc')}, de tamanho {mono('CHUNK_SIZE')} ou, se o pedido for maior, do tamanho do pedido (um
-        bloco só para ele), e o põe no topo da lista. Devolve o endereço logo depois do cabeçalho mais o {mono('used')}
+        bloco só para ele), e o põe no topo da lista. Devolve o endereço logo depois do cabeçalho mais o {mono('used')}{' '}
         atual e avança o {mono('used')}. Se o {mono('calloc')} falha, imprime {mono('Memória esgotada.')} na saída de
         erro e termina o processo com código 2; nunca devolve nulo. Chamada por todo o compilador, direto ou por{' '}
         {mono('mem_strdup')} e {mono('mem_grow')}.
       </Fn>
       <Fn name="mem_strdup" signature="char *mem_strdup(const char *s)">
-        Copia a string {mono('s')} (com o terminador nulo) para a arena e devolve a cópia. Substitui o {mono('strdup')}
+        Copia a string {mono('s')} (com o terminador nulo) para a arena e devolve a cópia. Substitui o {mono('strdup')}{' '}
         do C. Usada para guardar o texto de cada token, os campos dos registros do JSON, o nome padrão do executável e a cópia de {mono('FLUX_CC_FLAGS')}.
       </Fn>
       <Fn name="mem_grow" signature="void *mem_grow(void *old, size_t old_size, size_t new_size)">
@@ -128,7 +128,7 @@ export function Arena() {
       </Fn>
       <Why>
         O bloco antigo de um {mono('mem_grow')} fica na arena e não é liberado: é consequência do desenho, em que nada
-        é liberado individualmente e tudo some junto em {mono('mem_free_all')}. Como os vetores que usam {mono('mem_grow')}
+        é liberado individualmente e tudo some junto em {mono('mem_free_all')}. Como os vetores que usam {mono('mem_grow')}{' '}
         dobram de tamanho a cada vez, a soma dos tamanhos anteriores nunca passa do tamanho atual.
       </Why>
       <Fn name="mem_free_all" signature="void mem_free_all(void)">
@@ -155,7 +155,7 @@ export function Arena() {
       </Why>
       <Callout kind="nota">
         Na prática, o LeakSanitizer só relata blocos inalcançáveis, e os blocos da arena continuam alcançáveis pela
-        variável global {mono('chunks')} mesmo sem o {mono('mem_free_all')}. Conferido num build de teste: sem a chamada, o
+        variável global {mono('chunks')} mesmo sem o {mono('mem_free_all')}. Conferido num build de teste: sem a chamada, o{' '}
         {mono('make asan')} não reclama; já um {mono('malloc')} perdido de {mono('main')} é apontado na hora. Ou seja, o
         que o LeakSanitizer protege de verdade é o código que usa {mono('malloc')} fora da arena, e a liberação final deixa
         a arena igualmente arrumada.

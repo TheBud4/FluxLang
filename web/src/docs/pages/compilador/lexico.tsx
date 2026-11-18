@@ -198,7 +198,7 @@ export function Lexico() {
       </Fn>
       <Why>
         A folha criada por {mono('RET')} vai em {mono('yylval.node')} e é o valor semântico do token no parser: é ela que
-        vira folha da árvore de derivação quando a regra do parser empilha os filhos. O nome é o do token na BNF porque
+        vira folha da árvore de derivação quando a regra do parser empilha os filhos. O nome é o do token na BNF porque{' '}
         {mono('#t')} usa o mesmo identificador do {mono('%token')}, sem tabela de tradução. Os detalhes do nó estão em{' '}
         <PageLink to="compilador/arvore-json">Árvore e JSON</PageLink>.
       </Why>
@@ -272,7 +272,7 @@ $ ./flux -t k.flux
         Medido com {mono('-t')}: {mono('5.')}, {mono('2itens')}, {mono('3.14abc')}, {mono('1e10')} e {mono('0xFF')} dão{' '}
         {mono('Número malformado')} com o lexema inteiro; {mono('99999999999')} e {mono('2147483648')} dão{' '}
         {mono('Número inteiro fora do intervalo')}; {mono('2147483647')} é aceito. O ponto sozinho seguido de dígitos não
-        é erro léxico: {mono('.5')} vira {mono('DOT')} e {mono('INT_LITERAL')}, e é o parser que o rejeita. Como o
+        é erro léxico: {mono('.5')} vira {mono('DOT')} e {mono('INT_LITERAL')}, e é o parser que o rejeita. Como o{' '}
         {mono('-')} é um operador à parte, {mono('-2147483648')} é {mono('MINUS')} seguido do inteiro 2147483648, que
         cai em L6.
       </P>
@@ -382,7 +382,7 @@ Programa rejeitado.`}
       </Fn>
       <P>
         As duas últimas regras são o erro L1. A primeira casa um caractere UTF-8 válido de 2, 3 ou 4 bytes ou um caractere
-        ASCII visível (de {mono('!')} a {mono('~')}) e mostra o próprio caractere: {mono("Caractere não reconhecido: '@'")},
+        ASCII visível (de {mono('!')} a {mono('~')}) e mostra o próprio caractere: {mono("Caractere não reconhecido: '@'")},{' '}
         {mono("'ç'")}. A última, um ponto (qualquer byte restante), pega o que não é texto: caracteres de controle como o
         avanço de página, e bytes que não formam UTF-8 (um arquivo em Latin-1); a mensagem mostra o código do byte, como
         em {mono('Caractere não reconhecido: código 231')}. Letras com acento fora de strings e comentários são o caso

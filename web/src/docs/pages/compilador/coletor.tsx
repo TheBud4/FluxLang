@@ -332,7 +332,7 @@ static size_t fx_gc_todo_n, fx_gc_todo_cap;`}
       />
       <Why>
         {mono('flux_rt.h')}: a nota que havia no código dizia que o {mono('__builtin_unwind_init')} faz esse salvamento no {mono('gcc')}, mas não no {mono('clang')}, e que por isso o x86-64 tem o assembly próprio e
-        o {mono('__builtin_unwind_init')} ficou só no {mono('#else')}, para as outras arquiteturas. Medido: trocar o assembly por {mono('__builtin_unwind_init()')} nos mesmos quatro casos e rodar com {mono('FLUX_GC_STRESS=1')}
+        o {mono('__builtin_unwind_init')} ficou só no {mono('#else')}, para as outras arquiteturas. Medido: trocar o assembly por {mono('__builtin_unwind_init()')} nos mesmos quatro casos e rodar com {mono('FLUX_GC_STRESS=1')}{' '}
         passou com o {mono('clang')} 22 e com o {mono('gcc')} 16, em {mono('-O1')} e {mono('-O2')}, então a falha que motivou o assembly não se reproduziu aqui. O assembly continua correto e não custa nada; mas o
         caminho de outras arquiteturas ({mono('__builtin_unwind_init')} com o {mono('clang')}) é o que a nota que havia no código dizia ser insuficiente, e nunca foi testado (o macOS em Apple Silicon cairia nele).
       </Why>
@@ -398,7 +398,7 @@ static size_t fx_gc_todo_n, fx_gc_todo_cap;`}
         ]}
       />
       <Why>
-        {mono('flux_rt.h')}: as três variáveis existem para depurar e testar o coletor. {mono('FLUX_GC=0')} serve para descobrir se um erro vem do coletor (o programa se comporta igual sem ele?); {mono('FLUX_GC_STRESS=1')}
+        {mono('flux_rt.h')}: as três variáveis existem para depurar e testar o coletor. {mono('FLUX_GC=0')} serve para descobrir se um erro vem do coletor (o programa se comporta igual sem ele?); {mono('FLUX_GC_STRESS=1')}{' '}
         antecipa todo erro de coleta para o início da execução, porque cada alocação vira uma coleta; {mono('FLUX_GC_STATS=1')} mostra quanto o coletor trabalhou.
       </Why>
       <P>Uma execução real, com um programa que cria dois blocos por volta, 100 mil vezes, e guarda uma lista num global:</P>

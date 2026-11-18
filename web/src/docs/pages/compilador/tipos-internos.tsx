@@ -28,7 +28,7 @@ export function TiposInternos() {
 
       <H2 title="TypeKind e Type" />
       <P>
-        Um tipo é um {mono('Type')}: o {mono('kind')} (um valor de {mono('TypeKind')}) e, só para listas, o {mono('elem')}, o tipo dos elementos.
+        Um tipo é um {mono('Type')}: o {mono('kind')} (um valor de {mono('TypeKind')}) e, só para listas, o {mono('elem')}, o tipo dos elementos.{' '}
         {mono('list<list<int>>')} é um {mono('Type')} de kind {mono('T_LIST')} cujo {mono('elem')} é outro {mono('T_LIST')} cujo {mono('elem')} é {mono('T_INT')}.
       </P>
       <Table
@@ -58,18 +58,18 @@ export function TiposInternos() {
         <PageLink to="compilador/gerador-c">Gerador de C</PageLink>.
       </Why>
       <Why>
-        {mono('T_VOID')} existe para que uma chamada sem resultado seja um tipo, e não um caso especial: {mono('check_call')} devolve {mono('T_VOID')} e é
+        {mono('T_VOID')} existe para que uma chamada sem resultado seja um tipo, e não um caso especial: {mono('check_call')} devolve {mono('T_VOID')} e é{' '}
         {mono('value_of')} que, quando o valor é exigido, transforma isso no E13. Como todo lugar que usa um valor passa por {mono('value_of')}, o nome {mono('nada')} nunca chega a
         uma mensagem.
       </Why>
       <Why>
-        {mono('T_NULL')} tem dois papéis: o valor {mono('null')} (que cabe em qualquer tipo menos {mono('T_VOID')}) e o marcador do literal {mono('[]')}, um {mono('list<null>')}
+        {mono('T_NULL')} tem dois papéis: o valor {mono('null')} (que cabe em qualquer tipo menos {mono('T_VOID')}) e o marcador do literal {mono('[]')}, um {mono('list<null>')}{' '}
         que cabe em qualquer lista. Por isso {mono('var x = null;')} e {mono('var l = [];')} são o E8: não há tipo a inferir.
       </Why>
 
       <H3 title="Instâncias compartilhadas e a ordem da enumeração" />
       <P>
-        Os tipos que não são lista são instâncias únicas: uma tabela estática {mono('prims')}, com um {mono('Type')} por {mono('TypeKind')}, é indexada pelo próprio valor da enumeração, e
+        Os tipos que não são lista são instâncias únicas: uma tabela estática {mono('prims')}, com um {mono('Type')} por {mono('TypeKind')}, é indexada pelo próprio valor da enumeração, e{' '}
         {mono('type_prim(kind)')} devolve {mono('&prims[kind]')}. Não aloca nada. Já cada {mono('type_list')} aloca um {mono('Type')} novo na arena (ver{' '}
         <PageLink to="compilador/arena">Arena de memória</PageLink>), que nunca é liberado; duas listas {mono('list<int>')} são, portanto, dois ponteiros diferentes, e a única comparação correta é
         pela estrutura ({mono('type_equal')}), nunca por ponteiro.
@@ -92,7 +92,7 @@ export function TiposInternos() {
       </Fn>
       <Fn name="type_list" signature="Type *type_list(Type *elem)">
         Aloca (com {mono('mem_alloc')}) um {mono('Type')} de kind {mono('T_LIST')} com o {mono('elem')} dado e o devolve. O {mono('elem')} é guardado por ponteiro, sem cópia, então a lista aponta para
-        o mesmo tipo que o chamador passou. Chamada por {mono('build_type')} (um {mono('list<T>')} escrito, recursivamente) e por {mono('check_list_literal')} (o tipo de um literal de lista, inclusive o
+        o mesmo tipo que o chamador passou. Chamada por {mono('build_type')} (um {mono('list<T>')} escrito, recursivamente) e por {mono('check_list_literal')} (o tipo de um literal de lista, inclusive o{' '}
         {mono('list<null>')} do {mono('[]')}), e por {mono('check_run_object')}, que monta um {mono('list<string>')} só para perguntar se o valor de {mono('flags')} cabe nele.
       </Fn>
       <Fn name="type_equal" signature="int type_equal(const Type *a, const Type *b)">

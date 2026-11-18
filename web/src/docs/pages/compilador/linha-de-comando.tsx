@@ -37,7 +37,7 @@ export function LinhaDeComando() {
       />
       <Callout kind="aviso">
         Se o arquivo não tem extensão, o executável de {mono('--build')} ganha o mesmo nome do arquivo e o sobrescreve:{' '}
-        {mono('./flux --build prog')} troca o fonte {mono('prog')} por um binário. Use {mono('-o')} ou uma extensão
+        {mono('./flux --build prog')} troca o fonte {mono('prog')} por um binário. Use {mono('-o')} ou uma extensão{' '}
         {mono('.flux')} nos fontes.
       </Callout>
 
@@ -111,7 +111,7 @@ export function LinhaDeComando() {
 
       <H2 title="Variáveis de ambiente" />
       <P>
-        O {mono('./flux')} lê quatro variáveis; o programa gerado lê outras seis quando roda. Como o {mono('--run')}
+        O {mono('./flux')} lê quatro variáveis; o programa gerado lê outras seis quando roda. Como o {mono('--run')}{' '}
         herda o ambiente, as do programa funcionam também ali. Com {mono('--build')}, valem quando o executável é rodado.
         Nenhum outro {mono('getenv')} existe em {mono('src/')}.
       </P>
@@ -230,7 +230,7 @@ x19999`}
         ({mono('mkstemp')} em {mono('$TMPDIR/fluxXXXXXX')}); escolhe o executável (em {mono('--build')}, {mono('outfile')} ou
         o nome padrão; em {mono('--run')}, um temporário {mono('fluxexeXXXXXX')}, com sufixo {mono('.exe')} no alvo
         Windows); chama {mono('compile_c')}; apaga o C; em {mono('--build')} imprime o nome e devolve 0; em {mono('--run')},
-        executa com {mono('execute_program')}, apaga o executável e devolve o código do programa. Falha do {mono('mkstemp')}
+        executa com {mono('execute_program')}, apaga o executável e devolve o código do programa. Falha do {mono('mkstemp')}{' '}
         ou do {mono('gcc')} devolve 3; no caso do {mono('gcc')}, o C é mantido e o caminho dele vai na mensagem. Os
         caminhos ficam em buffers de 512 bytes (nomes maiores são cortados).
       </Fn>

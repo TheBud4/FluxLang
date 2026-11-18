@@ -75,7 +75,7 @@ Comportamentos do compilador a decidir (alguns podem ser intencionais):
 - [x] `l[f()] = g()` avalia o valor (`g`) antes do alvo (`f`), contra a ordem da esquerda para a direita (corrigido: base e índice de todos os alvos antes dos valores; `tests/exec/ordem_do_alvo.flux`)
 - [ ] Inicializadores globais rodam na ordem do arquivo: uma função chamada ali lê os globais de baixo como `null` (R3)
 - [x] `fx_line` não é restaurada no retorno de função: um erro de execução pode citar a linha do fim da função chamada (corrigido: `FX_LINE` de novo depois de cada chamada de func e de `call`, e a cada volta do `while`; `tests/exec/linha_do_erro_*.flux`)
-- [x] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução (corrigido: R7 `Estrutura circular ou profunda demais para imprimir.`, na linha do comando; `fx_repr` confere a pilha como as funções; `tests/exec/erro_R7_ciclo_*.flux`, `estrutura_profunda.flux`)
+- [x] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução (corrigido: R7 `Estrutura circular ou profunda demais para imprimir.`, na linha do comando; o ciclo é achado pela marca `busy` do bloco que está sendo impresso (`fx_repr_enter`), e a conferência de pilha só pega a estrutura finita funda demais; `tests/exec/erro_R7_ciclo_*.flux`, `estrutura_profunda.flux`, `estrutura_compartilhada.flux`)
 - [ ] Com mais de 8192 variáveis locais, o E3 deixa de ser detectado
 - [ ] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`)
 - [ ] Pânico: um comando quebrado sem `;` antes do `}` (`x = 1 +` e `}`) tem o `}` descartado, a função fica aberta e sai `tree: null` ou um erro extra no fim do arquivo; `1 +;` solto no nível global, sem `func main` depois, dá o mesmo segundo erro e `tree: null`
@@ -83,6 +83,7 @@ Comportamentos do compilador a decidir (alguns podem ser intencionais):
 - [ ] `ação` dá um L1 por caractere não ASCII, e um texto partido em duas linhas dá dois L2
 - [ ] A thread de 64 MB do programa só existe no Windows; no POSIX o programa roda na thread principal
 - [ ] O `asm` que salva os registradores no coletor: só `__builtin_unwind_init` passou com clang 22 e gcc 16 (a falha descrita no antigo comentário não se reproduziu); o `asm` fica até o usuário decidir
+- [ ] A nota de AGENTS.md (Armadilhas) sobre o clang transformar a recursão de cauda em laço não se reproduziu em 18/11 (gcc e clang, -O1 a -O3): rever a nota
 
 Interface e documentação:
 

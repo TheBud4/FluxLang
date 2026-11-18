@@ -99,7 +99,7 @@ as decisões pendentes listadas em "Em aberto" (ver `docs/TAREFAS.md`). O Trabal
 
 ```
 make            # gera ./flux
-make test       # tests/run.sh: 263 casos; leva alguns minutos (passadas do coletor e do Windows)
+make test       # tests/run.sh: 271 casos; leva alguns minutos (passadas do coletor e do Windows)
 make asan       # compilador e programas gerados com ASan + UBSan + LeakSanitizer; restaura o build normal
 make web        # interface em http://127.0.0.1:5173 (Node 20+)
 ```

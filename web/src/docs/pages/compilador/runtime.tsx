@@ -338,7 +338,7 @@ typedef struct {
 }`}
       </Code>
       <P>
-        O estouro de {mono('int')} (R6) é detectado com {mono('__builtin_add_overflow')}, {mono('__builtin_sub_overflow')} e {mono('__builtin_mul_overflow')}, extensões do {mono('gcc')} e do {mono('clang')}
+        O estouro de {mono('int')} (R6) é detectado com {mono('__builtin_add_overflow')}, {mono('__builtin_sub_overflow')} e {mono('__builtin_mul_overflow')}, extensões do {mono('gcc')} e do {mono('clang')}{' '}
         que devolvem verdadeiro se o resultado de 32 bits não cabe. O resultado em {mono('int32_t')} nunca dá a volta em silêncio: a decisão D7 da linguagem é que estouro é erro.
       </P>
       <H3 title="Igualdade" />
@@ -363,7 +363,7 @@ typedef struct {
         nos argumentos, na pilha).
       </Fn>
       <Fn name="fx_add" signature="FX_FN FxValue fx_add(FxValue a, FxValue b)">
-        O {mono('+')}: concatenação de dois textos, ou soma numérica, conforme a tabela e o trecho acima. Texto com número é R5 (&quot;Esperado string, encontrado int&quot;): a linguagem não converte sozinha, é preciso
+        O {mono('+')}: concatenação de dois textos, ou soma numérica, conforme a tabela e o trecho acima. Texto com número é R5 (&quot;Esperado string, encontrado int&quot;): a linguagem não converte sozinha, é preciso{' '}
         {mono('toString')}.
       </Fn>
       <Fn name="fx_sub" signature="FX_FN FxValue fx_sub(FxValue a, FxValue b)">
@@ -377,7 +377,7 @@ typedef struct {
         divisão de {mono('double')} pelo IEEE: {mono('1.0 / 0.0')} é {mono('inf')}, {mono('0.0 / 0.0')} é {mono('nan')}.
       </Fn>
       <Why>
-        {mono('flux_rt.h')}: o R4 vale só para a divisão inteira. {mono('float')} segue o IEEE: {mono('x / 0.0')} é infinito. A tabela de erros da linguagem (ERROS.md) diz &quot;divisão inteira por zero&quot; por isso. E
+        {mono('flux_rt.h')}: o R4 vale só para a divisão inteira. {mono('float')} segue o IEEE: {mono('x / 0.0')} é infinito. A tabela de erros da linguagem (ERROS.md) diz &quot;divisão inteira por zero&quot; por isso. E{' '}
         {mono('INT32_MIN / -1')} é tratado à parte como R6 porque, em C, essa divisão é comportamento indefinido (em x86 ela trava o processo).
       </Why>
       <Fn name="fx_mod" signature="FX_FN FxValue fx_mod(FxValue a, FxValue b)">
@@ -444,7 +444,7 @@ typedef struct {
         se leia de volta.
       </Callout>
       <Fn name="fx_dup_printf" signature="FX_FN const char *fx_dup_printf(const char *fmt, ...)">
-        Um {mono('sprintf')} que devolve o texto num bloco novo do coletor: mede o tamanho com {mono('vsnprintf(NULL, 0, ...)')}, aloca com {mono('fx_alloc')} e formata. Base de {mono('fx_repr')},
+        Um {mono('sprintf')} que devolve o texto num bloco novo do coletor: mede o tamanho com {mono('vsnprintf(NULL, 0, ...)')}, aloca com {mono('fx_alloc')} e formata. Base de {mono('fx_repr')},{' '}
         {mono('fx_fmt_float')} e das mensagens de {mono('run')}.
       </Fn>
       <Fn name="fx_fmt_float" signature="FX_FN const char *fx_fmt_float(double f)">
@@ -659,7 +659,7 @@ Divisão por zero.^[[0m`}
       </Callout>
       <Fn name="fx_run" signature="FX_FN FxPair fx_run(FxValue spec)">
         Confere o pedido e chama {mono('fx_run_process')}. {mono('spec')} tem de ser um objeto (R5 senão). Lê {mono('command')} (obrigatório, texto), {mono('flags')} (opcional; {mono('null') } vale como ausente; lista de
-        textos) e {mono('workingDir')} (opcional, texto), com {mono('fx_obj_find')}. Monta o vetor {mono('argv')} de ponteiros (o {mono('command')} e os {mono('flags')}, nesta ordem, sem copiar os textos) num bloco de
+        textos) e {mono('workingDir')} (opcional, texto), com {mono('fx_obj_find')}. Monta o vetor {mono('argv')} de ponteiros (o {mono('command')} e os {mono('flags')}, nesta ordem, sem copiar os textos) num bloco de{' '}
         {mono('fx_alloc')} e chama {mono('fx_run_process(command, argv, n_flags + 1, dir)')}. Erros: R5 e o caso do {mono('command')} ausente, acima.
       </Fn>
       <Fn name="fx_run_result" signature="FX_FN FxPair fx_run_result(const char *command, char *out, char *err, size_t err_len, int exited, int code)">
@@ -687,7 +687,7 @@ Divisão por zero.^[[0m`}
       <H3 title="No POSIX: fork, execvp e poll" />
       <P>
         {mono('fx_run_process')} cria dois pipes (saída padrão e saída de erro), esvazia os buffers do próprio programa (para o que ele já escreveu sair antes) e dá {mono('fork')}. O filho liga as pontas de escrita
-        dos pipes aos descritores 1 e 2, fecha as quatro pontas dos pipes, entra no diretório de trabalho se houver um ({mono('chdir')}) e chama {mono('execvp')} com {mono('argv[0]')} e o vetor. Se o {mono('chdir')} ou o
+        dos pipes aos descritores 1 e 2, fecha as quatro pontas dos pipes, entra no diretório de trabalho se houver um ({mono('chdir')}) e chama {mono('execvp')} com {mono('argv[0]')} e o vetor. Se o {mono('chdir')} ou o{' '}
         {mono('execvp')} falham, o filho escreve a mensagem na saída de erro e sai com {mono('_exit(127)')}. O pai fecha as pontas de escrita e lê os dois pipes em um laço de {mono('poll')} (sem prazo), em pedaços de
         128 bytes, até os dois chegarem ao fim. Só então espera o filho com {mono('waitpid')}, repetindo se for interrompido por um sinal, e chama {mono('fx_run_result')} com o código ({mono('WEXITSTATUS')}) ou o sinal
         ({mono('WTERMSIG')}).
@@ -697,8 +697,8 @@ Divisão por zero.^[[0m`}
         saída padrão. O laço do {mono('poll')} ignora {mono('EINTR')} pelo mesmo motivo do {mono('waitpid')}: um sinal que chega no meio não pode abandonar a leitura.
       </Why>
       <Fn name="fx_run_process (POSIX)" signature="FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const char *dir)">
-        A versão do Linux e do macOS (o macOS nunca foi testado). Faz o que a seção acima descreve. Se {mono('pipe')} falha, devolve {mono('(null, "não foi possível criar os pipes do comando")')}; se {mono('fork')}
-        falha, {mono('(null, "comando ... não pôde ser iniciado: ...")')} com o {mono('strerror')}. {mono('argc')} não é usado (o vetor de ponteiros não leva um {mono('NULL')} no fim: a lista vem do {mono('fx_run')}
+        A versão do Linux e do macOS (o macOS nunca foi testado). Faz o que a seção acima descreve. Se {mono('pipe')} falha, devolve {mono('(null, "não foi possível criar os pipes do comando")')}; se {mono('fork')}{' '}
+        falha, {mono('(null, "comando ... não pôde ser iniciado: ...")')} com o {mono('strerror')}. {mono('argc')} não é usado (o vetor de ponteiros não leva um {mono('NULL')} no fim: a lista vem do {mono('fx_run')}{' '}
         com {mono('n_flags + 2')} posições zeradas pelo {mono('calloc')}, então o último é {mono('NULL')} de fato). {mono('command')} só entra nas mensagens.
       </Fn>
       <H3 title="No Windows: CreateProcess, GetExitCodeProcess e Sleep" />
@@ -711,7 +711,7 @@ Divisão por zero.^[[0m`}
       </P>
       <Why>
         {mono('flux_rt.h')}: no Windows, {mono('run')} não usa shell, então os comandos internos do {mono('cmd')}, como {mono('echo')}, não existem como programas e precisam de {mono('cmd /c')}: {mono('command: "cmd", flags: ["/c", "echo oi"]')}.
-        Medido com o {mono('wine')}: o programa de {mono('tests/exec_windows/run_com_cmd.flux')} faz assim, e um {mono('command')} que não existe volta com a mensagem do sistema no idioma dele ({mono('File not found.')}
+        Medido com o {mono('wine')}: o programa de {mono('tests/exec_windows/run_com_cmd.flux')} faz assim, e um {mono('command')} que não existe volta com a mensagem do sistema no idioma dele ({mono('File not found.')}{' '}
         com {mono('LC_ALL=C')}).
       </Why>
       <Why>
@@ -809,9 +809,12 @@ FX_FN void fx_check_stack(void) {
         do limite, encerra com um erro de execução claro. Medido: {mono('func sem_fim (n:int):int { return 1 + sem_fim(n + 1); }')} termina com {mono('Estouro de pilha: recursão profunda demais.')} e código 1, no Linux e no{' '}
         {mono('wine')}.
       </Why>
-      <Callout kind="aviso">
-        A recursão do teste tem de ser {mono('1 + sem_fim(n + 1)')}, e não {mono('return sem_fim(n + 1)')}: com otimização, o {mono('clang')} transforma recursão de cauda em laço e a pilha nunca estoura (a nota está em
-        AGENTS.md, &quot;Armadilhas&quot;). A recursão de {mono('fx_repr')} sobre listas e objetos aninhados confere a mesma pilha por {mono('fx_repr_enter')}, com a mensagem própria.
+      <Callout kind="nota">
+        O teste {mono('tests/exec/erro_R7_pilha.flux')} usa {mono('1 + sem_fim(n + 1)')}, uma recursão que não é de cauda, por causa de uma nota de AGENTS.md (&quot;Armadilhas&quot;): com otimização, o{' '}
+        {mono('clang')} transformaria {mono('return sem_fim(n + 1)')} em laço e a pilha nunca estouraria. Medido em 18/11/2026, a nota não se reproduziu: com o {mono('gcc')} 16.2.1 e o {mono('clang')} 22.1.8, em{' '}
+        {mono('-O1')}, {mono('-O2')} e {mono('-O3')} ({mono('FLUX_CC')} e {mono('FLUX_CC_FLAGS')}), tanto {mono('func sem_fim (n:int):int { return sem_fim(n + 1); }')} quanto o exemplo de R7 da página de erros
+        ({mono('return f(n + 1);')} e só um {mono('terminal.log')} na {mono('main')}) terminam com {mono('Estouro de pilha: recursão profunda demais.')} e código 1. A nota está para revisão em{' '}
+        {mono('docs/TAREFAS.md')}. A recursão de {mono('fx_repr')} sobre listas e objetos aninhados confere a mesma pilha por {mono('fx_repr_enter')}, com a mensagem própria.
       </Callout>
 
       <H2 title="A entrada do programa: fx_init, fx_start e main" />
@@ -839,7 +842,7 @@ int main(void) { return fx_start(fx_program); }`}
       <Fn name="fx_init" signature="FX_FN void fx_init(const void *stack_base)">
         Prepara a execução; é a primeira chamada de {mono('fx_program')}. Lê o ambiente: {mono('fx_tagged')} é verdadeiro se {mono('FLUX_TAGGED')} existe (qualquer valor); {mono('fx_gc_disabled')} é verdadeiro se{' '}
         {mono('FLUX_GC')} vale exatamente {mono('0')}; {mono('fx_gc_stress')} é verdadeiro se {mono('FLUX_GC_STRESS')} existe (qualquer valor, até {mono('0')}); se {mono('FLUX_GC_STATS')} existe, registra{' '}
-        {mono('fx_gc_report')} com {mono('atexit')}. Depois a parte do sistema: no POSIX, o tamanho da pilha é o limite de {mono('RLIMIT_STACK')} ({mono('getrlimit')}), ou 8 MiB se for ilimitado ou o {mono('getrlimit')}
+        {mono('fx_gc_report')} com {mono('atexit')}. Depois a parte do sistema: no POSIX, o tamanho da pilha é o limite de {mono('RLIMIT_STACK')} ({mono('getrlimit')}), ou 8 MiB se for ilimitado ou o {mono('getrlimit')}{' '}
         falhar; no Windows, o da thread, que {mono('GetCurrentThreadStackLimits')} informa, e mais duas coisas descritas abaixo. Por fim, {mono('fx_stack_limit')} é o tamanho menos 256 KiB (a margem), ou metade dele se
         a pilha tiver 512 KiB ou menos, e {mono('fx_stack_base')} guarda {mono('stack_base')}.
       </Fn>
@@ -889,7 +892,7 @@ int main(void) { return fx_start(fx_program); }`}
         ]}
       />
       <Callout kind="nota">
-        Com o {mono('wine')}, medido: o {mono('.exe')} escreve {mono('\\r\\n')} no lugar de {mono('\\n')} (a saída de texto do Windows). Um {mono('echo oi')} do {mono('cmd')}, que já termina em {mono('\\r\\n')}, e o
+        Com o {mono('wine')}, medido: o {mono('.exe')} escreve {mono('\\r\\n')} no lugar de {mono('\\n')} (a saída de texto do Windows). Um {mono('echo oi')} do {mono('cmd')}, que já termina em {mono('\\r\\n')}, e o{' '}
         {mono('terminal.log')} depois dele resultam em {mono('oi\\r\\r\\n\\r\\n')}: o {mono('\\n')} que o {mono('log')} escreve vira {mono('\\r\\n')}, e o {mono('\\r\\n')} que veio do comando ganha um {mono('\\r')} a mais.
         A suíte tira os {mono('\\r')} antes de comparar. Fora o {mono('run')}, o texto sai igual nos dois sistemas.
       </Callout>

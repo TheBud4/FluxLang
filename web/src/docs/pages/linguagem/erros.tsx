@@ -1444,7 +1444,7 @@ Estouro de inteiro.`}
       </Code>
       <H3 title="R7: estouro de pilha" />
       <P>
-        Acontece quando uma recursão não termina ou é funda demais. A mensagem é {mono('Estouro de pilha: recursão profunda demais.')}
+        Acontece quando uma recursão não termina ou é funda demais. A mensagem é {mono('Estouro de pilha: recursão profunda demais.')}{' '}
         Há uma segunda causa, a estrutura circular impressa, descrita depois deste exemplo.
       </P>
       <Code lang="flux" example>

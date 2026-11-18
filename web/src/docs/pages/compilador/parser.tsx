@@ -171,7 +171,7 @@ command
         ε`}
       </Code>
       <P>
-        Poucas ações têm algo além disso. {mono('program')} também grava a raiz ({mono('parse_root = $$')}), e é o que
+        Poucas ações têm algo além disso. {mono('program')} também grava a raiz ({mono('parse_root = $$')}), e é o que{' '}
         {mono('main')} usa; as regras de expressão, a lista de expressões e {mono('assignment_rest')} ajustam o campo{' '}
         {mono('flag')} do nó (ver abaixo); e {mono('command_expression')} tem um bloco a mais com a checagem S3.
       </P>
@@ -268,7 +268,7 @@ command
         ]}
       />
       <P>
-        {mono('expression')} é só {mono('or_expr')}. Uma expressão simples como {mono('x')} desce pelos oito níveis até
+        {mono('expression')} é só {mono('or_expr')}. Uma expressão simples como {mono('x')} desce pelos oito níveis até{' '}
         {mono('primary')}, e cada nível deixa o seu nó na árvore, com os filhos ε dos {mono('*_rest')}.
       </P>
 
@@ -280,7 +280,7 @@ command
         expressão à esquerda do {mono('=')}, e a ação rejeita o que não vale.
       </P>
       <P>
-        Para saber se uma expressão pode receber um valor, cada nó de expressão carrega o campo {mono('flag')} (um {mono('int')}
+        Para saber se uma expressão pode receber um valor, cada nó de expressão carrega o campo {mono('flag')} (um {mono('int')}{' '}
         de {mono('Node')}, descrito em {mono('tree.h')} como de uso interno do parser). O valor 1 quer dizer "pode receber atribuição".
         Nos nós {mono('*_rest')}, ele quer dizer "apareceu um operador". As ações calculam assim:
       </P>
@@ -312,7 +312,7 @@ command
       </Code>
       <P>
         Quer dizer: há uma atribuição ({mono('$2->flag != 0')}) e o primeiro alvo não pode recebê-la ({mono('!$1->flag')}), ou algum alvo da lista
-        extra não pode ({mono('$2->flag == 2')}). A posição vem de {mono('assign_loc')}, gravada em {mono('assignment_rest')} com a posição do {mono('=')}
+        extra não pode ({mono('$2->flag == 2')}). A posição vem de {mono('assign_loc')}, gravada em {mono('assignment_rest')} com a posição do {mono('=')}{' '}
         ({mono('@1')} na atribuição simples, {mono('@3')} na múltipla).
       </P>
       <Why>
@@ -407,7 +407,7 @@ call f();  (num bloco)
         mesma ordem de declaração é a ordem em que a lista de esperados sai na mensagem.
       </Why>
       <Fn name="expected_name" signature="static const char *expected_name(yysymbol_kind_t s, char *buf, size_t size)">
-        Escreve o nome de um token esperado: {mono('fim do arquivo')}, {mono('identificador')}, {mono('número inteiro')}, {mono('número real')} e {mono('texto')}
+        Escreve o nome de um token esperado: {mono('fim do arquivo')}, {mono('identificador')}, {mono('número inteiro')}, {mono('número real')} e {mono('texto')}{' '}
         para os que não têm grafia fixa; para os demais, a grafia entre aspas simples, montada em {mono('buf')} (de {mono('size')} bytes).
       </Fn>
       <Fn name="found_name" signature="static void found_name(yysymbol_kind_t s, char *buf, size_t size)">

@@ -108,7 +108,7 @@ export function Ast() {
         {mono('build_ast')} só roda com a árvore de um programa aceito. Com erro de sintaxe a árvore pode ter nós de erro do modo pânico, e a
         função devolve nulo se achar algum; mas é o {mono('main')} que nem a chama quando houve qualquer erro léxico ou sintático. Assim as
         funções de construção supõem uma árvore com exatamente o formato da BNF e não validam a forma da árvore: nenhuma função emite erro por
-        um nó fora do formato (o {mono('is')} trata ponteiro nulo como &quot;não é&quot;, e {mono('op_from_token')} cai em {mono('OP_ADD')}
+        um nó fora do formato (o {mono('is')} trata ponteiro nulo como &quot;não é&quot;, e {mono('op_from_token')} cai em {mono('OP_ADD')}{' '}
         para um operador desconhecido).
       </Why>
       <Why>
@@ -303,7 +303,7 @@ export function Ast() {
       />
       <Callout kind="nota">
         Um objeto ou uma lista pode aparecer em qualquer lugar onde uma expressão aparece; já o {mono('run')} só aceita um literal de objeto. Os
-        sufixos {mono('.nome')}, {mono('[i]')} e {mono('(args)')} podem se encadear sem limite fixo: {mono('a.b(1)[2].c')} é um {mono('Field')}
+        sufixos {mono('.nome')}, {mono('[i]')} e {mono('(args)')} podem se encadear sem limite fixo: {mono('a.b(1)[2].c')} é um {mono('Field')}{' '}
         sobre um {mono('Index')} sobre um {mono('Call')} sobre um {mono('Field')}.
       </Callout>
 
@@ -450,7 +450,7 @@ export function Ast() {
       </Fn>
       <Fn name="ast_print" signature="void ast_print(const Program *program, FILE *out)">
         Imprime a AST indentada em {mono('out')}, um nó por linha: a palavra {mono('Program')} e, a um nível de recuo, cada declaração global na ordem do arquivo
-        (variável pelo {mono('print_stmt')}, função pelo {mono('print_func')}). Só é chamada por {mono('main')}, com a opção {mono('--ast')} e se {mono('build_ast')}
+        (variável pelo {mono('print_stmt')}, função pelo {mono('print_func')}). Só é chamada por {mono('main')}, com a opção {mono('--ast')} e se {mono('build_ast')}{' '}
         devolveu uma AST. O formato está em &quot;A opção --ast&quot;.
       </Fn>
       <Fn name="print_func" signature="static void print_func(const Func *f, int depth, FILE *out)">

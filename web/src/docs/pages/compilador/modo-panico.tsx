@@ -59,7 +59,7 @@ export function ModoPanico() {
         ponto de sincronização fixo.
       </P>
       <Why>
-        As alternativas com {mono('error')} são um ponto de recuperação por construção, como no código feito em sala (JavaCC), onde o
+        As alternativas com {mono('error')} são um ponto de recuperação por construção, como no código feito em sala (JavaCC), onde o{' '}
         {mono('try/catch')} marca a construção e o {mono('consumeUntil')} descarta tokens: aqui, a regra com {mono('error')} faz o papel do{' '}
         {mono('catch')}, e descartar tokens até o que a regra aceita faz o papel do {mono('consumeUntil')}. O parser continua em Bison
         porque o enunciado não exige um parser escrito à mão.
@@ -156,7 +156,7 @@ Esperado: expressão, 'call' ou 'run'`}
       <P>
         Quando o lexer devolve {mono('YYerror')} (erro léxico), o Bison vai direto para a recuperação, sem chamar{' '}
         {mono('yyreport_syntax_error')} e sem guardar o token de erro como lookahead. O lexer já imprimiu a mensagem, então não há uma
-        segunda para o mesmo problema. O resto é igual: desempilha até um estado que aceita {mono('error')}, descarta e fecha em {mono(';')}
+        segunda para o mesmo problema. O resto é igual: desempilha até um estado que aceita {mono('error')}, descarta e fecha em {mono(';')}{' '}
         ou bloco.
       </P>
       <Code lang="text">
@@ -270,7 +270,7 @@ Programa rejeitado.`}
       <Callout kind="nota">
         O compilador atual, quando recebe esses mesmos comandos <strong>fora de uma função</strong>, no nível global do arquivo, dá duas mensagens
         e {mono('"tree": null')}: o primeiro token do comando já é o erro (o nível global só aceita {mono('var')}, {mono('const')}, {mono('func')} e{' '}
-        {mono('workflow')}), a regra {mono('global_no_func: error SEMICOLON')} recupera até o {mono(';')}, e depois disso o arquivo acaba sem
+        {mono('workflow')}), a regra {mono('global_no_func: error SEMICOLON')} recupera até o {mono(';')}, e depois disso o arquivo acaba sem{' '}
         {mono('func main')}. O fim do arquivo é então outro erro (o mesmo texto, {mono("Esperado: 'var', 'const', 'func' ou 'workflow'")}), e ele
         não pode ser recuperado: o Bison abandona o parse, a raiz não é montada e o JSON fica com {mono('"tree": null')}. Com uma {mono('func main')}{' '}
         depois do comando solto, sai uma só mensagem e a árvore.
@@ -309,8 +309,8 @@ Esperado: comando ou '}'
 Programa rejeitado.`}
       </Code>
       <P>
-        O {mono('x = 1 +')} sem {mono(';')} faz o erro aparecer no {mono('}')} da função. O {mono('}')} é descartado (não é um {mono(';')} nem um {mono('{')}), e o
-        {mono('func f ()')} também; o {mono('{ }')} de {mono('f')} fecha a recuperação como se fosse o bloco do comando quebrado. A função {mono('main')}
+        O {mono('x = 1 +')} sem {mono(';')} faz o erro aparecer no {mono('}')} da função. O {mono('}')} é descartado (não é um {mono(';')} nem um {mono('{')}), e o{' '}
+        {mono('func f ()')} também; o {mono('{ }')} de {mono('f')} fecha a recuperação como se fosse o bloco do comando quebrado. A função {mono('main')}{' '}
         continua aberta, e o fim do arquivo vira o segundo erro. Se não há nada depois do {mono('}')}, o parse acaba em silêncio no fim do arquivo (o
         contador de recuperação ainda está em 3) e a saída tem uma só mensagem, com {mono('"tree": null')}.
       </P>

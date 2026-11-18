@@ -346,7 +346,7 @@ Operador '+' não aceita dinâmico e bool.`}
         {mono('terminal.log') }, {mono('info')}, {mono('warn')} e {mono('error')} aceitam um argumento de qualquer tipo (decisão D4, &quot;terminal.* com qualquer tipo&quot;): a única conferência é a da quantidade de argumentos.
       </Why>
       <Why>
-        Uma base dinâmica aceita {mono('length')}, {mono('push')} e {mono('remove')}, como uma lista, porque um valor dinâmico pode ser uma lista na execução (um campo de {mono('object')} que guarda uma lista); a conferência de verdade é adiada. Com base dinâmica o {mono('push')}
+        Uma base dinâmica aceita {mono('length')}, {mono('push')} e {mono('remove')}, como uma lista, porque um valor dinâmico pode ser uma lista na execução (um campo de {mono('object')} que guarda uma lista); a conferência de verdade é adiada. Com base dinâmica o {mono('push')}{' '}
         também não confere o tipo do argumento (não há elemento a comparar).
       </Why>
       <H3 title="Conversões" />
@@ -385,7 +385,7 @@ Operador '+' não aceita dinâmico e bool.`}
       />
       <H3 title="var e const" />
       <P>
-        {mono('check_var')} serve a locais e a globais ({mono('is_global')}). Com tipo declarado, cada valor é conferido contra ele ({mono('check_assign_to')}); sem tipo, o tipo de cada nome é o do valor, e um valor {mono('null')}, dinâmico ou {mono('list<null>')}
+        {mono('check_var')} serve a locais e a globais ({mono('is_global')}). Com tipo declarado, cada valor é conferido contra ele ({mono('check_assign_to')}); sem tipo, o tipo de cada nome é o do valor, e um valor {mono('null')}, dinâmico ou {mono('list<null>')}{' '}
         é o E8 (não dá para inferir). Se a quantidade de nomes é diferente da de valores, é o E7 (&quot;2 variáveis e 1 valor.&quot;, com singular e plural). O lado direito {mono('call')}/{mono('run')} dá dois valores, o resultado e o erro:
         exige exatamente 2 nomes, o primeiro recebe o tipo do resultado e o segundo é {mono('string')}. Com tipo declarado, o resultado e a {mono('string')} do erro têm de caber nele.
         Só no fim os nomes entram no escopo: nos locais por {mono('declare')} (E2), e então {mono('check_var')} dá o {mono('flow_id')} e marca a variável como iniciada, se houve valor; nos globais, só se completa o símbolo da passada 1.

@@ -41,7 +41,7 @@ export function Operadores() {
       />
       <P>
         Os operadores binários dos níveis 1 a 6 agrupam da esquerda para a direita: {mono('10 - 2 - 3')} é{' '}
-        {mono('(10 - 2) - 3')}. Os unários agrupam da direita para a esquerda, então {mono('!!x')} e {mono('- -3')}
+        {mono('(10 - 2) - 3')}. Os unários agrupam da direita para a esquerda, então {mono('!!x')} e {mono('- -3')}{' '}
         funcionam. As comparações de ordem ({mono('<')}, {mono('>')}, {mono('<=')}, {mono('>=')}) não se encadeiam: {mono('1 < 2 < 3')} compara o {mono('bool')} {mono('true')} com o{' '}
         {mono('int')} {mono('3')} e é erro de tipo.
       </P>

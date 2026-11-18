@@ -65,7 +65,7 @@ export function GeradorC() {
         ]}
       />
       <Callout kind="nota">
-        O gerador confia na análise semântica: ele não confere se um nome existe, se o número de argumentos está certo nem se o tipo combina. {mono('main')} só chama o gerador com um programa que passou por
+        O gerador confia na análise semântica: ele não confere se um nome existe, se o número de argumentos está certo nem se o tipo combina. {mono('main')} só chama o gerador com um programa que passou por{' '}
         {mono('semantic_check')} sem erros; por isso {mono('--c')}, {mono('--build')} e {mono('--run')} ligam a análise semântica sozinhos. A biblioteca de execução está na página{' '}
         <PageLink to="compilador/runtime">Biblioteca de execução</PageLink>.
       </Callout>
@@ -573,7 +573,7 @@ int main(void) { return fx_start(fx_program); }`}
         usa um só contador para todos.
       </Why>
       <Callout kind="aviso">
-        A ordem do arquivo vale também para as funções chamadas num inicializador: elas veem os globais declarados depois como {mono('null')}. Medido: com {mono('var a = dobra(1);')} antes de {mono('var b = 5;')}, e {mono('dobra')}
+        A ordem do arquivo vale também para as funções chamadas num inicializador: elas veem os globais declarados depois como {mono('null')}. Medido: com {mono('var a = dobra(1);')} antes de {mono('var b = 5;')}, e {mono('dobra')}{' '}
         multiplicando por {mono('b')}, o programa termina com o erro de execução {mono('Uso de valor null.')} (linha da função), código 1. A análise semântica não barra isso: o uso de uma função num inicializador é permitido.
       </Callout>
 
