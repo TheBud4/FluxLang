@@ -390,8 +390,9 @@ call f();  (num bloco)
         {mono('yysymbol_name(YYTRANSLATE(tok))')}. Usada por {mono('list_tokens')} no modo {mono('-t')}. Declarada em {mono('fluxc.h')}.
       </Fn>
       <Fn name="yyerror" signature="void yyerror(const char *msg)">
-        Imprime {mono('msg')} e uma quebra de linha na saída de erro. Com {mono('parse.error custom')}, os erros de sintaxe não passam por ela:
-        o Bison só a usa para falhas que não são de sintaxe, como a memória esgotada da pilha do parser. Não conta o erro em {mono('error_count')}.
+        Com {mono('parse.error custom')}, os erros de sintaxe não passam por ela: o Bison só a usa para falhas que não são de sintaxe, e a
+        única que acontece é a pilha do parser esgotada (10000 posições). Ignora {mono('msg')} (o texto do Bison, {mono('memory exhausted')}, é em inglês) e chama{' '}
+        {mono('report_error')} com a posição do último token lido e a mensagem em português: um erro sintático, contado em {mono('error_count')} e gravado no JSON.
       </Fn>
       <Fn name="spelling" signature="static const char *spelling(yysymbol_kind_t s)">
         Devolve como o token {mono('s')} é escrito no código-fonte ({mono('"if"')}, {mono('";"')}, {mono('">="')}), ou {mono('NULL')} para identificadores, literais

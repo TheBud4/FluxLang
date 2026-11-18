@@ -413,7 +413,12 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
 
 const char *token_name(int tok) { return yysymbol_name(YYTRANSLATE(tok)); }
 
-void yyerror(const char *msg) { fprintf(stderr, "%s\n", msg); }
+void yyerror(const char *msg) {
+  (void)msg;
+  report_error("sintático", yylloc.first_line, yylloc.first_column,
+               "Programa grande ou aninhado demais: o analisador esgotou a pilha "
+               "(expressão encadeada longa demais).");
+}
 
 static const char *spelling(yysymbol_kind_t s) {
   switch (s) {

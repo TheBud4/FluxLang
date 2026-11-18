@@ -61,8 +61,6 @@ static const char *plural(int n, const char *one, const char *many) {
 
 typedef enum { SYM_VAR, SYM_FUNC, SYM_WORKFLOW, SYM_LIBFN, SYM_TERMINAL } SymKind;
 
-#define MAX_SYMS 8192
-
 typedef struct Symbol {
   char *name;
   SymKind kind;
@@ -129,27 +127,51 @@ static Symbol *declare(Name *name, SymKind kind, Type *type) {
 }
 
 typedef struct {
-  unsigned char init[MAX_SYMS];
+  unsigned char *init;
+  int len;
   int dead;
 } Flow;
 
 static Flow flow;
 
+static int flow_has(const Flow *f, int id) { return id < f->len && f->init[id]; }
+
+static void flow_set(Flow *f, int id) {
+  if (id >= f->len) {
+    int len = f->len * 2 > id + 1 ? f->len * 2 : id + 1;
+    if (len < 64)
+      len = 64;
+    f->init = mem_grow(f->init, (size_t)f->len, (size_t)len);
+    f->len = len;
+  }
+  f->init[id] = 1;
+}
+
+static Flow flow_clone(const Flow *f) {
+  Flow c = *f;
+  c.init = mem_alloc((size_t)f->len);
+  if (f->len)
+    memcpy(c.init, f->init, (size_t)f->len);
+  return c;
+}
+
 static Flow merge(const Flow *a, const Flow *b) {
   if (a->dead)
-    return *b;
+    return flow_clone(b);
   if (b->dead)
-    return *a;
+    return flow_clone(a);
   Flow r;
   r.dead = 0;
-  for (int i = 0; i < MAX_SYMS; i++)
+  r.len = a->len < b->len ? a->len : b->len;
+  r.init = mem_alloc((size_t)r.len);
+  for (int i = 0; i < r.len; i++)
     r.init[i] = a->init[i] && b->init[i];
   return r;
 }
 
 static void mark_initialized(Symbol *s) {
   if (s->flow_id >= 0)
-    flow.init[s->flow_id] = 1;
+    flow_set(&flow, s->flow_id);
 }
 
 static Func *cur_func;
@@ -312,9 +334,9 @@ static Type *check_ident(Expr *e) {
     err(e->pos, "'%s' só é declarado depois deste ponto.", e->text);
     return T(T_ERROR);
   }
-  if (s->flow_id >= 0 && !flow.dead && !flow.init[s->flow_id]) {
+  if (s->flow_id >= 0 && !flow.dead && !flow_has(&flow, s->flow_id)) {
     err(e->pos, "Variável '%s' utilizada antes de ser inicializada.", e->text);
-    flow.init[s->flow_id] = 1;
+    flow_set(&flow, s->flow_id);
   }
   return s->type;
 }
@@ -695,8 +717,7 @@ static void check_var(Stmt *s, int is_global) {
       if (!sym)
         continue;
       sym->is_const = s->is_const;
-      if (next_flow_id < MAX_SYMS)
-        sym->flow_id = next_flow_id++;
+      sym->flow_id = next_flow_id++;
       if (has_value)
         mark_initialized(sym);
     }
@@ -825,10 +846,10 @@ static void check_stmt(Stmt *s) {
     break;
   case ST_IF: {
     check_cond(s->cond, "if");
-    Flow before = flow;
+    Flow before = flow_clone(&flow);
     check_block(s->then);
     Flow after_then = flow;
-    flow = before;
+    flow = flow_clone(&before);
     if (s->els)
       check_block(s->els);
     Flow merged = merge(&after_then, &flow);
@@ -837,7 +858,7 @@ static void check_stmt(Stmt *s) {
   }
   case ST_WHILE: {
     check_cond(s->cond, "while");
-    Flow before = flow;
+    Flow before = flow_clone(&flow);
     loop_depth++;
     check_block(s->then);
     loop_depth--;
@@ -857,12 +878,11 @@ static void check_stmt(Stmt *s) {
       err(s->cond->pos, "'for' exige uma lista, encontrado %s.", tn(it));
       elem = T(T_ERROR);
     }
-    Flow before = flow;
+    Flow before = flow_clone(&flow);
     scope_push();
     Symbol *v = declare(&s->var, SYM_VAR, elem);
     if (v) {
-      if (next_flow_id < MAX_SYMS)
-        v->flow_id = next_flow_id++;
+      v->flow_id = next_flow_id++;
       mark_initialized(v);
     }
     loop_depth++;
@@ -908,7 +928,7 @@ static void check_func(Func *f) {
   cur_func = f;
   loop_depth = 0;
   next_flow_id = 0;
-  memset(&flow, 0, sizeof flow);
+  flow = (Flow){0};
 
   scope_push();
   for (int i = 0; i < f->n_params; i++) {
@@ -967,7 +987,7 @@ int semantic_check(Program *program) {
             d->var->names[k]->name);
     cur_func = NULL;
     in_global_init = 1;
-    memset(&flow, 0, sizeof flow);
+    flow = (Flow){0};
     check_var(d->var, 1);
     in_global_init = 0;
   }

@@ -1,0 +1,14 @@
+Não é possível gerar o executável 'prog': ele é o próprio arquivo fonte.
+Use -o para escolher outro nome ou dê ao fonte uma extensão (por exemplo, prog.flux).
+[código 2]
+fonte intacto
+Não é possível gerar o executável 'prog': ele é o próprio arquivo fonte.
+Use -o para escolher outro nome ou dê ao fonte uma extensão (por exemplo, prog.flux).
+[código 2]
+fonte intacto
+Executável gerado: prog.bin
+[código 0]
+oi
+Executável gerado: outro
+[código 0]
+oi

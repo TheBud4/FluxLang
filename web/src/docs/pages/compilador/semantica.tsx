@@ -114,14 +114,15 @@ export function Semantica() {
       <P>
         Um escopo é a lista de símbolos ({mono('syms')}) e o escopo de fora ({mono('parent')}). Os escopos vêm de {mono('ast_alloc')} e nunca são liberados.
       </P>
-      <H3 title="Flow e MAX_SYMS" />
+      <H3 title="Flow" />
       <P>
-        {mono('Flow')} é um vetor de {mono('MAX_SYMS')} (8192) bytes, {mono('init')}, mais o indicador {mono('dead')}. {mono('init[i]')} diz se a variável de {mono('flow_id')} {mono('i')} já tem valor no ponto atual;{' '}
-        {mono('dead')} diz que o caminho já terminou em {mono('return')}, {mono('break')} ou {mono('continue')}. O {mono('Flow')} é copiado por valor (8 KB) a cada {mono('if')}, {mono('while')} e {mono('for')}.
+        {mono('Flow')} é um vetor de bytes que cresce ({mono('init')}, com o tamanho em {mono('len')}) mais o indicador {mono('dead')}. {mono('init[i]')} diz se a variável de {mono('flow_id')} {mono('i')} já tem valor no ponto atual;{' '}
+        {mono('dead')} diz que o caminho já terminou em {mono('return')}, {mono('break')} ou {mono('continue')}. A cada {mono('if')}, {mono('while')} e {mono('for')} o fluxo é clonado ({mono('flow_clone')}): o vetor é copiado, não só o ponteiro.
       </P>
       <Why>
-        {mono('MAX_SYMS')} limita as variáveis locais que o fluxo acompanha numa função. Passando disso, a variável recebe {mono('flow_id')} -1: não é rastreada, e o uso dela antes de ter valor deixa de ser o E3. Medido:
-        numa {mono('main')} com 8195 variáveis {mono('var vN:int;')} sem valor, {mono('terminal.log(toString(v0))')} deu o E3 e o uso da última variável, {mono('v8194')}, não deu nada. Os parâmetros ganham o índice sem conferir esse limite.
+        {mono('sema.c')}: antes havia um teto fixo de 8192 variáveis locais por função (o antigo {mono('MAX_SYMS')}): passando dele a variável ficava sem {mono('flow_id')}, não era rastreada, e o uso antes de ter valor deixava de ser o E3. Hoje o vetor cresce
+        pela arena ({mono('flow_set')} aumenta o tamanho quando o índice passa do fim) e não há teto. Conferido com 8200 variáveis {mono('var vN = N;')} entre o primeiro e o último uso sem valor: o E3 sai nos dois. Como o vetor é clonado a cada {mono('if')}, {mono('while')} e {mono('for')}, o custo
+        é o número de variáveis da função por comando de fluxo, e a arena não devolve nada. Os índices nunca são reaproveitados dentro da função, e um índice além do fim do vetor vale "sem valor".
       </Why>
 
       <H2 title="As três passadas" />
@@ -669,7 +670,7 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
         passada 1, por {mono('check_var')} (locais), por {mono('check_func')} (parâmetros) e por {mono('check_stmt')} (variável do {mono('for')}).
       </Fn>
       <Fn name="merge" signature="static Flow merge(const Flow *a, const Flow *b)">
-        Une dois fluxos depois de um {mono('if')}: se um deles terminou ({mono('dead')}), devolve o outro; senão a interseção ({mono('init')} é 1 só onde os dois são 1) com {mono('dead = 0')}. Percorre os {mono('MAX_SYMS')} índices. Chamada por {mono('check_stmt')}, no {mono('ST_IF')}.
+        Une dois fluxos depois de um {mono('if')}: se um deles terminou ({mono('dead')}), devolve o outro; senão a interseção ({mono('init')} é 1 só onde os dois são 1) com {mono('dead = 0')}. O resultado tem o tamanho do menor dos dois vetores: um índice além do fim vale "sem valor". Chamada por {mono('check_stmt')}, no {mono('ST_IF')}.
       </Fn>
       <H3 title="Expressões" />
       <Fn name="value_of" signature="static Type *value_of(Expr *e)">
@@ -788,6 +789,9 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
           [mono('num_or_dyn(t)'), <>1 se é número ou {mono('T_DYN')}.</>],
           [mono('plural(n, um, varios)'), <>Devolve {mono('um')} se {mono('n')} é 1, senão {mono('varios')}; para as mensagens no plural.</>],
           [mono('new_symbol(name, kind, type)'), <>Aloca um símbolo com {mono('flow_id')} igual a -1.</>],
+          [mono('flow_has(f, id)'), <>1 se o índice {mono('id')} está dentro do vetor e vale 1.</>],
+          [mono('flow_set(f, id)'), <>Põe 1 no índice {mono('id')}, aumentando o vetor (ao menos o dobro, mínimo 64) se ele não alcança.</>],
+          [mono('flow_clone(f)'), <>Copia o fluxo com um vetor novo da arena.</>],
           [mono('mark_initialized(s)'), <>Põe {mono('flow.init')} em 1 para o símbolo, se ele é rastreado.</>],
           [mono('can_use_call_run()'), <>1 se há função atual e ela é workflow ou {mono('main')}.</>],
           [mono('op_text(op)'), <>O texto do operador para as mensagens (a mesma tabela de {mono('op_name')} em {mono('ast.c')}).</>],

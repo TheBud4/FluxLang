@@ -16,6 +16,8 @@
 #                            the SAME .out, once normally and once with FLUX_GC_STRESS=1; skips the tests
 #                            that call POSIX commands (see windows_skip). Needs mingw64-gcc and wine.
 #   tests/exec_windows/*.flux Runs: ./flux --run --windows (programs that call Windows commands via cmd /c)
+#   tests/cli/*.sh          Runs: bash X.sh from the repo root (command-line behavior and limits; the
+#                            script builds its own temporary files and prints what is compared)
 #   tests/exec_tagged/*.flux Runs: FLUX_TAGGED=1 ./flux --run (the tagged output the web UI reads;
 #                            the record separator \x1e is shown as <RS>)
 #
@@ -120,6 +122,29 @@ for pass in lexico sintatico arvore json ast semantico exec exec_tagged exec_col
       failed=$((failed + 1))
     fi
   done
+done
+
+for src in tests/cli/*.sh; do
+  [ -e "$src" ] || continue
+  expected="${src%.sh}.out"
+  if [ ! -f "$expected" ]; then
+    if [ "$1" = "--generate" ]; then
+      bash "$src" > "$expected" 2>&1
+      echo "GERADO  $expected (confira se está certo!)"
+    else
+      echo "SEM .out  $src (rode tests/run.sh --generate)"
+      failed=$((failed + 1))
+    fi
+    continue
+  fi
+  if diff -u "$expected" <(bash "$src" 2>&1) > /dev/null; then
+    echo "ok      $src"
+    passed=$((passed + 1))
+  else
+    echo "FALHOU  $src"
+    diff -u "$expected" <(bash "$src" 2>&1) | tail -n +3 | sed 's/^/        /'
+    failed=$((failed + 1))
+  fi
 done
 
 echo

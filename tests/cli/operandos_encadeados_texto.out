@@ -1,0 +1,4 @@
+Erro sintático [linha 2, coluna 19991]:
+Programa grande ou aninhado demais: o analisador esgotou a pilha (expressão encadeada longa demais).
+Programa rejeitado.
+[código 1]

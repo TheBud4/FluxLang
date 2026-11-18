@@ -36,10 +36,15 @@ export function LinhaDeComando() {
         ]}
       />
       <Callout kind="aviso">
-        Se o arquivo não tem extensão, o executável de {mono('--build')} ganha o mesmo nome do arquivo e o sobrescreve:{' '}
-        {mono('./flux --build prog')} troca o fonte {mono('prog')} por um binário. Use {mono('-o')} ou uma extensão{' '}
-        {mono('.flux')} nos fontes.
+        O {mono('--build')} nunca grava o executável por cima do fonte. Num arquivo sem extensão o nome padrão do executável é o do
+        próprio arquivo, então {mono('./flux --build prog')}, na pasta do fonte, é recusado: a mensagem cita o {mono('-o')}, e o
+        código de saída é 2. Use {mono('-o')} para escolher o nome ou uma extensão {mono('.flux')} nos fontes.
       </Callout>
+      <Why>
+        {mono('main.c')}: o {mono('--build')} confere {mono('st_dev')} e {mono('st_ino')} do fonte e do destino com {mono('stat')}, e não
+        os nomes, porque {mono('prog')}, {mono('./prog')} e um caminho que passa por um link apontam para o mesmo arquivo. A conferência
+        vem antes de gerar o C: a recusa não deixa temporário. O executável que ainda não existe nunca é o fonte.
+      </Why>
 
       <H3 title="Como as opções se combinam" />
       <P>
@@ -119,7 +124,7 @@ export function LinhaDeComando() {
       <Table
         head={['Variável', 'Onde é lida', 'Efeito']}
         rows={[
-          [mono('FLUX_CC'), mono('compile_c'), <>Troca o compilador de C. Padrão: {mono('gcc')}; com {mono('--windows')}, {mono('x86_64-w64-mingw32-gcc')}. Se definida, vale também para {mono('--windows')}.</>],
+          [mono('FLUX_CC'), mono('compile_c'), <>Troca o compilador de C do alvo nativo. Padrão: {mono('gcc')}. Com {mono('--windows')} é ignorada: o alvo Windows usa sempre {mono('x86_64-w64-mingw32-gcc')}.</>],
           [mono('FLUX_CC_FLAGS'), mono('compile_c'), <>Flags extras para o compilador de C, separadas por espaço (no máximo cerca de 50). Ignoradas com {mono('--windows')}. O {mono('make asan')} as usa para ligar os sanitizadores.</>],
           [mono('FLUX_CC_WARN'), mono('compile_c'), <>Qualquer valor troca {mono('-w')} (sem avisos) por {mono('-Wall')} ao compilar o C gerado, para depurar o gerador.</>],
           [mono('TMPDIR'), mono('run_codegen'), <>Pasta dos arquivos temporários ({mono('fluxXXXXXX')} e {mono('fluxexeXXXXXX')}). Padrão: {mono('/tmp')}.</>],
@@ -220,6 +225,11 @@ x19999`}
         (um ponto no início do nome não conta), na pasta atual. Sem arquivo (programa da entrada padrão), {mono('a.out')}.
         Com {mono('--windows')}, acrescenta {mono('.exe')} (ou usa {mono('a.exe')}). Aloca na arena.
       </Fn>
+      <Fn name="same_file" signature="static int same_file(const char *a, const char *b)">
+        Devolve 1 se os dois caminhos existem e apontam para o mesmo arquivo ({mono('st_dev')} e {mono('st_ino')} iguais), 0 se um
+        deles não existe ou são arquivos diferentes. Usada por {mono('run_codegen')} para recusar o {mono('--build')} que
+        sobrescreveria o fonte.
+      </Fn>
       <Fn
         name="run_codegen"
         signature="static int run_codegen(Program *program, int c_mode, int build_mode, const char *outfile, const char *file)"
@@ -312,8 +322,8 @@ x19999`}
       </Fn>
       <Fn name="compile_c" signature="int compile_c(const char *c_path, const char *exe_path)">
         Definida em {mono('codegen_c.c')}. Roda o compilador de C sobre {mono('c_path')} para gerar {mono('exe_path')}, lendo{' '}
-        {mono('FLUX_CC')}, {mono('FLUX_CC_FLAGS')} e {mono('FLUX_CC_WARN')}. Devolve o código de saída do compilador (127
-        se ele não existe).
+        {mono('FLUX_CC')} (só no alvo nativo), {mono('FLUX_CC_FLAGS')} e {mono('FLUX_CC_WARN')}. Devolve o código de saída do
+        compilador (127 se ele não existe).
       </Fn>
       <Fn name="execute_program" signature="int execute_program(const char *exe_path)">
         Definida em {mono('codegen_c.c')}. Executa o programa gerado (com o {mono('wine')} no alvo Windows) e devolve o

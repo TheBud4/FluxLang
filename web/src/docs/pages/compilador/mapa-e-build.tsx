@@ -251,10 +251,10 @@ Programa rejeitado.
         precisa de ferramenta que falta). A última linha é o total, e o script sai com código diferente de zero se
         algum caso falhou:
       </P>
-      <Code lang="text">{`271 passaram, 0 falharam.`}</Code>
+      <Code lang="text">{`276 passaram, 0 falharam.`}</Code>
       <H3 title="As passadas" />
       <P>
-        O script percorre catorze passadas, na ordem abaixo. A coluna "Casos" é a quantidade de arquivos {mono('.flux')}{' '}
+        O script percorre quinze passadas, na ordem abaixo. A coluna "Casos" é a quantidade de arquivos {mono('.flux')}{' '}
         na pasta.
       </P>
       <Table
@@ -274,11 +274,12 @@ Programa rejeitado.
           ['exec_win', mono('tests/exec/'), mono('./flux --run --windows'), <>Os mesmos casos de {mono('exec')} como {mono('.exe')} no {mono('wine')}, menos dois que chamam comandos POSIX.</>, '37'],
           ['exec_win_gc', mono('tests/exec/'), mono('FLUX_GC_STRESS=1 ./flux --run --windows'), 'O mesmo, com o coletor em estresse.', '37'],
           ['exec_windows', mono('tests/exec_windows/'), mono('./flux --run --windows'), <>Programas que chamam comandos do Windows (via {mono('cmd /c')}).</>, '1'],
+          ['cli', mono('tests/cli/'), mono('bash X.sh'), <>Scripts de {mono('bash')} que montam os próprios arquivos temporários e conferem a linha de comando e os limites: o {mono('--build')} que não sobrescreve o fonte, o {mono('--windows')} que ignora {mono('FLUX_CC')}, 5000 operandos encadeados e 8200 variáveis locais. Cada um tem um {mono('.sh')} e um {mono('.out')}.</>, '5'],
         ]}
       />
       <P>
-        A soma é 271 casos: 157 das dez primeiras passadas, mais 39 de {mono('exec_gc')}, 37 de {mono('exec_win')}, 37 de{' '}
-        {mono('exec_win_gc')} e 1 de {mono('exec_windows')}. As três passadas que precisam de Windows só rodam se o{' '}
+        A soma é 276 casos: 157 das dez primeiras passadas, mais 39 de {mono('exec_gc')}, 37 de {mono('exec_win')}, 37 de{' '}
+        {mono('exec_win_gc')}, 1 de {mono('exec_windows')} e 5 de {mono('cli')}. As três passadas que precisam de Windows só rodam se o{' '}
         {mono('x86_64-w64-mingw32-gcc')} e o {mono('wine')} existirem; senão o script imprime{' '}
         {mono('pulado  exec_win (precisa de mingw64-gcc e wine)')} e continua, e o total fica menor.
       </P>
@@ -310,6 +311,10 @@ Programa rejeitado.
       </Code>
       <Code lang="text">{`igual`}</Code>
       <P>
+        Um caso de {mono('tests/cli/')} roda sozinho com {mono('bash tests/cli/X.sh')}, da raiz do repositório, e a saída
+        é comparada com o {mono('X.out')}.
+      </P>
+      <P>
         Para criar um caso, escreva o {mono('.flux')} na pasta certa e rode {mono('bash tests/run.sh --generate')}. Essa
         opção cria só os {mono('.out')} que faltam (nunca regrava os existentes) e imprime{' '}
         {mono('GERADO  tests/.../X.out (confira se está certo!)')}.
@@ -322,7 +327,8 @@ Programa rejeitado.
       </Why>
       <Callout kind="nota">
         Para conferir o C gerado com outro compilador, defina {mono('FLUX_CC')}: {mono('FLUX_CC=clang bash tests/run.sh')}.
-        O {mono('clang')} já mostrou um erro do coletor que o {mono('gcc')} escondia; ver{' '}
+        As passadas de Windows ignoram {mono('FLUX_CC')} e usam sempre o {mono('mingw')}; só as nativas trocam de
+        compilador. O {mono('clang')} já mostrou um erro do coletor que o {mono('gcc')} escondia; ver{' '}
         <PageLink to="compilador/coletor">Coletor de lixo</PageLink>.
       </Callout>
     </>

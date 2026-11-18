@@ -70,16 +70,16 @@ ratificar no README ou deixar como está.
 
 Comportamentos do compilador a decidir (alguns podem ser intencionais):
 
-- [ ] `./flux --build prog` com o fonte sem extensão grava o executável por cima do fonte
+- [x] `./flux --build prog` com o fonte sem extensão grava o executável por cima do fonte (corrigido: recusa com saída 2, comparando dispositivo e inode do fonte e do destino; `tests/cli/build_nao_sobrescreve_fonte.sh`)
 - [x] `q, e = call w()` com `q:float` e `w` devolvendo `int` copia sem converter (`q / 2` dá 0, não 0.5) (corrigido: o resultado passa pela mesma conversão da atribuição comum; `tests/exec/call_converte_para_float.flux`)
 - [x] `l[f()] = g()` avalia o valor (`g`) antes do alvo (`f`), contra a ordem da esquerda para a direita (corrigido: base e índice de todos os alvos antes dos valores; `tests/exec/ordem_do_alvo.flux`)
 - [ ] Inicializadores globais rodam na ordem do arquivo: uma função chamada ali lê os globais de baixo como `null` (R3)
 - [x] `fx_line` não é restaurada no retorno de função: um erro de execução pode citar a linha do fim da função chamada (corrigido: `FX_LINE` de novo depois de cada chamada de func e de `call`, e a cada volta do `while`; `tests/exec/linha_do_erro_*.flux`)
 - [x] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução (corrigido: R7 `Estrutura circular ou profunda demais para imprimir.`, na linha do comando; o ciclo é achado pela marca `busy` do bloco que está sendo impresso (`fx_repr_enter`), e a conferência de pilha só pega a estrutura finita funda demais; `tests/exec/erro_R7_ciclo_*.flux`, `estrutura_profunda.flux`, `estrutura_compartilhada.flux`)
-- [ ] Com mais de 8192 variáveis locais, o E3 deixa de ser detectado
-- [ ] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`)
+- [x] Com mais de 8192 variáveis locais, o E3 deixa de ser detectado (corrigido: o estado de fluxo cresce pela arena, sem teto; `tests/cli/locais_acima_de_8192.sh`)
+- [x] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`) (corrigido: erro sintático em português, também no JSON; `tests/cli/operandos_encadeados_*.sh`)
 - [ ] Pânico: um comando quebrado sem `;` antes do `}` (`x = 1 +` e `}`) tem o `}` descartado, a função fica aberta e sai `tree: null` ou um erro extra no fim do arquivo; `1 +;` solto no nível global, sem `func main` depois, dá o mesmo segundo erro e `tree: null`
-- [ ] `FLUX_CC` também troca o compilador do alvo `--windows` (com `FLUX_CC=clang`, as passadas Windows falham)
+- [x] `FLUX_CC` também troca o compilador do alvo `--windows` (com `FLUX_CC=clang`, as passadas Windows falham) (corrigido: o alvo Windows ignora `FLUX_CC`; `tests/cli/windows_ignora_flux_cc.sh`)
 - [ ] `ação` dá um L1 por caractere não ASCII, e um texto partido em duas linhas dá dois L2
 - [ ] A thread de 64 MB do programa só existe no Windows; no POSIX o programa roda na thread principal
 - [ ] O `asm` que salva os registradores no coletor: só `__builtin_unwind_init` passou com clang 22 e gcc 16 (a falha descrita no antigo comentário não se reproduziu); o `asm` fica até o usuário decidir

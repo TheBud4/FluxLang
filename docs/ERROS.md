@@ -108,6 +108,17 @@ sufixo do alvo: `x`, `obj.a`, `l[0]` e `f().x` são aceitos; `f()`,
 `(x)`, `a + b` e `10` dão S3. A posição é a do `=`, também na
 atribuição múltipla (`a, f() = 1, 2;`).
 
+Um quarto caso não vem da gramática: a pilha do Bison tem 10000 posições, e uma
+expressão com 5000 ou mais operandos encadeados (`1 + 1 + ... + 1`) a esgota. O
+erro é sintático, sem código próprio, na posição do último token lido:
+
+```
+Erro sintático [linha 2, coluna 19991]:
+Programa grande ou aninhado demais: o analisador esgotou a pilha (expressão encadeada longa demais).
+```
+
+No modo `--json` ele entra em `errors`; o programa é rejeitado e a árvore é `null`.
+
 Casos comuns (mensagens esperadas):
 
 | Situação | Exemplo | Encontrado | Esperado |
@@ -125,7 +136,7 @@ Casos comuns (mensagens esperadas):
 | `main` com tipo de retorno | `func main ():int {` | `':'` | `'{'` |
 | `call`/`run` como comando isolado | `call build(x);` | `palavra reservada 'call'` | `'}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` |
 | `call`/`run` dentro de expressão | `terminal.log(call f());` | `palavra reservada 'call'` | `')' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` |
-| Bloco não fechado | falta o `}` final | `fim do arquivo` | `'}'` |
+| Bloco não fechado | falta o `}` final | `fim do arquivo` | `comando ou '}'` |
 | `stop`/`abort` sem `if` | `abort err;` | `identificador 'err'` | `'if'` |
 | Erro que não é identificador simples | `stop if r.err;` | `'.'` | `';'` |
 | `>=` colado no tipo | `var l:list<int>= [1];` | `'>='` | `'>'` |

@@ -5,6 +5,7 @@
 #include "tree.h"
 #include <stdarg.h>
 #include <stdlib.h>
+#include <sys/stat.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <string.h>
@@ -78,6 +79,11 @@ static char *default_exe_name(const char *file) {
   return name;
 }
 
+static int same_file(const char *a, const char *b) {
+  struct stat sa, sb;
+  return stat(a, &sa) == 0 && stat(b, &sb) == 0 && sa.st_dev == sb.st_dev && sa.st_ino == sb.st_ino;
+}
+
 static int run_codegen(Program *program, int c_mode, int build_mode, const char *outfile,
                        const char *file) {
   if (!program) {
@@ -89,8 +95,21 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
     return 0;
   }
 
+  char exe_path[512];
+  if (build_mode) {
+    snprintf(exe_path, sizeof exe_path, "%s", outfile ? outfile : default_exe_name(file));
+    if (file && same_file(file, exe_path)) {
+      fprintf(stderr,
+              "Não é possível gerar o executável '%s': ele é o próprio arquivo fonte.\n"
+              "Use -o para escolher outro nome ou dê ao fonte uma extensão (por exemplo, "
+              "prog.flux).\n",
+              exe_path);
+      return 2;
+    }
+  }
+
   const char *tmpdir = getenv("TMPDIR");
-  char c_path[512], exe_path[512];
+  char c_path[512];
   snprintf(c_path, sizeof c_path, "%s/fluxXXXXXX", tmpdir ? tmpdir : "/tmp");
   int fd = mkstemp(c_path);
   if (fd < 0) {
@@ -101,9 +120,7 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
   generate_c(program, c_file);
   fclose(c_file);
 
-  if (build_mode) {
-    snprintf(exe_path, sizeof exe_path, "%s", outfile ? outfile : default_exe_name(file));
-  } else {
+  if (!build_mode) {
     const char *suffix = is_windows_target() ? ".exe" : "";
     snprintf(exe_path, sizeof exe_path, "%s/fluxexeXXXXXX%s", tmpdir ? tmpdir : "/tmp", suffix);
     int exe_fd = mkstemps(exe_path, (int)strlen(suffix));

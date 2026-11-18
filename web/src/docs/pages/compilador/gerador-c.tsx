@@ -604,7 +604,7 @@ Executável gerado: mini.exe`}
       </Code>
       <Why>
         {mono('codegen_c.c')}: os avisos do {mono('gcc')} ficam desligados ({mono('-w')}) porque falam do C gerado, e não da FluxLang; o usuário não pode agir sobre eles. {mono('FLUX_CC_WARN')} os liga
-        ({mono('-Wall')}), para depurar o gerador, e {mono('FLUX_CC')} troca o compilador. Medido: qualquer valor liga os avisos, até {mono('FLUX_CC_WARN=0')}, porque só se confere se a variável existe.
+        ({mono('-Wall')}), para depurar o gerador, e {mono('FLUX_CC')} troca o compilador do alvo nativo (o alvo Windows usa sempre o mingw: um compilador nativo não gera {mono('.exe')}). Medido: qualquer valor liga os avisos, até {mono('FLUX_CC_WARN=0')}, porque só se confere se a variável existe.
       </Why>
       <Why>
         {mono('codegen_c.c')}: o {mono('-static')} do alvo Windows faz o {mono('.exe')} levar junto a libgcc e a winpthreads: ele roda sem DLLs soltas ao lado.
@@ -719,7 +719,7 @@ func main () {
         {' '}{mono('f_main()')}. Devolve sempre 0. Chamada só por {mono('run_codegen')}; não dá erro próprio, apenas as falhas de escrita do {mono('FILE *')}, que ela não confere.
       </Fn>
       <Fn name="compile_c" signature="int compile_c(const char *c_path, const char *exe_path)">
-        Roda o compilador de C sobre {mono('c_path')} para gerar {mono('exe_path')}. Escolhe o programa ({mono('FLUX_CC')}, ou {mono('x86_64-w64-mingw32-gcc')} no alvo Windows, ou {mono('gcc')}), liga
+        Roda o compilador de C sobre {mono('c_path')} para gerar {mono('exe_path')}. Escolhe o programa ({mono('x86_64-w64-mingw32-gcc')} no alvo Windows, sem olhar o {mono('FLUX_CC')}; no nativo, {mono('FLUX_CC')} ou {mono('gcc')}), liga
         {' '}{mono('-w')} ou {mono('-Wall')} ({mono('FLUX_CC_WARN')}), acrescenta {mono('-static')} no Windows e as flags de {mono('FLUX_CC_FLAGS')} (cortadas em espaços com {mono('strtok')} sobre uma cópia, ignoradas no
         Windows, no máximo 51), e termina com {mono('-o exe_path c_path -lm')}. Devolve o código de {mono('run_program')}: o do compilador, 127 se o programa não pôde ser executado, 128 mais o sinal se ele
         morreu por sinal, ou -1 se o {mono('fork')} falhou. {mono('run_codegen')} trata qualquer valor diferente de 0 como falha.

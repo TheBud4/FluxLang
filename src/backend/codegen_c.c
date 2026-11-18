@@ -517,9 +517,7 @@ static int run_program(char *const argv[]) {
 }
 
 int compile_c(const char *c_path, const char *exe_path) {
-  const char *cc = getenv("FLUX_CC");
-  if (!cc && windows_target)
-    cc = "x86_64-w64-mingw32-gcc";
+  const char *cc = windows_target ? "x86_64-w64-mingw32-gcc" : getenv("FLUX_CC");
   const char *warn = getenv("FLUX_CC_WARN") ? "-Wall" : "-w";
   char *argv[64];
   int n = 0;

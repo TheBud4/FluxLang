@@ -453,11 +453,11 @@ $ ./flux --json --semantic e4.flux | grep -A1 '"errors"'
         rows={[
           [
             'Expressão muito longa',
-            <>A árvore tem profundidade proporcional ao número de operandos, porque os {mono('*_rest')} são recursivos à direita e a pilha do Bison tem limite de 10000 posições. Conferido com {mono('1 + 1 + ... + 1')}: até 4995 operandos o programa é aceito; com 5000, o Bison escreve {mono('memory exhausted')} em {mono('stderr')} e a análise é rejeitada.</>,
+            <>A árvore tem profundidade proporcional ao número de operandos, porque os {mono('*_rest')} são recursivos à direita e a pilha do Bison tem limite de 10000 posições. Conferido com {mono('1 + 1 + ... + 1')}: até 4995 operandos o programa é aceito; com 5000, a pilha do Bison esgota e a análise é rejeitada com um erro sintático em português ({mono('Programa grande ou aninhado demais: o analisador esgotou a pilha (expressão encadeada longa demais).')}).</>,
           ],
           [
             <>Pilha do Bison esgotada com {mono('--json')}</>,
-            <>O JSON sai com {mono('"accepted": false')}, {mono('"errors": []')} e {mono('"tree": null')}: a mensagem {mono('memory exhausted')} vai a {mono('stderr')}, que o JSON não captura, e a interface mostra a rejeição sem nenhuma mensagem de erro.</>,
+            <>O JSON sai com {mono('"accepted": false')}, {mono('"tree": null')} e um erro em {mono('errors')} (a mensagem acima, na posição do último token lido). Antes o Bison só escrevia {mono('memory exhausted')} em {mono('stderr')}, o JSON saía com {mono('"errors": []')} e a interface mostrava a rejeição sem mensagem.</>,
           ],
           [
             'Mensagem de erro longa',
