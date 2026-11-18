@@ -1322,6 +1322,8 @@ Esta expressão não faz nada: só chamadas podem ser usadas como comando.`}
       <H2 title="Erros de execução" />
       <P>
         Os erros de execução só aparecem quando o programa é executado ({mono('./flux --run')}). São de dois tipos.
+        Os exemplos desta seção são aceitos pela análise: aberto no editor, cada um compila sem erro, e a mensagem
+        só aparece quando o programa é executado (botão Executar).
       </P>
       <P>
         Os erros tratáveis são os únicos que o programa consegue tratar: só {mono('run')} e {mono('call')} devolvem
@@ -1334,7 +1336,7 @@ Esta expressão não faz nada: só chamadas podem ser usadas como comando.`}
         de erro e código de saída 1, e não há como tratá-los. O formato é uma linha de cabeçalho, só com a linha do
         programa, e a mensagem:
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func main () {
     var s, e = run { command: "sh", flags: ["-c", "exit 3"] };
     abort if e;
@@ -1353,7 +1355,7 @@ comando 'sh' terminou com código 3`}
         Acontece quando {mono('toInt')}, {mono('toFloat')} ou {mono('toBool')} recebem um texto que não pode ser
         convertido. A mensagem é {mono('Não é possível converter "<texto>" para <tipo>.')}
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func main () {
     var n = toInt("abc");
     terminal.log(toString(n));
@@ -1367,7 +1369,7 @@ Não é possível converter "abc" para int.`}
       <P>
         Acontece quando o índice de uma lista é negativo ou maior ou igual ao tamanho dela. A mensagem é {mono('Índice <i> fora da lista (tamanho <n>).')}
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func main () {
     var nomes = ["Ana", "Bruno"];
     terminal.log(nomes[0]);
@@ -1385,7 +1387,7 @@ Erro de execução [linha 4]:
         Acontece quando o programa usa um valor {mono('null')} onde o valor é necessário: ler um campo ou chamar um
         método de algo que vale {mono('null')}, ou usar {mono('null')} num operador. A mensagem é {mono('Uso de valor null.')}
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func main () {
     var user:object = null;
     terminal.log(toString(user.name));
@@ -1400,7 +1402,7 @@ Uso de valor null.`}
         Acontece na divisão inteira ou no resto inteiro por zero ({mono('/')} e {mono('%')} com {mono('int')}). A
         mensagem é {mono('Divisão por zero.')} A divisão de {mono('float')} segue o padrão IEEE e não é um erro.
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func main () {
     var zero = 0;
     terminal.log(toString(10 / zero));
@@ -1415,7 +1417,7 @@ Divisão por zero.`}
         Acontece quando o valor de um campo de {mono('object')} não tem o tipo que o programa espera dele. O tipo de
         um campo só é conferido na execução. A mensagem é {mono('Esperado <tipo>, encontrado <tipo>.')}
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func main () {
     var user = { name: "Ana" };
     var n:int = user.name;
@@ -1430,7 +1432,7 @@ Esperado int, encontrado string.`}
         Acontece quando uma conta com {mono('int')} passa dos 32 bits: {mono('2147483647 + 1')}, ou negar o menor {mono('int')}.
         A mensagem é {mono('Estouro de inteiro.')}
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func main () {
     var maximo = 2147483647;
     terminal.log(toString(maximo + 1));
@@ -1444,7 +1446,7 @@ Estouro de inteiro.`}
       <P>
         Acontece quando uma recursão não termina ou é funda demais. A mensagem é {mono('Estouro de pilha: recursão profunda demais.')}
       </P>
-      <Code lang="flux">
+      <Code lang="flux" example>
         {`func f(n:int):int {
     return f(n + 1);
 }
