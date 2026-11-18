@@ -183,6 +183,7 @@ impressos ordenados por linha e coluna, no formato
 | E22 | Chamada de algo que não é função nem método | `idade.push(1)` (int), `terminal.foo()`, `user.name()` | `'idade' não tem o método 'push'.` |
 | E23 | `var` global sem valor inicial | `var g:int;` no nível global | `A variável global 'g' precisa de valor inicial.` |
 | E24 | Expressão solta como comando | `x + 1;`, `idade;`, `l[0];` | `Esta expressão não faz nada: só chamadas podem ser usadas como comando.` |
+| E25 | Inicializador de global que chama função que lê global declarado depois | `var a:int = f();` antes de `var b:int = 5;`, com `func f():int { return b; }` | `O inicializador de 'a' chama 'f', que lê o global 'b', declarado depois (linha 2).` |
 
 Decisões de 14/11 que afetam esta tabela (detalhes na seção 8 do README):
 valor de campo de `object` é dinâmico e passa em E4 e E5 (conferido em R5);
@@ -196,6 +197,7 @@ README (outro tipo de argumento é E4).
 que exatamente deu errado:
 
 - E1: `'b' só é declarado depois deste ponto.` (um inicializador de global usa um global declarado abaixo, D3).
+- E25: `O inicializador de 'a' chama 'f' e, por ela, 'g', que lê o global 'b', declarado depois (linha 2).` (a leitura está numa função alcançada pela chamada) e, quando a leitura é do próprio global ou de outro da mesma declaração, `... que lê o global 'a', que ainda não tem valor neste ponto (linha 1).` Cada chamada do inicializador dá no máximo um E25, na posição do nome da função chamada, e só conta função (`call` não é expressão, então um workflow ali já é o erro de `call` fora de workflow ou `main`).
 - E4: `Operador '-' não aceita string.`; `'soma' é uma função, não um valor.` (também para `terminal.log`); os argumentos e os elementos de um literal de lista são conferidos um a um.
 - E7: no plural e no singular (`1 variável e 2 valores.`).
 - E12: `A função 'f' não retorna valor.` e `A função 'g' deve retornar um valor int.`

@@ -572,9 +572,9 @@ int main(void) { return fx_start(fx_program); }`}
         {mono('codegen_c.c')}: os globais são inicializados na ordem do arquivo, dentro do {mono('main')} gerado, antes de {mono('f_main')}. Cada inicializador é calculado com os temporários de {mono('fx_program')}, que
         usa um só contador para todos.
       </Why>
-      <Callout kind="aviso">
-        A ordem do arquivo vale também para as funções chamadas num inicializador: elas veem os globais declarados depois como {mono('null')}. Medido: com {mono('var a = dobra(1);')} antes de {mono('var b = 5;')}, e {mono('dobra')}{' '}
-        multiplicando por {mono('b')}, o programa termina com o erro de execução {mono('Uso de valor null.')} (linha da função), código 1. A análise semântica não barra isso: o uso de uma função num inicializador é permitido.
+      <Callout kind="nota">
+        A ordem do arquivo vale também para as funções chamadas num inicializador: elas veriam os globais declarados depois como {mono('null')}. Por isso a análise semântica barra o caso (E25): o gerador só recebe programas em que
+        nenhuma função chamada por um inicializador, direta ou indiretamente, lê um global declarado depois dele.
       </Callout>
 
       <H2 title="Do C ao executável: o gcc" />

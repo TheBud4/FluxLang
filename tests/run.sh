@@ -6,7 +6,7 @@
 #   tests/arvore/*.flux     Runs: ./flux --tree (parse tree, plus the accept/reject line)
 #   tests/json/*.flux       Runs: ./flux --json (tokens, errors and tree as JSON)
 #   tests/ast/*.flux        Runs: ./flux --ast (the AST)
-#   tests/semantico/*.flux  Runs: ./flux --semantic (semantic errors E1-E24)
+#   tests/semantico/*.flux  Runs: ./flux --semantic (semantic errors E1-E25)
 #   tests/exec/*.flux       Runs: ./flux --run (compiles to C, runs the program)
 #   tests/exec_color/*.flux  Runs: FORCE_COLOR=1 ./flux --run (ANSI colors; the ESC byte is shown as <ESC>)
 #   tests/exec_nocolor/*.flux Runs: FORCE_COLOR=1 NO_COLOR=1 ./flux --run (NO_COLOR wins: no colors)

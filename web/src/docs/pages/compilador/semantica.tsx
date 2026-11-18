@@ -15,7 +15,7 @@ function PassesDiagram() {
     { x: 390, title: 'Passada 3', note: 'corpo de cada função' },
     { x: 580, title: 'Fim', note: 'ordenar e imprimir' },
   ]
-  const raises = ['E2', 'E1, E23, E4, E8', 'quase todos os demais', 'report_error']
+  const raises = ['E2', 'E1, E23, E4, E8', 'quase todos os demais', 'E25 e report_error']
   return (
     <svg viewBox="0 0 770 150" width="770" height="150" className="block max-w-none">
       <defs>
@@ -52,7 +52,7 @@ export function Semantica() {
     <>
       <H2 title="O papel da análise semântica" />
       <P>
-        {mono('src/semantic/sema.c')} confere o que a gramática não consegue: se os nomes existem, se os tipos combinam, se um caminho do programa termina como deve. Ela implementa os erros E1 a E24 do
+        {mono('src/semantic/sema.c')} confere o que a gramática não consegue: se os nomes existem, se os tipos combinam, se um caminho do programa termina como deve. Ela implementa os erros E1 a E25 do
         catálogo ({mono('docs/ERROS.md')}, seção 4) e, de passagem, preenche o campo {mono('type')} das expressões da AST, que o gerador de C usa depois.
       </P>
       <Table
@@ -83,8 +83,12 @@ export function Semantica() {
           [mono('flow'), mono('Flow'), 'O estado de fluxo no ponto atual do programa.'],
           [mono('next_flow_id'), mono('int'), <>O próximo índice de {mono('Flow.init')}; volta a 0 a cada função.</>],
           [mono('cur_func'), mono('Func *'), <>A função cujo corpo está sendo conferido; nulo no nível global (passadas 1 e 2).</>],
+          [mono('cur_sym'), mono('Symbol *'), <>O símbolo da função ou workflow cujo corpo está sendo conferido (nulo na {mono('main')} e fora de função); onde se anotam as leituras e chamadas.</>],
+          [<>{mono('init_calls')}, {mono('n_init_calls')}, {mono('cap_init_calls')}</>, mono('InitCall *'), <>As chamadas de função feitas pelos inicializadores dos globais (passada 2), para o E25. Começa em 16 e dobra.</>],
+          [<>{mono('init_name')}, {mono('init_decl')}</>, <>{mono('const char *')}, {mono('int')}</>, <>O nome do global e o índice da declaração cujo valor está sendo conferido na passada 2.</>],
+          [mono('n_func_syms'), mono('int'), <>Quantas funções e workflows foram declarados na passada 1.</>],
           [mono('loop_depth'), mono('int'), <>Quantos {mono('while')}/{mono('for')} envolvem o ponto atual; zero fora de laço.</>],
-          [mono('in_global_init'), mono('int'), <>Ligada enquanto o inicializador de um global é conferido. É atribuída e nunca lida.</>],
+          [mono('in_global_init'), mono('int'), <>Ligada enquanto o inicializador de um global é conferido. Só {mono('record_call')} a lê, para decidir que a chamada vai para {mono('init_calls')}.</>],
         ]}
       />
       <H3 title="Diag" />
@@ -99,10 +103,14 @@ export function Semantica() {
           [mono('kind'), <>{mono('SYM_VAR')} (variável, constante, parâmetro, variável do {mono('for')}), {mono('SYM_FUNC')}, {mono('SYM_WORKFLOW')}, {mono('SYM_LIBFN')} (as quatro conversões) ou {mono('SYM_TERMINAL')}.</>],
           [mono('type'), <>O tipo, só para {mono('SYM_VAR')}. Nulo nas funções, em {mono('terminal')} e nas conversões, e nulo num global cujo inicializador ainda não foi conferido.</>],
           [mono('is_const'), <>Veio de um {mono('const')}: o alvo de uma atribuição vira E6.</>],
-          [mono('flow_id'), <>O índice dele em {mono('Flow.init')}, ou -1 se a variável não é rastreada (globais, funções, e locais além do limite).</>],
+          [mono('flow_id'), <>O índice dele em {mono('Flow.init')}, ou -1 se a variável não é rastreada (globais e funções).</>],
           [<>{mono('is_err')}, {mono('handled')}, {mono('err_pos')}</>, <>É a variável de erro de um {mono('call')}/{mono('run')}; já foi tratada por {mono('stop if')}, {mono('abort if')} ou {mono('proceed if')}; e a posição de onde ela recebeu o erro, para a mensagem do E9.</>],
           [mono('func'), <>Em {mono('SYM_FUNC')} e {mono('SYM_WORKFLOW')}: a {mono('Func')} da AST (os parâmetros e o tipo de retorno).</>],
           [mono('decl_pos'), 'Onde o nome foi declarado.'],
+          [mono('decl_index'), <>Num global ({mono('SYM_VAR')} do nível global), o índice da declaração no arquivo; -1 nos demais. Serve ao E25.</>],
+          [<>{mono('calls')}, {mono('n_calls')}</>, <>Em uma função ou workflow: as funções que o corpo chama, sem repetir (preenchido na passada 3).</>],
+          [<>{mono('reads')}, {mono('n_reads')}</>, <>Em uma função ou workflow: os globais que o corpo lê, sem repetir (passada 3).</>],
+          [mono('visit'), <>A marca da busca de {mono('find_late_read')}, para visitar cada função uma vez por chamada de inicializador.</>],
           [mono('next'), 'O próximo símbolo do mesmo escopo (lista encadeada, o mais novo na frente).'],
         ]}
       />
@@ -135,7 +143,7 @@ export function Semantica() {
       <H3 title="Passada 1: declarar os globais" />
       <P>
         Para cada item: uma {mono('func')} ou um {mono('workflow')} (que não é a {mono('main')}) vira um símbolo {mono('SYM_FUNC')} ou {mono('SYM_WORKFLOW')} com o ponteiro {mono('func')}; cada nome de um {mono('var')} ou {mono('const')} vira um {mono('SYM_VAR')} sem
-        tipo. É {mono('declare')} que levanta o E2 quando o nome já existe. A {mono('main')} não vira símbolo (e a palavra {mono('main')} é reservada, então ninguém a chama).
+        tipo, com o índice da declaração em {mono('decl_index')}. É {mono('declare')} que levanta o E2 quando o nome já existe. A {mono('main')} não vira símbolo (e a palavra {mono('main')} é reservada, então ninguém a chama).
       </P>
       <Why>
         A passada 1 existe para que os globais valham em todo o arquivo (decisão D3): uma função pode usar um global ou chamar outra função declarada mais abaixo, porque todos os nomes já estão na tabela antes de qualquer corpo ser conferido. Ela também faz o E2 valer
@@ -146,14 +154,29 @@ export function Semantica() {
         Para cada {mono('var')} ou {mono('const')} global, na ordem do arquivo: se não há valor inicial, o E23 (um por nome); depois zera o fluxo, deixa {mono('cur_func')} nulo e chama {mono('check_var(var, 1)')}, que confere o inicializador e grava o tipo nos símbolos da passada 1.
         Como um global só ganha tipo quando chega a sua vez, um inicializador só enxerga os globais declarados acima. As funções não têm essa restrição, pois já foram declaradas por inteiro.
       </P>
+      <P>
+        Cada chamada de função que o inicializador faz ({mono('check_call')} com o {mono('Symbol')} da função) é guardada em {mono('init_calls')}, com a posição do nome chamado, o índice da declaração ({mono('init_decl')}) e o nome da variável ({mono('init_name')}). O E25 só é levantado depois da passada 3, por {mono('check_init_order')}.
+      </P>
       <Why>
         Um inicializador de global só usa globais declarados acima (decisão D3) porque a passada 2 os confere na ordem do arquivo e só grava o tipo de cada global quando chega a vez dele: um global declarado abaixo ainda não tem tipo quando o inicializador é conferido, e vira
-        o erro &quot;só é declarado depois deste ponto&quot;. Usar uma função, ao contrário, é permitido (medido: {mono('var x = dobra(3);')} com {mono('dobra')} declarada depois passa): o tipo de uma função vem da AST, não da ordem.
+        o erro &quot;só é declarado depois deste ponto&quot;. Usar uma função, ao contrário, é permitido (medido: {mono('var x = dobra(3);')} com {mono('dobra')} declarada depois passa): o tipo de uma função vem da AST, não da ordem. O que a passada 2 não vê é o que a função lê por dentro: isso é o E25, conferido depois da passada 3.
       </Why>
       <H3 title="Passada 3: o corpo de cada função" />
       <P>
         Cada item com {mono('func')} (as funções, os workflows e a {mono('main')}, na ordem do arquivo) vai a {mono('check_func')}. É aqui que mora a maior parte das conferências: tipos, fluxo, {mono('call')} e {mono('run')}.
       </P>
+      <P>
+        Enquanto confere o corpo de uma função ou workflow, o {mono('sema.c')} anota no símbolo dela os globais que ela lê ({mono('check_ident')} chama {mono('record_read')}, e o {mono('Symbol')} guarda {mono('reads')}) e as funções que ela chama ({mono('check_call')} chama {mono('record_call')}, e o símbolo guarda {mono('calls')}). A {mono('main')} não é anotada, porque ninguém a chama.
+      </P>
+      <H3 title="Depois da passada 3: a ordem dos inicializadores (E25)" />
+      <P>
+        {mono('check_init_order')} roda no fim, quando as anotações de todas as funções estão prontas. Para cada chamada guardada na passada 2, {mono('find_late_read')} percorre o grafo de chamadas a partir da função chamada (uma busca com pilha, cada função visitada uma vez, o que também
+        trata a recursão) e procura uma função que lê um global com {mono('decl_index')} maior ou igual ao da declaração do inicializador. Achando, levanta o E25 na posição do nome chamado, no máximo um por chamada.
+      </P>
+      <Why>
+        {mono('sema.c')}: o índice do global é o da declaração no arquivo ({mono('decl_index')}, gravado na passada 1), e vale "maior ou igual" porque ler o próprio global, ou outro da mesma declaração, também dá {mono('null')}: os valores de uma declaração são todos calculados antes de qualquer um ser gravado. Medido antes da regra:
+        {mono('var a:int = f();')} com {mono('f')} lendo um global de baixo imprimia {mono('null')} para um {mono('int')}, sem nenhum erro. Só chamadas de função contam: {mono('call')} não é expressão, então um workflow num inicializador já é o erro de {mono('call')} fora de workflow ou {mono('main')}.
+      </Why>
       <P>Um programa e a saída real do compilador mostram as três passadas e a ordenação por posição (o E2 de {mono('terminal')} vem da passada 1, os outros da 2 e da 3, mas saem por linha):</P>
       <Code lang="flux">
         {`var a = b;
@@ -605,7 +628,7 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
 
       <H2 title="Qual função levanta cada erro" />
       <P>
-        O catálogo está em <code className="font-mono">docs/ERROS.md</code>, seção 4. Os números E1 a E24 não aparecem no código: cada mensagem é uma chamada de {mono('err')}. Esta tabela liga cada código às funções de {mono('sema.c')} que a chamam (conferida com um {mono('grep')} em {mono('err(')}):
+        O catálogo está em <code className="font-mono">docs/ERROS.md</code>, seção 4. Os números E1 a E25 não aparecem no código: cada mensagem é uma chamada de {mono('err')}. Esta tabela liga cada código às funções de {mono('sema.c')} que a chamam (conferida com um {mono('grep')} em {mono('err(')}):
       </P>
       <Table
         head={['Código', 'Função(ões) de sema.c', 'Onde a mensagem aponta']}
@@ -634,6 +657,7 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
           ['E22', <>{mono('check_call')} (isso não é função; {mono('terminal')} e variável chamados), {mono('check_method_call')}, {mono('check_terminal_call')}</>, 'o nome ou o método'],
           ['E23', <>{mono('semantic_check')} (passada 2)</>, 'o nome do global'],
           ['E24', <>{mono('check_stmt')} ({mono('ST_EXPR')})</>, 'o comando'],
+          ['E25', <>{mono('check_init_order')} (depois da passada 3)</>, 'o nome da função chamada no inicializador'],
         ]}
       />
 
@@ -643,7 +667,14 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
       <Fn name="semantic_check" signature="int semantic_check(Program *program)">
         Roda a análise semântica inteira (as três passadas descritas acima) e devolve quantos erros foram reportados. Parâmetro: a AST, que nunca pode ser nula (o {mono('main')} só chama com um {mono('Program')} válido). Efeitos colaterais: preenche {mono('Expr.type')} em toda a AST;
         escreve as mensagens por {mono('report_error')} (e altera o contador de erros do {mono('main')}); aloca escopos e símbolos na arena. Cria o escopo global, chama {mono('declare_library')}, faz as passadas 1, 2 e 3, sai do escopo global, ordena e imprime. Chamada por {mono('main')}. Erros
-        possíveis: todos os E1 a E24.
+        possíveis: todos os E1 a E25.
+      </Fn>
+      <H3 title="A ordem dos inicializadores" />
+      <Fn name="find_late_read" signature="static int find_late_read(Symbol *start, int decl, Symbol **reader, Symbol **global, int stamp)">
+        Busca, a partir da função {mono('start')}, uma função alcançável pelas chamadas que lê um global de índice maior ou igual a {mono('decl')}. Usa uma pilha do tamanho do número de funções e a marca {mono('visit')} de cada símbolo (com {mono('stamp')} diferente por chamada) para visitar cada função uma vez. Devolve 1 e preenche {mono('reader')} e {mono('global')} se achou, 0 se não.
+      </Fn>
+      <Fn name="check_init_order" signature="static void check_init_order(void)">
+        Para cada chamada guardada em {mono('init_calls')}, chama {mono('find_late_read')} e levanta o E25, com a mensagem de &quot;declarado depois&quot; ou de &quot;ainda não tem valor neste ponto&quot;, citando a função chamada e, se a leitura está noutra, a que lê. Chamada por {mono('semantic_check')} depois da passada 3.
       </Fn>
       <H3 title="Erros e nomes de tipo" />
       <Fn name="err" signature="static void err(Pos pos, const char *fmt, ...)">
@@ -789,6 +820,9 @@ O campo 'workingDir' de 'run' deve ser string, encontrado int.`}
           [mono('num_or_dyn(t)'), <>1 se é número ou {mono('T_DYN')}.</>],
           [mono('plural(n, um, varios)'), <>Devolve {mono('um')} se {mono('n')} é 1, senão {mono('varios')}; para as mensagens no plural.</>],
           [mono('new_symbol(name, kind, type)'), <>Aloca um símbolo com {mono('flow_id')} igual a -1.</>],
+          [mono('link_symbol(lista, n, alvo)'), <>Acrescenta {mono('alvo')} a uma lista de símbolos que cresce pela arena, sem repetir.</>],
+          [mono('record_call(callee, pos)'), <>Na passada 3, anota a chamada na função atual; na passada 2, guarda a chamada do inicializador em {mono('init_calls')}.</>],
+          [mono('record_read(global)'), <>Anota na função atual a leitura de um global (só globais têm {mono('decl_index')}).</>],
           [mono('flow_has(f, id)'), <>1 se o índice {mono('id')} está dentro do vetor e vale 1.</>],
           [mono('flow_set(f, id)'), <>Põe 1 no índice {mono('id')}, aumentando o vetor (ao menos o dobro, mínimo 64) se ele não alcança.</>],
           [mono('flow_clone(f)'), <>Copia o fluxo com um vetor novo da arena.</>],

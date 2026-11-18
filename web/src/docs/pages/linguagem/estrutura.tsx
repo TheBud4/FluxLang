@@ -116,7 +116,7 @@ const versao:string = "1.0";`}
       </Code>
       <Callout kind="nota">
         A ordem só importa em um ponto: o valor inicial de um global. Ele é calculado de cima para baixo, na ordem do
-        arquivo, então só pode usar globais declarados acima dele. Dentro de funções e workflows não há essa restrição.
+        arquivo, então só pode usar globais declarados acima dele, e as funções que ele chama também não podem ler um global declarado abaixo (E25). Dentro de funções e workflows não há essa restrição.
       </Callout>
       <Code lang="flux">
         {`var a = b + 1;

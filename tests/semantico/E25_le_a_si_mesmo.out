@@ -1,0 +1,6 @@
+Erro semântico [linha 1, coluna 13]:
+O inicializador de 'a' chama 'f', que lê o global 'a', que ainda não tem valor neste ponto (linha 1).
+Erro semântico [linha 2, coluna 15]:
+O inicializador de 'y' chama 'g', que lê o global 'x', que ainda não tem valor neste ponto (linha 2).
+Programa rejeitado.
+[código 1]

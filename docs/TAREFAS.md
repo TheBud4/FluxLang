@@ -45,7 +45,7 @@
 ## Pontos extras
 
 - [x] Realce das linhas com erro na interface
-- [x] Análise semântica (E1–E24): `./flux --semantic`, com a chave na interface
+- [x] Análise semântica (E1–E25): `./flux --semantic`, com a chave na interface
 - [x] Geração de código C e chamada do `gcc` (`--c`, `--build`, `--run`)
 - [x] Checagens de execução R1–R7 no código gerado (biblioteca `src/backend/runtime/flux_rt.h`)
 - [x] Coletor de lixo na biblioteca de execução e arena de memória no compilador (sem vazamentos sob o LeakSanitizer)
@@ -73,7 +73,7 @@ Comportamentos do compilador a decidir (alguns podem ser intencionais):
 - [x] `./flux --build prog` com o fonte sem extensão grava o executável por cima do fonte (corrigido: recusa com saída 2, comparando dispositivo e inode do fonte e do destino; `tests/cli/build_nao_sobrescreve_fonte.sh`)
 - [x] `q, e = call w()` com `q:float` e `w` devolvendo `int` copia sem converter (`q / 2` dá 0, não 0.5) (corrigido: o resultado passa pela mesma conversão da atribuição comum; `tests/exec/call_converte_para_float.flux`)
 - [x] `l[f()] = g()` avalia o valor (`g`) antes do alvo (`f`), contra a ordem da esquerda para a direita (corrigido: base e índice de todos os alvos antes dos valores; `tests/exec/ordem_do_alvo.flux`)
-- [ ] Inicializadores globais rodam na ordem do arquivo: uma função chamada ali lê os globais de baixo como `null` (R3)
+- [x] Inicializadores globais rodam na ordem do arquivo: uma função chamada ali lê os globais de baixo como `null` (R3) (corrigido: erro E25 na compilação; `tests/semantico/E25_*.flux`)
 - [x] `fx_line` não é restaurada no retorno de função: um erro de execução pode citar a linha do fim da função chamada (corrigido: `FX_LINE` de novo depois de cada chamada de func e de `call`, e a cada volta do `while`; `tests/exec/linha_do_erro_*.flux`)
 - [x] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução (corrigido: R7 `Estrutura circular ou profunda demais para imprimir.`, na linha do comando; o ciclo é achado pela marca `busy` do bloco que está sendo impresso (`fx_repr_enter`), e a conferência de pilha só pega a estrutura finita funda demais; `tests/exec/erro_R7_ciclo_*.flux`, `estrutura_profunda.flux`, `estrutura_compartilhada.flux`)
 - [x] Com mais de 8192 variáveis locais, o E3 deixa de ser detectado (corrigido: o estado de fluxo cresce pela arena, sem teto; `tests/cli/locais_acima_de_8192.sh`)

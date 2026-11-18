@@ -92,7 +92,7 @@ export const compiladorPages: DocPage[] = [
     id: 'compilador/semantica',
     section: 'compilador',
     title: 'Análise semântica',
-    summary: 'sema.c: as três passadas, a pilha de escopos, a tipagem das expressões, o estado de fluxo do E3 e do E20, call e run, e qual função levanta cada erro E1 a E24.',
+    summary: 'sema.c: as três passadas, a pilha de escopos, a tipagem das expressões, o estado de fluxo do E3 e do E20, call e run, e qual função levanta cada erro E1 a E25.',
     Component: Semantica,
   },
   {

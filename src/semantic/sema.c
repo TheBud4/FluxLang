@@ -72,6 +72,12 @@ typedef struct Symbol {
   Pos err_pos;
   Func *func;
   Pos decl_pos;
+  int decl_index;
+  int visit;
+  struct Symbol **calls;
+  int n_calls;
+  struct Symbol **reads;
+  int n_reads;
   struct Symbol *next;
 } Symbol;
 
@@ -111,6 +117,7 @@ static Symbol *new_symbol(const char *name, SymKind kind, Type *type) {
   s->kind = kind;
   s->type = type;
   s->flow_id = -1;
+  s->decl_index = -1;
   return s;
 }
 
@@ -177,6 +184,52 @@ static void mark_initialized(Symbol *s) {
 static Func *cur_func;
 static int loop_depth;
 static int in_global_init;
+static Symbol *cur_sym;
+static int n_func_syms;
+
+typedef struct {
+  Symbol *callee;
+  Pos pos;
+  int decl;
+  const char *var_name;
+} InitCall;
+
+static InitCall *init_calls;
+static int n_init_calls, cap_init_calls;
+static const char *init_name;
+static int init_decl;
+
+static void link_symbol(Symbol ***list, int *n, Symbol *target) {
+  for (int i = 0; i < *n; i++)
+    if ((*list)[i] == target)
+      return;
+  if (*n == 0)
+    *list = mem_alloc(4 * sizeof **list);
+  else if (*n >= 4 && (*n & (*n - 1)) == 0)
+    *list = mem_grow(*list, (size_t)*n * sizeof **list, (size_t)*n * 2 * sizeof **list);
+  (*list)[(*n)++] = target;
+}
+
+static void record_call(Symbol *callee, Pos pos) {
+  if (cur_sym) {
+    link_symbol(&cur_sym->calls, &cur_sym->n_calls, callee);
+    return;
+  }
+  if (!in_global_init)
+    return;
+  if (n_init_calls == cap_init_calls) {
+    int cap = cap_init_calls ? cap_init_calls * 2 : 16;
+    init_calls = mem_grow(init_calls, (size_t)cap_init_calls * sizeof *init_calls,
+                          (size_t)cap * sizeof *init_calls);
+    cap_init_calls = cap;
+  }
+  init_calls[n_init_calls++] = (InitCall){callee, pos, init_decl, init_name};
+}
+
+static void record_read(Symbol *global) {
+  if (cur_sym && global->decl_index >= 0)
+    link_symbol(&cur_sym->reads, &cur_sym->n_reads, global);
+}
 
 static int can_use_call_run(void) {
   return cur_func && (cur_func->is_workflow || cur_func->is_main);
@@ -334,6 +387,7 @@ static Type *check_ident(Expr *e) {
     err(e->pos, "'%s' só é declarado depois deste ponto.", e->text);
     return T(T_ERROR);
   }
+  record_read(s);
   if (s->flow_id >= 0 && !flow.dead && !flow_has(&flow, s->flow_id)) {
     err(e->pos, "Variável '%s' utilizada antes de ser inicializada.", e->text);
     flow_set(&flow, s->flow_id);
@@ -536,6 +590,7 @@ static Type *check_call(Expr *call) {
   }
   switch (s->kind) {
   case SYM_FUNC:
+    record_call(s, callee->pos);
     check_args_against(call, s->name, s->func->params, s->func->n_params);
     return s->func->ret ? s->func->ret : T(T_VOID);
   case SYM_WORKFLOW:
@@ -668,6 +723,8 @@ static void check_var(Stmt *s, int is_global) {
   if (s->rhs && s->rhs->kind == RHS_EXPRS) {
     Rhs *r = s->rhs;
     for (int i = 0; i < r->n_exprs; i++) {
+      if (is_global)
+        init_name = s->names[i < s->n_names ? i : 0]->name;
       if (i < n && s->declared) {
         check_assign_to(s->declared, r->exprs[i]);
         continue;
@@ -925,6 +982,8 @@ static void check_block(Stmt *block) {
 }
 
 static void check_func(Func *f) {
+  Symbol *self = lookup(f->name.name);
+  cur_sym = self && (self->kind == SYM_FUNC || self->kind == SYM_WORKFLOW) ? self : NULL;
   cur_func = f;
   loop_depth = 0;
   next_flow_id = 0;
@@ -944,6 +1003,51 @@ static void check_func(Func *f) {
         tn(f->ret));
   scope_pop();
   cur_func = NULL;
+  cur_sym = NULL;
+}
+
+static int find_late_read(Symbol *start, int decl, Symbol **reader, Symbol **global,
+                          int stamp) {
+  Symbol **stack = mem_alloc((size_t)(n_func_syms + 1) * sizeof *stack);
+  int top = 0;
+  stack[top++] = start;
+  start->visit = stamp;
+  while (top > 0) {
+    Symbol *f = stack[--top];
+    for (int i = 0; i < f->n_reads; i++)
+      if (f->reads[i]->decl_index >= decl) {
+        *reader = f;
+        *global = f->reads[i];
+        return 1;
+      }
+    for (int i = f->n_calls - 1; i >= 0; i--)
+      if (f->calls[i]->visit != stamp) {
+        f->calls[i]->visit = stamp;
+        stack[top++] = f->calls[i];
+      }
+  }
+  return 0;
+}
+
+static void check_init_order(void) {
+  for (int i = 0; i < n_init_calls; i++) {
+    InitCall *c = &init_calls[i];
+    Symbol *reader, *global;
+    if (!find_late_read(c->callee, c->decl, &reader, &global, i + 1))
+      continue;
+    char via[200];
+    if (reader == c->callee)
+      snprintf(via, sizeof via, "'%s'", c->callee->name);
+    else
+      snprintf(via, sizeof via, "'%s' e, por ela, '%s'", c->callee->name, reader->name);
+    if (global->decl_index > c->decl)
+      err(c->pos, "O inicializador de '%s' chama %s, que lê o global '%s', declarado depois (linha %d).",
+          c->var_name, via, global->name, global->decl_pos.line);
+    else
+      err(c->pos,
+          "O inicializador de '%s' chama %s, que lê o global '%s', que ainda não tem valor neste ponto (linha %d).",
+          c->var_name, via, global->name, global->decl_pos.line);
+  }
 }
 
 static void declare_library(void) {
@@ -960,6 +1064,9 @@ static void declare_library(void) {
 
 int semantic_check(Program *program) {
   n_diags = 0;
+  n_init_calls = 0;
+  n_func_syms = 0;
+  cur_sym = NULL;
   scope = NULL;
   scope_push();
   globals = scope;
@@ -969,11 +1076,16 @@ int semantic_check(Program *program) {
     Decl *d = &program->decls[i];
     if (d->func && !d->func->is_main) {
       Symbol *s = declare(&d->func->name, d->func->is_workflow ? SYM_WORKFLOW : SYM_FUNC, NULL);
-      if (s)
+      if (s) {
         s->func = d->func;
+        n_func_syms++;
+      }
     } else if (d->var) {
-      for (int k = 0; k < d->var->n_names; k++)
-        declare(d->var->names[k], SYM_VAR, NULL);
+      for (int k = 0; k < d->var->n_names; k++) {
+        Symbol *g = declare(d->var->names[k], SYM_VAR, NULL);
+        if (g)
+          g->decl_index = i;
+      }
     }
   }
 
@@ -987,6 +1099,7 @@ int semantic_check(Program *program) {
             d->var->names[k]->name);
     cur_func = NULL;
     in_global_init = 1;
+    init_decl = i;
     flow = (Flow){0};
     check_var(d->var, 1);
     in_global_init = 0;
@@ -995,6 +1108,8 @@ int semantic_check(Program *program) {
   for (int i = 0; i < program->n_decls; i++)
     if (program->decls[i].func)
       check_func(program->decls[i].func);
+
+  check_init_order();
 
   scope_pop();
 

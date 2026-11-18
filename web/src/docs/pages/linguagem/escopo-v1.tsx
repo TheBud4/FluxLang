@@ -66,7 +66,7 @@ export function EscopoV1() {
           ],
           [
             'Regras e erros',
-            'Regras léxicas e semânticas, e os erros L1 a L6, S1 a S3, E1 a E24 e R1 a R7',
+            'Regras léxicas e semânticas, e os erros L1 a L6, S1 a S3, E1 a E25 e R1 a R7',
             <><PageLink to="linguagem/regras-lexicas">Regras léxicas</PageLink>, <PageLink to="linguagem/regras-semanticas">Regras semânticas</PageLink> e <PageLink to="linguagem/erros">Catálogo de erros</PageLink></>,
           ],
         ]}

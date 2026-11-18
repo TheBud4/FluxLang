@@ -15,7 +15,7 @@ export function Erros() {
         rows={[
           ['Léxico', 'L1 a L6', 'Análise léxica', 'Ao formar os tokens'],
           ['Sintático', 'S1 a S3', 'Análise sintática', 'Ao validar a sequência de tokens contra a gramática'],
-          ['Semântico', 'E1 a E24', 'Análise semântica', 'Depois de um parse sem erros, percorrendo o programa'],
+          ['Semântico', 'E1 a E25', 'Análise semântica', 'Depois de um parse sem erros, percorrendo o programa'],
           ['Execução', 'R1 a R7', 'O programa rodando', <>Quando o programa executa ({mono('./flux --run')})</>],
         ]}
       />
@@ -43,7 +43,7 @@ export function Erros() {
           ['S2', 'Fim de arquivo inesperado', 'Erros sintáticos'],
           ['S3', 'Alvo de atribuição inválido', 'Erros sintáticos'],
           [
-            'E1 a E24',
+            'E1 a E25',
             <>Nomes, tipos, inicialização, funções, workflows, {mono('call')}, {mono('run')} e tratamento de erros</>,
             'Erros semânticos',
           ],
@@ -1319,6 +1319,32 @@ Esta expressão não faz nada: só chamadas podem ser usadas como comando.`}
         {`Erro semântico [linha 3, coluna 5]:
 Esta expressão não faz nada: só chamadas podem ser usadas como comando.`}
       </Code>
+      <H3 title="E25: inicializador de global que chama função que lê global declarado depois" />
+      <P>
+        Os globais são inicializados na ordem do arquivo, e um global declarado abaixo ainda não tem valor quando o de cima é calculado. Um inicializador que usa o global de baixo direto é o E1. O E25 pega o caso escondido: o
+        inicializador chama uma função, e essa função (ou outra que ela chame) lê um global que ainda não tem valor. A mensagem é {mono("O inicializador de '<a>' chama '<f>', que lê o global '<b>', declarado depois (linha N).")}
+        A posição é a do nome da função chamada no inicializador. Sem o erro, o programa seria aceito e a função leria {mono('null')}.
+      </P>
+      <Code lang="flux">
+        {`var a:int = f();
+var b:int = 5;
+
+func f():int {
+    return b;
+}
+
+func main () {
+    terminal.log(a);
+}`}
+      </Code>
+      <Code lang="text">
+        {`Erro semântico [linha 1, coluna 13]:
+O inicializador de 'a' chama 'f', que lê o global 'b', declarado depois (linha 2).`}
+      </Code>
+      <P>
+        Quando a leitura está numa função alcançada pela chamada, a mensagem diz as duas: {mono("chama 'f' e, por ela, 'g', que lê o global 'b', declarado depois (linha 2).")} Uma função que só lê globais declarados acima, ou que lê um
+        global de baixo mas nunca é chamada por um inicializador, não tem erro. Se a função lê o próprio global que está sendo inicializado (ou outro da mesma declaração), a mensagem termina em {mono("que ainda não tem valor neste ponto (linha N).")}
+      </P>
       <H2 title="Erros de execução" />
       <P>
         Os erros de execução só aparecem quando o programa é executado ({mono('./flux --run')}). São de dois tipos.

@@ -41,7 +41,7 @@ static void help(void) {
          "  --tree         imprime a árvore de derivação\n"
          "  --json         imprime tokens, erros e árvore em JSON\n"
          "  --ast          imprime a AST (a árvore sem a burocracia da gramática)\n"
-         "  --semantic     confere também os erros semânticos (E1 a E24)\n"
+         "  --semantic     confere também os erros semânticos (E1 a E25)\n"
          "  --c            imprime o programa em C (com a biblioteca de execução)\n"
          "  --build [-o x] gera o executável (via gcc); sem -o, usa o nome do arquivo\n"
          "  --run          gera o executável, roda e apaga\n"

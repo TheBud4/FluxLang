@@ -13,7 +13,7 @@ export function RegrasSemanticas() {
         programa que passa por todas elas é o que o compilador aceita.
       </P>
       <P>
-        Cada regra quebrada tem um código de E1 a E24. O compilador junta todos os erros semânticos do programa e os
+        Cada regra quebrada tem um código de E1 a E25. O compilador junta todos os erros semânticos do programa e os
         imprime ordenados por linha e coluna, no formato {mono('Erro semântico [linha L, coluna C]:')} seguido da
         mensagem. Cada seção abaixo lista os códigos que lhe dizem respeito, e o <PageLink to="linguagem/erros">Catálogo de erros</PageLink> traz
         cada um com exemplo e mensagem.
@@ -22,7 +22,7 @@ export function RegrasSemanticas() {
         head={['Assunto', 'Códigos']}
         rows={[
           ['Declarações, escopo e nomes', 'E1, E2'],
-          ['Inicialização antes do uso', 'E3, E23'],
+          ['Inicialização antes do uso', 'E3, E23, E25'],
           ['Inferência de tipo', 'E8'],
           ['Tipos compatíveis, condições e colchetes', 'E4, E5, E16, E19'],
           ['Constantes', 'E6'],
@@ -151,7 +151,7 @@ func main () {
       </Code>
       <P>
         A exceção é o inicializador de um global, que segue a ordem do arquivo: ele só pode usar globais declarados
-        acima. Usar um declarado abaixo é o E1, com uma mensagem própria.
+        acima. Usar um declarado abaixo é o E1, com uma mensagem própria; uma função chamada pelo inicializador que lê um global de baixo é o E25.
       </P>
       <Code lang="flux">
         {`var a = b;
@@ -268,6 +268,10 @@ func main () {
       <H3 title="Globais sempre têm valor inicial" />
       <P>
         Uma variável global precisa de valor inicial (E23). É por isso que o E3 só existe para variáveis locais.
+      </P>
+      <P>
+        Os globais são calculados na ordem do arquivo, então o inicializador de um global só pode usar globais declarados acima. Isso vale também para as funções que ele chama: se o inicializador chama uma função (direta ou indiretamente) que lê um global
+        declarado depois, é o erro E25. Ver <PageLink to="linguagem/erros">Erros</PageLink>.
       </P>
       <Code lang="flux">
         {`var g:int;

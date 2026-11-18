@@ -26,7 +26,7 @@ export function LinhaDeComando() {
           [mono('--tree'), 'Imprime a árvore de derivação (um nó por regra da BNF) e depois a linha de aceito ou rejeitado. Com erros de sintaxe, a árvore sai se o parser se recuperou até construir a raiz; depois de um erro severo (bloco não fechado, arquivo sem func main, como o que só tem texto solto no nível global, arquivo vazio; texto solto antes ou depois de uma func main é recuperado e a árvore sai) não imprime árvore nenhuma, só os erros.'],
           [mono('--json'), <>Imprime só um objeto JSON com os tokens, os erros, o número de linhas e a árvore (o campo {mono('tree')} é {mono('null')} depois de um erro de sintaxe severo, quando o parser não chegou a montar a raiz). Os erros não vão para a saída de erro. Ver <PageLink to="compilador/arvore-json">Árvore e JSON</PageLink>.</>],
           [mono('--ast'), 'Imprime a AST (sem rodar a análise semântica), depois a linha de aceito ou rejeitado. Se o programa tem erros de sintaxe, não há AST.'],
-          [mono('--semantic'), <>Roda a análise semântica (E1 a E24). Sem esta opção, só léxico e sintaxe são conferidos.</>],
+          [mono('--semantic'), <>Roda a análise semântica (E1 a E25). Sem esta opção, só léxico e sintaxe são conferidos.</>],
           [mono('--c'), 'Imprime o programa C gerado, com a biblioteca de execução embutida. Liga a análise semântica.'],
           [mono('--build'), <>Gera o executável via {mono('gcc')} e imprime {mono('Executável gerado: nome')}. Liga a análise semântica.</>],
           [<>{mono('-o')} {mono('nome')}</>, <>Com {mono('--build')}, escolhe o nome do executável. Sem {mono('-o')}, o nome é o do arquivo sem a extensão, na pasta atual ({mono('a.out')} se o programa veio da entrada padrão). Precisa de um valor logo depois: como último argumento, vira "opção desconhecida".</>],
@@ -311,7 +311,7 @@ x19999`}
         por {mono('list_tokens')} e nas mensagens de erro.
       </Fn>
       <Fn name="semantic_check" signature="int semantic_check(struct Program *program)">
-        Definida em {mono('sema.c')}. Roda as três passadas da análise semântica, reporta os erros E1 a E24 em ordem de
+        Definida em {mono('sema.c')}. Roda as três passadas da análise semântica, reporta os erros E1 a E25 em ordem de
         posição por {mono('report_error')} e devolve quantos foram. O valor devolvido não é usado por {mono('run')}, que
         lê {mono('error_count')}. Ver <PageLink to="compilador/semantica">Semântica</PageLink>.
       </Fn>

@@ -183,7 +183,7 @@ export default defineConfig({
   ...`}
       </Code>
       <P>
-        Com {mono('?semantic=1')}, o servidor passa {mono('--json --semantic')} e os erros E1 a E24 entram na lista. Medido com {mono('var x: int = "a";')}: sem o parâmetro, {mono('"accepted": true')} e{' '}
+        Com {mono('?semantic=1')}, o servidor passa {mono('--json --semantic')} e os erros E1 a E25 entram na lista. Medido com {mono('var x: int = "a";')}: sem o parâmetro, {mono('"accepted": true')} e{' '}
         {mono('"errors": []')}; com ele, {mono('"accepted": false')} e um erro de {mono('"kind":"semântico"')}, {mono('Tipo incompatível: esperado int, encontrado string.')} O formato do JSON está em{' '}
         <PageLink to="compilador/arvore-json">Árvore de derivação e JSON</PageLink>.
       </P>

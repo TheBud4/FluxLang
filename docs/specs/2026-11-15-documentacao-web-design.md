@@ -134,7 +134,7 @@ O usuário escolheu os **componentes TSX**.
 10. Biblioteca (`terminal`, conversões)
 11. Regras léxicas
 12. Regras semânticas
-13. Catálogo de erros: léxicos L1 a L6, sintáticos S1 a S3, semânticos E1 a E24,
+13. Catálogo de erros: léxicos L1 a L6, sintáticos S1 a S3, semânticos E1 a E25,
     de execução R1 a R7, com a causa, um exemplo e a mensagem de cada um
 14. Exemplo integrado
 15. Escopo da v1 e o que ficou de fora
@@ -180,7 +180,7 @@ A documentação do compilador está completa quando:
   agrupadas por arquivo. Só as que carregam uma regra não óbvia recebem texto
   próprio.
 - Toda flag do `./flux`, variável de ambiente, rota da API e código de erro
-  (L1 a L6, S1 a S3, E1 a E24, R1 a R7) está descrito.
+  (L1 a L6, S1 a S3, E1 a E25, R1 a R7) está descrito.
 - Todo arquivo de `src/`, `flux_rt.h`, `web/src` e `web/server` aparece em
   alguma página ou na referência.
 - Cada comentário de "porquê" apagado tem sua caixa "Por quê" no módulo certo,

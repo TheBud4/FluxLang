@@ -104,7 +104,7 @@ export const linguagemPages: DocPage[] = [
     id: 'linguagem/erros',
     section: 'linguagem',
     title: 'Catálogo de erros',
-    summary: 'Os erros L1 a L6, S1 a S3, E1 a E24 e R1 a R7: causa, formato da mensagem, exemplo e recuperação.',
+    summary: 'Os erros L1 a L6, S1 a S3, E1 a E25 e R1 a R7: causa, formato da mensagem, exemplo e recuperação.',
     Component: Erros,
   },
   {

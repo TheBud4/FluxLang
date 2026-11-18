@@ -25,7 +25,7 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 | Caminho | Papel | Quem edita |
 |---|---|---|
 | `README.md` | Especificação da linguagem (seções 1–10, Gramática, Escopo da v1, Em aberto) | Agente, com revisão do usuário |
-| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E24, exemplo inválido, modo pânico, execução R1–R7, saída colorida/etiquetada, memória e Windows | Agente, com revisão do usuário |
+| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E25, exemplo inválido, modo pânico, execução R1–R7, saída colorida/etiquetada, memória e Windows | Agente, com revisão do usuário |
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
 | `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` (`/api/compile`) e executa programas (`/api/run`, botão Executar) | Agente, com revisão do usuário |
@@ -87,7 +87,7 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 
 **Resumo.** O Trabalho 2 vence em 26/11/2026. O compilador está completo para
 o enunciado e para os dois extras: lexer, parser com modo pânico, árvore de
-derivação, `--json`, interface web, AST, análise semântica (E1 a E24) e um
+derivação, `--json`, interface web, AST, análise semântica (E1 a E25) e um
 gerador de C com biblioteca de execução. A interface tem uma aba Documentação
 (`#/doc`) com o manual da linguagem (15 páginas) e a documentação do compilador
 (17 páginas, com a referência arquivo por arquivo); os comentários do código
@@ -99,7 +99,7 @@ as decisões pendentes listadas em "Em aberto" (ver `docs/TAREFAS.md`). O Trabal
 
 ```
 make            # gera ./flux
-make test       # tests/run.sh: 276 casos; leva alguns minutos (passadas do coletor e do Windows)
+make test       # tests/run.sh: 283 casos; leva alguns minutos (passadas do coletor e do Windows)
 make asan       # compilador e programas gerados com ASan + UBSan + LeakSanitizer; restaura o build normal
 make web        # interface em http://127.0.0.1:5173 (Node 20+)
 ```
@@ -119,7 +119,7 @@ um à mão**, ele grava o que o compilador imprimiu.
 | `-t` | só os tokens |
 | `--tree` / `--ast` | árvore de derivação (fiel à BNF) / AST enxuta |
 | `--json` | tokens, erros, linhas e árvore, para a interface |
-| `--semantic` | confere E1 a E24 (a interface a liga por padrão) |
+| `--semantic` | confere E1 a E25 (a interface a liga por padrão) |
 | `--c` | imprime o programa em C, com a biblioteca embutida |
 | `--build [-o x]` / `--run` | gera o executável via `gcc` / gera, roda e apaga |
 | `--windows` | com `--build`/`--run`: `.exe` com `mingw64-gcc`; o `--run` usa o `wine` |
@@ -153,7 +153,7 @@ tem um defeito conhecido, a página diz isso e o item está em "Em aberto" do
 ### Testes (`tests/run.sh`)
 
 `lexico`, `sintatico`, `arvore`, `json`, `ast`, `semantico` (um caso por regra
-E1 a E24 e casos de borda), `exec` (programas que rodam e têm a saída
+E1 a E25 e casos de borda), `exec` (programas que rodam e têm a saída
 conferida; `X.in` é a entrada padrão, se existir), `exec_tagged`, `exec_color`,
 `exec_nocolor`, `exec_windows`. Além disso, o `run.sh` repete `exec` com o
 coletor em estresse (`FLUX_GC_STRESS=1`, coleta a cada alocação, a saída tem de
@@ -168,8 +168,9 @@ ser idêntica) e como `.exe` no `wine` (normal e em estresse).
 - D1 a D8 (campo de object dinâmico, list/object por referência, globais
   visíveis em todo o arquivo, `terminal.*` com qualquer tipo, conversões
   enxutas, `1 == 1.0`, estouro de int é erro R6, caminhos que terminam em
-  return/break/continue contam), mais E23 (global sem valor inicial) e E24
-  (só chamadas valem como comando). `[1, 2.5]` é `list<float>`.
+  return/break/continue contam), mais E23 (global sem valor inicial), E24
+  (só chamadas valem como comando) e E25 (inicializador de global que chama
+  função que lê global declarado depois). `[1, 2.5]` é `list<float>`.
 - Slides, demonstração e ensaio são de outras pessoas.
 
 ### Escolhas minhas que o usuário não confirmou (mudáveis, em ERROS.md §4 e §7)
@@ -288,7 +289,8 @@ bloco `{ }` cria escopo; a variável do `for` vive só no laço.
 Blocos irmãos podem reutilizar nomes. Os nomes da biblioteca (`terminal`,
 `toString`, `toInt`, `toFloat`, `toBool`) são globais pré-declarados. Os
 globais (`var`, `const`, `func`, `workflow`) valem em todo o arquivo, mas o
-inicializador de um global só usa globais declarados acima (D3). Uma
+inicializador de um global só usa globais declarados acima (D3), e uma
+função que ele chame não pode ler um declarado depois (E25). Uma
 variável sem valor precisa ser atribuída em todos os caminhos antes do
 uso (regra do Java); um caminho que termina em `return`, `break` ou
 `continue` conta, e código depois deles é permitido (D8).
