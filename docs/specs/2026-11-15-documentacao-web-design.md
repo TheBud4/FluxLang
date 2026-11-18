@@ -1,6 +1,6 @@
 # Documentação da FluxLang dentro da interface web
 
-Desenho de 15/11/2026. Status: aguardando aprovação.
+Desenho de 15/11/2026. Status: aprovado pelo usuário em 15/11/2026; implementado (ver o plano e o relatório final).
 
 **Prazo:** tudo pronto antes de 26/11/2026 (Trabalho 2), inclusive a remoção dos
 comentários, escolha do usuário. Por isso a referência do compilador é em
@@ -235,3 +235,20 @@ roteiro descartável, não um teste do repositório.
 - Se o conteúdo vive em um arquivo por página ou por seção.
 - O desenho visual dos blocos (aviso, "Por quê", tabela), dentro dos tokens.
 - Os diagramas (SVG feito à mão).
+
+## Mudanças em relação ao desenho
+
+Decididas durante o trabalho (15 a 17/11/2026):
+
+- A seção sobre o sistema da documentação (`web/src/docs/`) ganhou página
+  própria, `compilador/documentacao`: o compilador tem 17 páginas (as 15
+  previstas, a referência e esta) e a linguagem, 15.
+- Sem botão "Executar" no manual, como previsto: os exemplos têm "Copiar" e
+  "Abrir no editor", que leva o código ao editor e põe o foco nele.
+- A busca continua só pelo texto, mas pesa mais o título da página, os títulos
+  de seção e o resumo, e desempata pela densidade.
+- `AGENTS.md` ganhou a regra 10: o código não leva comentário; a explicação vai
+  na página correspondente, atualizada na mesma mudança.
+- Os achados sobre o compilador feitos ao escrever o manual não foram
+  corrigidos: as páginas descrevem o comportamento atual e os itens estão como
+  decisões pendentes em `docs/TAREFAS.md`, "Em aberto".

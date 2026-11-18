@@ -68,7 +68,7 @@ Achados ao escrever o manual. As páginas documentam o comportamento atual
 do compilador; nada aqui foi mudado. Cada item espera uma decisão: corrigir,
 ratificar no README ou deixar como está.
 
-Defeitos do compilador:
+Comportamentos do compilador a decidir (alguns podem ser intencionais):
 
 - [ ] `./flux --build prog` com o fonte sem extensão grava o executável por cima do fonte
 - [ ] `q, e = call w()` com `q:float` e `w` devolvendo `int` copia sem converter (`q / 2` dá 0, não 0.5)
@@ -80,6 +80,16 @@ Defeitos do compilador:
 - [ ] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`)
 - [ ] Pânico: um comando quebrado sem `;` antes do `}` (`x = 1 +` e `}`) tem o `}` descartado, a função fica aberta e sai `tree: null` ou um erro extra no fim do arquivo; `1 +;` solto no nível global, sem `func main` depois, dá o mesmo segundo erro e `tree: null`
 - [ ] `FLUX_CC` também troca o compilador do alvo `--windows` (com `FLUX_CC=clang`, as passadas Windows falham)
+- [ ] `ação` dá um L1 por caractere não ASCII, e um texto partido em duas linhas dá dois L2
+- [ ] A thread de 64 MB do programa só existe no Windows; no POSIX o programa roda na thread principal
+- [ ] O `asm` que salva os registradores no coletor: só `__builtin_unwind_init` passou com clang 22 e gcc 16 (a falha descrita no antigo comentário não se reproduziu); o `asm` fica até o usuário decidir
+
+Interface e documentação:
+
+- [ ] A saída impressa antes de um tempo esgotado do `/api/run` se perde (o buffer da saída num cano não é esvaziado antes do SIGKILL)
+- [ ] O CORS padrão do Vite aceita o pré-voo de outra porta em localhost; só a conferência de `Origin` do plugin barra o pedido
+- [ ] Um `PageLink` ou endereço com id de página desconhecido abre a Introdução sem aviso (talvez uma tela "página não encontrada")
+- [ ] `tests/exec/entrada_com_stdin.flux` falha às vezes na passada wine/estresse (duas vezes neste trabalho; passa ao repetir)
 
 Lacunas do README (o compilador já faz; falta ratificar ou mudar):
 
@@ -88,4 +98,6 @@ Lacunas do README (o compilador já faz; falta ratificar ou mudar):
 - [ ] Parâmetros de função e a variável do `for` podem ser reatribuídos
 - [ ] Chave repetida em literal de objeto (`{a: 1, a: 2}`) é aceita; vale a última
 - [ ] `toInt(" 42")` (com espaço) devolve 42
+- [ ] `cfg.servidor.porta = 80` sem `servidor` dá R3 (o objeto intermediário não é criado); o README só diz que atribuir a um campo que não existe cria o campo
+- [ ] `[[1], [2.5]]` é rejeitado (`esperado list<int>, encontrado list<float>`): a união de `int` e `float` vale só para os elementos diretos da lista
 - [ ] O item "Forma dos nós da AST" em "Em aberto" do README está desatualizado (`--ast` existe)

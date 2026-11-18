@@ -266,7 +266,7 @@ consome e continua.
 o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 
 **Fim do arquivo:** se ainda falta fechar um bloco, reporta
-`Token encontrado: fim do arquivo` / `Esperado: '}'` e encerra.
+`Token encontrado: fim do arquivo` / `Esperado: comando ou '}'` (o S2) e encerra.
 
 **Como está implementado (versão simples, `src/frontend/parser.y`):** as regras
 com o token `error` são os pontos de recuperação, um por construção, como
