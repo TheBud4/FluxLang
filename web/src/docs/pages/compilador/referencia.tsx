@@ -516,7 +516,7 @@ const backend: Area = {
   files: [
     {
       path: 'src/backend/codegen_c.c',
-      lines: 530,
+      lines: 550,
       page: 'gerador-c',
       role: <>Escreve o programa em C a partir da AST tipada, chama o {mono('gcc')} e roda o executável.</>,
       items: [
@@ -526,6 +526,7 @@ const backend: Area = {
         { name: 'next_tmp', kind: 'variável estática', page: 'gerador-c', what: <>O número do próximo temporário; volta a 0 em cada função.</> },
         { name: 'prog', kind: 'variável estática', page: 'gerador-c', what: <>O programa sendo gerado.</> },
         { name: 'cur_func', kind: 'variável estática', page: 'gerador-c', what: <>A função sendo gerada (para o {mono('return')}).</> },
+        { name: 'cur_line', kind: 'variável estática', page: 'gerador-c', what: <>A linha do comando sendo gerado; repetida em {mono('FX_LINE')} depois de cada chamada de func e de cada {mono('call')}.</> },
         { name: 'emit', kind: 'função estática', page: 'gerador-c', what: <>Escreve uma linha recuada.</> },
         { name: 'fstr', kind: 'função estática', page: 'gerador-c', what: <>Formata uma string na arena.</> },
         {
@@ -537,7 +538,8 @@ const backend: Area = {
         },
         { name: 'find_func', kind: 'função estática', page: 'gerador-c', what: <>Acha uma função ou workflow pelo nome (fora a {mono('main')}).</> },
         { name: 'float_literal', kind: 'função estática', page: 'gerador-c', what: <>Um {mono('double')} escrito com 17 dígitos e sempre com ponto ou expoente.</> },
-        { name: 'convert', kind: 'função estática', page: 'gerador-c', what: <>Gera o valor e, quando o destino pede, a conversão ({mono('fx_to_float')} ou um {mono('fx_as_*')}).</> },
+        { name: 'coerce', kind: 'função estática', page: 'gerador-c', what: <>Ajusta um valor C já calculado ao tipo de destino ({mono('fx_to_float')} ou um {mono('fx_as_*')}), sem emitir linha.</> },
+        { name: 'convert', kind: 'função estática', page: 'gerador-c', what: <>Gera o valor e o passa por {mono('coerce')} com o tipo de destino.</> },
         {
           name: 'binary_fn',
           kind: 'função estática',
@@ -558,8 +560,10 @@ const backend: Area = {
         { name: 'expr', kind: 'função estática', page: 'gerador-c', what: <>Gera uma expressão e devolve o texto C do valor (literal ou temporário).</> },
         { name: 'gen_pair', kind: 'função estática', page: 'gerador-c', what: <>{mono('call')} ou {mono('run')}: um {mono('FxPair')} temporário.</> },
         { name: 'gen_var', kind: 'função estática', page: 'gerador-c', what: <>Declaração {mono('var')}/{mono('const')}, local ou global.</> },
-        { name: 'assign_to', kind: 'função estática', page: 'gerador-c', what: <>Atribui a um nome, a um campo ou a um índice.</> },
-        { name: 'gen_assign', kind: 'função estática', page: 'gerador-c', what: <>Atribuição; os valores são todos calculados antes de qualquer atribuição.</> },
+        { name: 'Place', kind: 'typedef struct', page: 'gerador-c', what: <>Um alvo de atribuição já calculado: o {mono('target')}, a {mono('base')} e o {mono('idx')} em temporários.</> },
+        { name: 'place_of', kind: 'função estática', page: 'gerador-c', what: <>Calcula a base e o índice de um alvo, antes dos valores.</> },
+        { name: 'store', kind: 'função estática', page: 'gerador-c', what: <>Grava um valor num {mono('Place')}: nome, campo ou índice.</> },
+        { name: 'gen_assign', kind: 'função estática', page: 'gerador-c', what: <>Atribuição; os alvos e depois os valores são todos calculados antes de qualquer gravação.</> },
         { name: 'gen_block', kind: 'função estática', page: 'gerador-c', what: <>Um bloco entre chaves.</> },
         { name: 'gen_return', kind: 'função estática', page: 'gerador-c', what: <>{mono('return')} de função ou de workflow.</> },
         { name: 'gen_stmt', kind: 'função estática', page: 'gerador-c', what: <>Um comando, precedido de {mono('FX_LINE')} (fora blocos, {mono('break')} e {mono('continue')}).</> },
@@ -608,7 +612,7 @@ const runtime: Area = {
         { name: 'FxObj', kind: 'typedef struct', page: 'runtime', what: <>{mono('n')}, {mono('cap')}, {mono('keys')} e {mono('vals')}, em ordem de inserção.</> },
         { name: 'FxPair', kind: 'typedef struct', page: 'runtime', what: <>{mono('result')} e {mono('error')}: o retorno de workflow e de {mono('run')}.</> },
         { name: 'fx_line', kind: 'variável estática', page: 'runtime', what: <>A linha FluxLang em execução, para os erros.</> },
-        { name: 'FX_LINE', kind: 'macro', page: 'runtime', what: <>Grava {mono('fx_line')}; o gerador a põe antes de cada comando.</> },
+        { name: 'FX_LINE', kind: 'macro', page: 'runtime', what: <>Grava {mono('fx_line')}; o gerador a põe antes de cada comando e de novo depois de cada chamada de func e de cada {mono('call')}.</> },
         { name: 'fx_tagged', kind: 'variável estática', page: 'runtime', what: <>1 com {mono('FLUX_TAGGED')}: saída etiquetada para a interface web.</> },
         { name: 'fx_use_color', kind: 'função', page: 'runtime', what: <>Se usa cor num descritor: {mono('NO_COLOR')}, {mono('FORCE_COLOR')} e depois se é terminal.</> },
         { name: 'fx_color_of', kind: 'função', page: 'runtime', what: <>A sequência ANSI de cada tipo de impressão.</> },

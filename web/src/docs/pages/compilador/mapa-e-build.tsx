@@ -251,7 +251,7 @@ Programa rejeitado.
         precisa de ferramenta que falta). A última linha é o total, e o script sai com código diferente de zero se
         algum caso falhou:
       </P>
-      <Code lang="text">{`203 passaram, 0 falharam.`}</Code>
+      <Code lang="text">{`235 passaram, 0 falharam.`}</Code>
       <H3 title="As passadas" />
       <P>
         O script percorre catorze passadas, na ordem abaixo. A coluna "Casos" é a quantidade de arquivos {mono('.flux')}
@@ -266,18 +266,18 @@ Programa rejeitado.
           ['json', mono('tests/json/'), mono('./flux --json'), 'O objeto JSON de tokens, erros e árvore.', '3'],
           ['ast', mono('tests/ast/'), mono('./flux --ast'), 'A AST.', '2'],
           ['semantico', mono('tests/semantico/'), mono('./flux --semantic'), 'Um caso por regra E1 a E24 e casos de borda.', '36'],
-          ['exec', mono('tests/exec/'), mono('./flux --run'), 'Programas que rodam: a saída, os erros de execução R1 a R7 e o código de saída.', '22'],
+          ['exec', mono('tests/exec/'), mono('./flux --run'), 'Programas que rodam: a saída, os erros de execução R1 a R7 e o código de saída.', '30'],
           ['exec_tagged', mono('tests/exec_tagged/'), mono('FLUX_TAGGED=1 ./flux --run'), <>A saída etiquetada que a interface lê (o separador {mono('\\x1e')} aparece como {mono('<RS>')}).</>, '2'],
           ['exec_color', mono('tests/exec_color/'), mono('FORCE_COLOR=1 ./flux --run'), <>As cores ANSI (o byte {mono('ESC')} aparece como {mono('<ESC>')}).</>, '1'],
           ['exec_nocolor', mono('tests/exec_nocolor/'), mono('FORCE_COLOR=1 NO_COLOR=1 ./flux --run'), <>{mono('NO_COLOR')} vence {mono('FORCE_COLOR')}: nenhuma cor.</>, '1'],
-          ['exec_gc', mono('tests/exec/'), mono('FLUX_GC_STRESS=1 ./flux --run'), <>Os mesmos casos de {mono('exec')}, com o coletor rodando a cada alocação, e a saída tem de ser idêntica.</>, '22'],
-          ['exec_win', mono('tests/exec/'), mono('./flux --run --windows'), <>Os mesmos casos de {mono('exec')} como {mono('.exe')} no {mono('wine')}, menos dois que chamam comandos POSIX.</>, '20'],
-          ['exec_win_gc', mono('tests/exec/'), mono('FLUX_GC_STRESS=1 ./flux --run --windows'), 'O mesmo, com o coletor em estresse.', '20'],
+          ['exec_gc', mono('tests/exec/'), mono('FLUX_GC_STRESS=1 ./flux --run'), <>Os mesmos casos de {mono('exec')}, com o coletor rodando a cada alocação, e a saída tem de ser idêntica.</>, '30'],
+          ['exec_win', mono('tests/exec/'), mono('./flux --run --windows'), <>Os mesmos casos de {mono('exec')} como {mono('.exe')} no {mono('wine')}, menos dois que chamam comandos POSIX.</>, '28'],
+          ['exec_win_gc', mono('tests/exec/'), mono('FLUX_GC_STRESS=1 ./flux --run --windows'), 'O mesmo, com o coletor em estresse.', '28'],
           ['exec_windows', mono('tests/exec_windows/'), mono('./flux --run --windows'), <>Programas que chamam comandos do Windows (via {mono('cmd /c')}).</>, '1'],
         ]}
       />
       <P>
-        A soma é 203 casos: 140 das dez primeiras passadas, mais 22 de {mono('exec_gc')}, 20 de {mono('exec_win')}, 20 de{' '}
+        A soma é 235 casos: 148 das dez primeiras passadas, mais 30 de {mono('exec_gc')}, 28 de {mono('exec_win')}, 28 de{' '}
         {mono('exec_win_gc')} e 1 de {mono('exec_windows')}. As três passadas que precisam de Windows só rodam se o{' '}
         {mono('x86_64-w64-mingw32-gcc')} e o {mono('wine')} existirem; senão o script imprime{' '}
         {mono('pulado  exec_win (precisa de mingw64-gcc e wine)')} e continua, e o total fica menor.

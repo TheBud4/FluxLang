@@ -292,6 +292,7 @@ static FxValue f_main(void)
   fx_check_stack();
   FX_LINE(6);
   FxValue t0 = f_soma(fx_int(2), fx_int(3));
+  FX_LINE(6);
   FxValue v_x = t0;
   FX_LINE(7);
   FxValue t2 = v_x;

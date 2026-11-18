@@ -71,10 +71,10 @@ ratificar no README ou deixar como está.
 Comportamentos do compilador a decidir (alguns podem ser intencionais):
 
 - [ ] `./flux --build prog` com o fonte sem extensão grava o executável por cima do fonte
-- [ ] `q, e = call w()` com `q:float` e `w` devolvendo `int` copia sem converter (`q / 2` dá 0, não 0.5)
-- [ ] `l[f()] = g()` avalia o valor (`g`) antes do alvo (`f`), contra a ordem da esquerda para a direita
+- [x] `q, e = call w()` com `q:float` e `w` devolvendo `int` copia sem converter (`q / 2` dá 0, não 0.5) (corrigido: o resultado passa pela mesma conversão da atribuição comum; `tests/exec/call_converte_para_float.flux`)
+- [x] `l[f()] = g()` avalia o valor (`g`) antes do alvo (`f`), contra a ordem da esquerda para a direita (corrigido: base e índice de todos os alvos antes dos valores; `tests/exec/ordem_do_alvo.flux`)
 - [ ] Inicializadores globais rodam na ordem do arquivo: uma função chamada ali lê os globais de baixo como `null` (R3)
-- [ ] `fx_line` não é restaurada no retorno de função: um erro de execução pode citar a linha do fim da função chamada
+- [x] `fx_line` não é restaurada no retorno de função: um erro de execução pode citar a linha do fim da função chamada (corrigido: `FX_LINE` de novo depois de cada chamada de func e de `call`, e a cada volta do `while`; `tests/exec/linha_do_erro_*.flux`)
 - [ ] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução
 - [ ] Com mais de 8192 variáveis locais, o E3 deixa de ser detectado
 - [ ] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`)

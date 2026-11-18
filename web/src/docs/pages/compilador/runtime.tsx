@@ -197,14 +197,16 @@ typedef struct {
         {mono('run')}.
       </Fn>
       <Fn name="FX_LINE" signature="#define FX_LINE(n) (fx_line = (n))">
-        Grava em {mono('fx_line')}, uma variável global, a linha do comando que vai rodar. O gerador emite {mono('FX_LINE(n)')} antes de cada comando (e antes de cada inicializador global). É de onde
-        {mono('fx_die')} tira o número da linha da mensagem.
+        Grava em {mono('fx_line')}, uma variável global, a linha do comando que vai rodar. O gerador emite {mono('FX_LINE(n)')} antes de cada comando (e antes de cada inicializador global), a cada volta de um{' '}
+        {mono('while')} antes da condição, e de novo logo depois de cada chamada de func do usuário e de cada {mono('call')}, com a linha do comando que chamou. É de onde {mono('fx_die')} tira o número da linha
+        da mensagem.
       </Fn>
-      <Callout kind="aviso">
-        {mono('fx_line')} é só &quot;a linha do último comando que começou&quot;: ninguém a restaura quando uma função retorna. Medido, com {mono('var x = f() + 1 / z;')} na linha 7 e {mono('f')} com o
-        último comando na linha 3: o erro de divisão por zero sai com {mono('[linha 3]')}, não 7, porque a divisão roda depois da volta de {mono('f')}. Dentro de um mesmo comando, o que vem depois de uma
-        chamada pode ser reportado com a linha do fim da função chamada.
-      </Callout>
+      <Why>
+        {mono('flux_rt.h')}: {mono('fx_line')} é uma variável só, e a função chamada a muda a cada comando dela. Por isso quem chama a grava de novo quando a chamada volta: o que vem depois da chamada no
+        mesmo comando dá o erro com a linha desse comando. Medido, com {mono('var x = f(f(2)) + 1 / z;')} na linha 10 e o último comando de {mono('f')} na linha 6: a divisão por zero sai com{' '}
+        {mono('[linha 10]')} (antes da correção saía {mono('[linha 6]')}). Um erro dentro da função chamada continua com a linha dela, porque a restauração só acontece na volta. Os detalhes estão em{' '}
+        <PageLink to="compilador/gerador-c">Gerador de C</PageLink>, na seção de comandos.
+      </Why>
 
       <H2 title="Listas, objetos e índices" />
       <P>
@@ -751,7 +753,7 @@ Erro de execução [linha 4]:
       <Fn name="fx_die" signature="FX_FN void fx_die(const char *fmt, ...)">
         O erro fatal, com formato de {mono('printf')}. Formata a mensagem num buffer de {mono('malloc')} (se faltar memória, usa o texto fixo {mono('erro de execução')}). No modo etiquetado, escreve um registro {mono('F')} com{' '}
         {mono('Erro de execução [linha N]:')} e a mensagem juntos, esvazia a saída e sai com 1. Senão, esvazia a saída padrão, decide a cor do fluxo 2 e escreve o cabeçalho e a mensagem na saída de erro, em
-        vermelho em negrito se houver cor, e sai com 1. Não retorna. A linha vem de {mono('fx_line')} (ver o aviso em {mono('FX_LINE')}).
+        vermelho em negrito se houver cor, e sai com 1. Não retorna. A linha vem de {mono('fx_line')} (ver {mono('FX_LINE')}).
       </Fn>
       <Why>
         {mono('flux_rt.h')}: {mono('fx_die')} usa {mono('malloc') } e não os blocos do coletor para montar a mensagem: um erro fatal não deve disparar uma coleta de lixo no meio de um estado já quebrado. (O motivo não está

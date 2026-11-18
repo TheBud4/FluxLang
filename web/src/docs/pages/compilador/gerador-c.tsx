@@ -100,8 +100,12 @@ export function GeradorC() {
       <Code lang="c">
         {`  FxValue t1 = v_c;
   FxValue t2 = f_inc();
+  FX_LINE(7);
   FxValue t3 = fx_add(t1, t2);`}
       </Code>
+      <P>
+        O {mono('FX_LINE(7);')} depois de {mono('f_inc()')} devolve ao programa a linha do comando que fez a chamada; a seção de comandos explica por quê.
+      </P>
       <P>
         Os números dos temporários seguem a ordem em que foram pedidos, não a ordem em que as linhas saem: em {mono('terminal.log(x)')}, o temporário do resultado ({mono('t0')}) é pedido antes do
         do argumento ({mono('t1')}), então a linha de {mono('t1')} vem primeiro no arquivo. O contador volta a zero no início de cada função, e os nomes não se repetem dentro de uma função, então nenhum
@@ -164,6 +168,7 @@ static FxValue f_main(void);`}
           [mono('next_tmp'), mono('int'), <>O próximo número de temporário. Volta a 0 no início de {mono('gen_func')} e antes de {mono('fx_program')}; só cresce. Por isso nenhum nome de temporário se repete dentro de uma função.</>],
           [mono('prog'), mono('const Program *'), <>O programa que está sendo gerado; {mono('find_func')} o percorre para achar uma função pelo nome.</>],
           [mono('cur_func'), mono('const Func *'), <>A função cujo corpo está sendo gerado; {mono('gen_return')} o lê para saber se é workflow e qual o tipo de retorno. É nula fora de {mono('gen_func')}.</>],
+          [mono('cur_line'), mono('int'), <>A linha do comando sendo gerado. {mono('gen_stmt')} a grava (e o laço dos globais em {mono('generate_c')}); {mono('gen_call')} e {mono('gen_pair')} a leem para o {mono('FX_LINE')} depois da chamada.</>],
           [mono('windows_target'), mono('int'), <>1 se o alvo é Windows (opção {mono('--windows')}). Só {mono('set_windows_target')} o liga; não há como desligar. Lida por {mono('compile_c')}, {mono('execute_program')} e, de fora, por {mono('main.c')}.</>],
         ]}
       />
@@ -230,17 +235,21 @@ var c = marca("c", true) || marca("d", true);`}
       </Code>
       <Code lang="c">
         {`  FxValue t0 = f_marca(fx_str("a"), fx_bool(0));
+  FX_LINE(6);
   FxValue t1 = fx_bool(fx_cond(t0));
   if (t1.as.b) {
     FxValue t2 = f_marca(fx_str("b"), fx_bool(1));
+    FX_LINE(6);
     t1 = fx_bool(fx_cond(t2));
   }
   FxValue v_a = t1;
   FX_LINE(7);
   FxValue t3 = f_marca(fx_str("c"), fx_bool(1));
+  FX_LINE(7);
   FxValue t4 = fx_bool(fx_cond(t3));
   if (!t4.as.b) {
     FxValue t5 = f_marca(fx_str("d"), fx_bool(1));
+    FX_LINE(7);
     t4 = fx_bool(fx_cond(t5));
   }
   FxValue v_c = t4;`}
@@ -251,13 +260,14 @@ var c = marca("c", true) || marca("d", true);`}
       </Why>
       <H3 title="Conversões: int para float e valor dinâmico" />
       <P>
-        Onde a linguagem espera um tipo, {mono('convert')} calcula a expressão e ajusta o valor ao tipo esperado. Há dois casos. Um {mono('int')} onde se espera {mono('float')} vira {mono('fx_to_float(v)')}. Um valor
+        Onde a linguagem espera um tipo, {mono('convert')} calcula a expressão e {mono('coerce')} ajusta o valor ao tipo esperado. Há dois casos. Um {mono('int')} onde se espera {mono('float')} vira {mono('fx_to_float(v)')}. Um valor
         de tipo dinâmico (o campo de um {mono('object')}, cujo tipo só se sabe na execução) onde se espera {mono('int')}, {mono('float')}, {mono('bool')}, {mono('string')}, {mono('list')} ou {mono('object')} passa por{' '}
         {mono('fx_as_int')}, {mono('fx_as_float')} e as outras da família {mono('fx_as_')}, que dão o erro R5 se a etiqueta for outra. Há duas exceções: {mono('null')} passa em todas, e {mono('fx_as_float')} aceita também um {mono('int')} e o promove a {mono('float')}. Medido: com {mono('var o = {a: 1};')}, {mono('var f: float = o.a;')} roda sem erro e {mono('f / 2')} dá {mono('0.5')}. Nos demais casos o valor passa sem mudança.
       </P>
       <P>
         A conversão é usada onde há um tipo esperado conhecido: o valor de um {mono('var')} com tipo declarado, o lado direito de uma atribuição (o tipo do alvo), cada argumento de uma chamada (o tipo do
-        parâmetro), o {mono('return')} (o tipo de retorno), o elemento de um literal de lista e o argumento de {mono('push')} (o tipo do elemento da lista). Não é usada nos operandos de operadores, nas
+        parâmetro), o {mono('return')} (o tipo de retorno), o elemento de um literal de lista, o argumento de {mono('push')} (o tipo do elemento da lista) e o resultado de um {mono('call')} que vai para um
+        alvo já declarado (o tipo do alvo, comparado com o tipo de retorno do workflow). Não é usada nos operandos de operadores, nas
         condições, nos índices, nos valores de um literal de {mono('object')} nem nos argumentos de {mono('terminal.*')} e das conversões: a biblioteca resolve esses casos na execução.
       </P>
       <Code lang="c">
@@ -291,7 +301,7 @@ var c = marca("c", true) || marca("d", true);`}
         head={['Chamada', 'C gerado']}
         rows={[
           [<>{mono('toString')}, {mono('toInt')}, {mono('toFloat')}, {mono('toBool')}</>, <>{mono('FxValue t = fx_to_string(a);')} (e {mono('fx_to_int')}, {mono('fx_to_float')}, {mono('fx_to_bool')}). O argumento não passa por {mono('convert')}.</>],
-          [<>Uma func do usuário</>, <>{mono('FxValue t = f_nome(a1, a2);')}, com cada argumento convertido para o tipo do parâmetro. A {mono('main') } nunca é chamável.</>],
+          [<>Uma func do usuário</>, <>{mono('FxValue t = f_nome(a1, a2);')}, com cada argumento convertido para o tipo do parâmetro, seguido de {mono('FX_LINE(n);')} com a linha do comando que chamou. A {mono('main') } nunca é chamável.</>],
           [mono('terminal.log(x)'), <>{mono('FxValue t = fx_log(a);')}; também {mono('fx_info')}, {mono('fx_warn')} e {mono('fx_error')}.</>],
           [mono('terminal.input(p)'), <>{mono('FxValue t = fx_input(a);')}; sem argumento, a mensagem é {mono('fx_null()')}.</>],
           [mono('lista.length()'), <>{mono('FxValue t = fx_length(b);')}.</>],
@@ -306,18 +316,29 @@ var c = marca("c", true) || marca("d", true);`}
 
       <H2 title="Comandos" />
       <P>
-        {mono('gen_stmt')} escreve primeiro {mono('FX_LINE(n);')}, com a linha do comando, e depois o C do comando. Só {mono('ST_BLOCK')}, {mono('break')} e {mono('continue')} ficam sem essa linha. É o {mono('FX_LINE')}
-        que faz o erro de execução dizer em que linha da FluxLang aconteceu (por exemplo {mono('Erro de execução [linha 4]:')}).
+        {mono('gen_stmt')} escreve primeiro {mono('FX_LINE(n);')}, com a linha do comando, e depois o C do comando. Só {mono('ST_BLOCK')}, {mono('break')} e {mono('continue')} ficam sem essa linha, e no{' '}
+        {mono('while')} ela vai para dentro do laço, antes da condição. É o {mono('FX_LINE')} que faz o erro de execução dizer em que linha da FluxLang aconteceu (por exemplo {mono('Erro de execução [linha 4]:')}).
+        A linha do comando fica também em {mono('cur_line')}, e o gerador repete {mono('FX_LINE(n);')} logo depois de cada chamada de func do usuário e de cada {mono('call')}.
       </P>
+      <Why>
+        {mono('codegen_c.c')}: {mono('fx_line')} é uma variável só, e a função chamada a muda a cada comando dela. Sem o {mono('FX_LINE')} depois da chamada, o que vem depois dela no mesmo comando (uma divisão,
+        uma atribuição a um índice) daria o erro com a linha do último comando da função chamada. Medido, em {mono('tests/exec/linha_do_erro_depois_da_funcao.flux')}: {mono('var x = f(f(2)) + 1 / z;')} na linha 10, com o
+        último comando de {mono('f')} na linha 6, dava {mono('[linha 6]')} e agora dá {mono('[linha 10]')}. A linha é restaurada por quem chama, e não pela função que retorna: assim um erro dentro da função
+        chamada continua com a linha dela ({mono('tests/exec/linha_do_erro_dentro_da_funcao.flux')}), e não é preciso guardar a linha em cada {mono('return')} e no {mono('stop if')}.
+      </Why>
+      <Why>
+        {mono('codegen_c.c')}: no {mono('while')}, o {mono('FX_LINE')} fica dentro do {mono('for (;;)')} porque a condição roda de novo a cada volta, depois do último comando do corpo. Fora do laço, um erro na
+        condição da segunda volta em diante sairia com a linha do fim do corpo ({mono('tests/exec/linha_do_erro_na_condicao_do_while.flux')}).
+      </Why>
       <Table
         head={['Comando', 'C gerado']}
         rows={[
           [mono('ST_VAR'), <>Para cada nome, {mono('FxValue v_x = valor;')}. Sem valor, {mono('FxValue v_x = fx_null();')}. Num global, só a atribuição {mono('v_x = valor;')} (a declaração está no topo do arquivo).</>],
-          [mono('ST_ASSIGN'), <>Os valores primeiro, depois um {mono('v_x = valor;')}, {mono('fx_set_field(base, "campo", valor)')} ou {mono('fx_set_index(base, indice, valor)')} por alvo.</>],
+          [mono('ST_ASSIGN'), <>A base e o índice de cada alvo primeiro, depois os valores, depois um {mono('v_x = valor;')}, {mono('fx_set_field(base, "campo", valor)')} ou {mono('fx_set_index(base, indice, valor)')} por alvo.</>],
           [mono('ST_EXPR'), <>A expressão e {mono('(void)t;')}.</>],
           [mono('ST_BLOCK'), <>{mono('{ ... }')}, com recuo.</>],
           [mono('ST_IF'), <>A condição em temporários, {mono('if (fx_cond(t))')}, o bloco; se há {mono('else')}, {mono('else')} e o bloco. Não existe {mono('else if')}: o {mono('else')} é sempre seguido de um bloco.</>],
-          [mono('ST_WHILE'), <>{mono('for (;;) {')}, a condição, {mono('if (!fx_cond(t)) break;')}, o bloco.</>],
+          [mono('ST_WHILE'), <>{mono('for (;;) {')}, {mono('FX_LINE(n);')}, a condição, {mono('if (!fx_cond(t)) break;')}, o bloco.</>],
           [mono('ST_FOR'), <>Um bloco com {mono('FxList *l = fx_for_list(lista);')} e um {mono('for')} de C sobre {mono('l->v[i]')}.</>],
           [mono('ST_RETURN'), <>Ver a seção de retorno.</>],
           [mono('ST_BREAK'), <>{mono('break;')}</>],
@@ -346,14 +367,39 @@ var c = marca("c", true) || marca("d", true);`}
   v_p = t16;
   v_q = t17;`}
       </Code>
-      <Callout kind="aviso">
-        O alvo de uma atribuição ({mono('base')} e {mono('indice')} de {mono('l[i] = v')}) é calculado depois do valor. Medido, com {mono('l[v("indice", 1)] = v("valor", 99);')}, em que {mono('v')} escreve o
-        nome que recebe: a saída é {mono('valor')} e depois {mono('indice')}. Isto é um desvio da regra de esquerda para a direita desta página, e não um desenho da linguagem: é o comportamento atual do gerador. O resto segue a ordem do código; esta é a única forma em que o lado direito vem antes do esquerdo.
+      <Why>
+        {mono('codegen_c.c')}: o alvo de uma atribuição ({mono('base')} e {mono('indice')} de {mono('l[i] = v')}, a base de {mono('o.campo = v')}) é calculado antes do valor, porque o alvo está à esquerda e a
+        ordem da linguagem é da esquerda para a direita. {mono('place_of')} guarda a base e o índice em temporários, {mono('gen_assign')} calcula os valores e {mono('store')} escreve. Medido, em{' '}
+        {mono('tests/exec/ordem_do_alvo.flux')}, com {mono('l[v("indice", 1)] = v("valor", 99);')}, em que {mono('v')} escreve o nome que recebe: a saída é {mono('indice')} e depois {mono('valor')} (antes da
+        correção era o contrário). Vale para alvos encadeados ({mono('m[i][j] = v')}, {mono('o.campo[i] = v')}), para vários alvos (todos os alvos, depois todos os valores) e para o {mono('call')}.
+      </Why>
+      <Code lang="c">
+        {`  FX_LINE(7);
+  FxValue t1 = v_l;
+  FxValue t2 = f_v(fx_str("indice"), fx_int(1));
+  FX_LINE(7);
+  FxValue t3 = f_v(fx_str("valor"), fx_int(99));
+  FX_LINE(7);
+  fx_set_index(t1, t2, t3);`}
+      </Code>
+      <Callout kind="nota">
+        Como o índice de cada alvo é calculado antes de qualquer atribuição do comando, {mono('i, l[i] = 2, 50')} grava em {mono('l')} na posição do {mono('i')} de antes do comando, e não na posição 2. É o
+        mesmo que acontece com os valores: nenhuma parte do comando enxerga uma atribuição feita por ele.
       </Callout>
-      <Callout kind="aviso">
-        Numa atribuição por {mono('call')} (por exemplo {mono('q, e = call w()')}, com {mono('q')} do tipo {mono('float')} e o workflow devolvendo {mono('int')}), o valor é copiado sem {mono('convert')}. Medido: {mono('q')}
-        guarda o inteiro {mono('1')}, {mono('toString(q)')} dá {mono('1')} e {mono('q / 2')} dá {mono('0')}, e não {mono('1.0')} e {mono('0.5')}. Os outros caminhos (atribuição comum, argumento, {mono('return')}) convertem.
-      </Callout>
+      <Why>
+        {mono('codegen_c.c')}: numa atribuição por {mono('call')} (por exemplo {mono('q, e = call w()')}, com {mono('q')} do tipo {mono('float')} e o workflow devolvendo {mono('int')}), o resultado passa por{' '}
+        {mono('coerce')} com o tipo de retorno do workflow e o tipo do alvo, como uma atribuição comum: a única conversão implícita da linguagem, de {mono('int')} para {mono('float')}, vale em toda atribuição.
+        Medido, em {mono('tests/exec/call_converte_para_float.flux')}: {mono('q / 2')} dá {mono('0.5')} e {mono('toString(q)')} dá {mono('1.0')} (antes, {mono('0')} e {mono('1')}). O erro é sempre texto e vai
+        sem conversão. No {mono('var r, e = call w();')} não há o que converter: sem tipo declarado, {mono('r')} recebe o tipo de retorno; com tipo, ele vale para os dois nomes e tem de aceitar o erro, que
+        é {mono('string')}.
+      </Why>
+      <Code lang="c">
+        {`  FX_LINE(10);
+  FxPair t0 = w_um();
+  FX_LINE(10);
+  v_q = fx_to_float(t0.result);
+  v_e = t0.error;`}
+      </Code>
       <H3 title="Condições e laços" />
       <Why>
         {mono('codegen_c.c')}: no {mono('while')}, a condição é escrita dentro do {mono('for (;;)')}, e não antes dele, porque ela tem de ser recalculada a cada volta. Como o C gerado tem os temporários da condição
@@ -368,6 +414,7 @@ var c = marca("c", true) || marca("d", true);`}
       </Code>
       <Code lang="c">
         {`  for (;;) {
+    FX_LINE(19);
     FxValue t19 = v_k;
     FxValue t20 = fx_lt(t19, fx_int(3));
     if (!fx_cond(t20)) break;
@@ -408,6 +455,7 @@ var c = marca("c", true) || marca("d", true);`}
         FxValue t3 = v_soma;
         FxValue t4 = v_x;
         FxValue t5 = f_dobra(t4);
+        FX_LINE(18);
         FxValue t6 = fx_add(t3, t5);
         v_soma = t6;
       }
@@ -442,6 +490,7 @@ abort if e;`}
         {`  FX_LINE(20);
   FxValue t8 = v_soma;
   FxPair t7 = w_dupla(t8);
+  FX_LINE(20);
   FxValue v_r = t7.result;
   FxValue v_e = t7.error;
   FX_LINE(21);
@@ -479,6 +528,7 @@ abort if e;`}
   FX_LINE(10);
   FxValue t1 = v_n;
   FxPair t0 = w_checa(t1);
+  FX_LINE(10);
   FxValue v_r = t0.result;
   FxValue v_e = t0.error;
   FX_LINE(11);
@@ -706,9 +756,13 @@ func main () {
         O texto de um literal float em C: {mono('%.17g')} (o suficiente para o valor voltar idêntico), mais {mono('.0')} se o resultado não tem ponto, {mono('e')} nem {mono('E')}, para o C ler um double e não um
         inteiro.
       </Fn>
+      <Fn name="coerce" signature="static char *coerce(char *v, const Type *from, const Type *target)">
+        Ajusta o valor C {mono('v')}, do tipo {mono('from')}, ao tipo {mono('target')}, como na seção de conversões: {mono('fx_to_float(v)')} de {mono('int')} para {mono('float')}, um {mono('fx_as_*')} para um valor
+        dinâmico. Se não há tipo esperado ({mono('target')} nulo), ou se {mono('from')} é desconhecido ou de erro, devolve {mono('v')} sem mudança. Não emite linha: devolve a expressão C. Usada por{' '}
+        {mono('convert')} e, no resultado de um {mono('call')}, por {mono('gen_assign')}.
+      </Fn>
       <Fn name="convert" signature="static char *convert(Expr *e, const Type *target)">
-        Calcula {mono('e')} (com {mono('expr')}) e o ajusta ao tipo {mono('target')}, como na seção de conversões. Se não há tipo esperado ({mono('target') } nulo), ou se o tipo da expressão é desconhecido ou de
-        erro, devolve o valor sem mudança. Devolve o nome ou a expressão C do resultado.
+        Calcula {mono('e')} (com {mono('expr')}) e passa o resultado por {mono('coerce')} com o tipo da expressão e {mono('target')}. Devolve o nome ou a expressão C do resultado.
       </Fn>
       <Fn name="gen_binary" signature="static char *gen_binary(Expr *e)">
         Gera um operador binário. {mono('&&')} e {mono('||')}: o {mono('if')} da seção correspondente. Os demais: calcula o lado esquerdo, depois o direito, e emite um temporário com a função de {mono('binary_fn')}.
@@ -738,7 +792,8 @@ func main () {
       <Fn name="gen_call" signature="static char *gen_call(Expr *c)">
         Gera uma chamada, como na tabela de chamadas: as quatro funções de conversão da biblioteca; uma func do usuário (com os argumentos convertidos para o tipo dos parâmetros, achado por
         {' '}{mono('find_func')}); os métodos de {mono('terminal')} ({mono('input')} com a mensagem opcional e {mono('log')}, {mono('info')}, {mono('warn')} e {mono('error')}, que viram {mono('fx_log')} e as outras); e os
-        métodos de lista ({mono('length')}, {mono('push')} e {mono('remove')}). Devolve o nome do temporário com o resultado. Os argumentos são calculados na ordem, antes da linha da chamada.
+        métodos de lista ({mono('length')}, {mono('push')} e {mono('remove')}). Devolve o nome do temporário com o resultado. Os argumentos são calculados na ordem, antes da linha da chamada. Depois da chamada
+        de uma func do usuário, emite {mono('FX_LINE(cur_line);')}.
       </Fn>
       <Fn name="expr" signature="static char *expr(Expr *e)">
         O despachante das expressões, como na tabela de expressões. Os literais simples voltam como um construtor ({mono('fx_int(5)')}); toda outra forma emite uma ou mais linhas e devolve o temporário. O caso padrão
@@ -748,20 +803,24 @@ func main () {
       <H3 title="Funções dos comandos" />
       <Fn name="gen_pair" signature="static char *gen_pair(Rhs *r)">
         Gera o lado direito de um {mono('call')} ou {mono('run')} e devolve o temporário que guarda o {mono('FxPair')}. Para {mono('run')}: {mono('fx_run(spec)')} sobre o objeto de opções. Para {mono('call')}:{' '}
-        {mono('w_nome(args)')}, com os argumentos convertidos. O número do temporário do par é pedido antes do dos argumentos.
+        {mono('w_nome(args)')}, com os argumentos convertidos, seguido de {mono('FX_LINE(cur_line);')}. O número do temporário do par é pedido antes do dos argumentos.
       </Fn>
       <Fn name="gen_var" signature="static void gen_var(Stmt *s, int global)">
         Gera um {mono('var')} ou {mono('const')}. Sem valor: cada nome recebe {mono('fx_null()')}. Com valores: calcula todos (convertidos para o tipo declarado, se há) e depois emite uma declaração por nome; com
         {' '}{mono('call')} ou {mono('run')}: emite {mono('t.result')} para o primeiro nome e {mono('t.error')} para o segundo. Com {mono('global')} igual a 1, emite só a atribuição, sem o tipo {mono('FxValue')}, porque o
         global já foi declarado no topo do arquivo.
       </Fn>
-      <Fn name="assign_to" signature="static void assign_to(Expr *target, const char *value)">
-        Atribui o valor {mono('value')} (um temporário ou uma expressão) a um alvo: {mono('v_x = value;')} para um nome, {mono('fx_set_field(base, "campo", value)')} para um campo e
-        {' '}{mono('fx_set_index(base, indice, value)')} para um índice. A base e o índice são calculados aqui, depois do valor.
+      <Fn name="place_of" signature="static Place place_of(Expr *target)">
+        Calcula a parte de um alvo que é expressão e devolve um {mono('Place')} ({mono('target')}, {mono('base')}, {mono('idx')}): nada para um nome; a base para um campo; a base e depois o índice para um
+        índice, cada um num temporário. Chamada para todos os alvos antes de qualquer valor.
+      </Fn>
+      <Fn name="store" signature="static void store(Place p, const char *value)">
+        Escreve o valor {mono('value')} (um temporário ou uma expressão) no lugar {mono('p')}: {mono('v_x = value;')} para um nome, {mono('fx_set_field(base, "campo", value)')} para um campo e
+        {' '}{mono('fx_set_index(base, indice, value)')} para um índice, com a base e o índice que {mono('place_of')} já calculou.
       </Fn>
       <Fn name="gen_assign" signature="static void gen_assign(Stmt *s)">
-        Gera uma atribuição. Com valores: calcula todos (convertidos para o tipo do alvo correspondente) e só então atribui um a um com {mono('assign_to')}. Com {mono('call')} ou {mono('run')}: o par, e
-        {' '}{mono('assign_to')} do {mono('.result')} no primeiro alvo e do {mono('.error')} no segundo, sem conversão.
+        Gera uma atribuição. Primeiro {mono('place_of')} de cada alvo, na ordem. Com valores: calcula todos (convertidos para o tipo do alvo correspondente) e só então grava um a um com {mono('store')}. Com{' '}
+        {mono('call')} ou {mono('run')}: o par, {mono('store')} do {mono('.result')} no primeiro alvo (pelo {mono('coerce')} com o tipo de retorno do workflow e o tipo do alvo) e do {mono('.error')} no segundo.
       </Fn>
       <Fn name="gen_block" signature="static void gen_block(Stmt *block)">
         Escreve {mono('{')}, sobe o recuo, gera cada comando do bloco, desce o recuo e escreve {mono('}')}.
@@ -771,7 +830,8 @@ func main () {
         {' '}{mono('fx_null()')}.
       </Fn>
       <Fn name="gen_stmt" signature="static void gen_stmt(Stmt *s)">
-        O despachante dos comandos, como na tabela de comandos. Emite {mono('FX_LINE(n);')} (exceto para bloco, {mono('break')} e {mono('continue')}) e depois o C do comando. É declarada antes de
+        O despachante dos comandos, como na tabela de comandos. Grava a linha em {mono('cur_line')} e emite {mono('FX_LINE(n);')} (exceto para bloco, {mono('break')} e {mono('continue')}; no {mono('while')}, dentro do
+        laço) e depois o C do comando. É declarada antes de
         {' '}{mono('gen_pair')} e das outras ({mono('static void gen_stmt(Stmt *s);')}) porque {mono('gen_block')} a chama e ela chama {mono('gen_block')}.
       </Fn>
       <H3 title="Funções e execução" />

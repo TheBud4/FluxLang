@@ -15,6 +15,7 @@ static int depth;
 static int next_tmp;
 static const Program *prog;
 static const Func *cur_func;
+static int cur_line;
 
 static void emit(const char *fmt, ...) {
   va_list args;
@@ -58,14 +59,13 @@ static char *float_literal(double d) {
   return fstr("%s", buf);
 }
 
-static char *convert(Expr *e, const Type *target) {
-  char *v = expr(e);
-  if (!target || !e->type || e->type->kind == T_ERROR)
+static char *coerce(char *v, const Type *from, const Type *target) {
+  if (!target || !from || from->kind == T_ERROR)
     return v;
-  int dyn = e->type->kind == T_DYN;
+  int dyn = from->kind == T_DYN;
   switch (target->kind) {
   case T_FLOAT:
-    if (e->type->kind == T_INT)
+    if (from->kind == T_INT)
       return fstr("fx_to_float(%s)", v);
     if (dyn)
       return fstr("fx_as_float(%s)", v);
@@ -80,6 +80,8 @@ static char *convert(Expr *e, const Type *target) {
   }
   return v;
 }
+
+static char *convert(Expr *e, const Type *target) { return coerce(expr(e), e->type, target); }
 
 static const char *binary_fn(Op op) {
   switch (op) {
@@ -148,6 +150,7 @@ static char *gen_call(Expr *c) {
       args[i] = convert(c->items[i], f->params[i]->type);
     t = new_tmp();
     emit("FxValue %s = f_%s(%s);", t, name, join_args(args, c->n_items));
+    emit("FX_LINE(%d);", cur_line);
     return t;
   }
 
@@ -251,6 +254,7 @@ static char *gen_pair(Rhs *r) {
   for (int i = 0; i < r->n_args; i++)
     args[i] = convert(r->args[i], f->params[i]->type);
   emit("FxPair %s = w_%s(%s);", t, r->callee.name, join_args(args, r->n_args));
+  emit("FX_LINE(%d);", cur_line);
   return t;
 }
 
@@ -274,32 +278,46 @@ static void gen_var(Stmt *s, int global) {
   emit(global ? "v_%s = %s.error;" : "FxValue v_%s = %s.error;", s->names[1]->name, pair);
 }
 
-static void assign_to(Expr *target, const char *value) {
-  if (target->kind == EX_IDENT) {
-    emit("v_%s = %s;", target->text, value);
-  } else if (target->kind == EX_FIELD) {
-    char *base = expr(target->a);
-    emit("fx_set_field(%s, \"%s\", %s);", base, target->text, value);
-  } else {
-    char *base = expr(target->a);
-    char *idx = expr(target->b);
-    emit("fx_set_index(%s, %s, %s);", base, idx, value);
-  }
+typedef struct {
+  Expr *target;
+  char *base, *idx;
+} Place;
+
+static Place place_of(Expr *target) {
+  Place p = {target, NULL, NULL};
+  if (target->kind != EX_IDENT)
+    p.base = expr(target->a);
+  if (target->kind == EX_INDEX)
+    p.idx = expr(target->b);
+  return p;
+}
+
+static void store(Place p, const char *value) {
+  if (p.target->kind == EX_IDENT)
+    emit("v_%s = %s;", p.target->text, value);
+  else if (p.target->kind == EX_FIELD)
+    emit("fx_set_field(%s, \"%s\", %s);", p.base, p.target->text, value);
+  else
+    emit("fx_set_index(%s, %s, %s);", p.base, p.idx, value);
 }
 
 static void gen_assign(Stmt *s) {
   Rhs *r = s->rhs;
+  Place *places = mem_alloc((s->n_targets + 1) * sizeof(Place));
+  for (int i = 0; i < s->n_targets; i++)
+    places[i] = place_of(s->targets[i]);
   if (r->kind == RHS_EXPRS) {
     char **vals = mem_alloc((r->n_exprs + 1) * sizeof(char *));
     for (int i = 0; i < r->n_exprs; i++)
       vals[i] = convert(r->exprs[i], i < s->n_targets ? s->targets[i]->type : NULL);
     for (int i = 0; i < s->n_targets && i < r->n_exprs; i++)
-      assign_to(s->targets[i], vals[i]);
+      store(places[i], vals[i]);
     return;
   }
   char *pair = gen_pair(r);
-  assign_to(s->targets[0], fstr("%s.result", pair));
-  assign_to(s->targets[1], fstr("%s.error", pair));
+  const Func *w = r->kind == RHS_CALL ? find_func(r->callee.name) : NULL;
+  store(places[0], coerce(fstr("%s.result", pair), w ? w->ret : NULL, s->targets[0]->type));
+  store(places[1], fstr("%s.error", pair));
 }
 
 static void gen_block(Stmt *block) {
@@ -325,8 +343,11 @@ static void gen_return(Stmt *s) {
 }
 
 static void gen_stmt(Stmt *s) {
-  if (s->kind != ST_BLOCK && s->kind != ST_BREAK && s->kind != ST_CONTINUE)
-    emit("FX_LINE(%d);", s->pos.line);
+  if (s->kind != ST_BLOCK && s->kind != ST_BREAK && s->kind != ST_CONTINUE) {
+    cur_line = s->pos.line;
+    if (s->kind != ST_WHILE)
+      emit("FX_LINE(%d);", cur_line);
+  }
   switch (s->kind) {
   case ST_VAR:
     gen_var(s, 0);
@@ -356,6 +377,7 @@ static void gen_stmt(Stmt *s) {
     emit("for (;;) {");
     depth++;
     {
+      emit("FX_LINE(%d);", cur_line);
       char *c = expr(s->cond);
       emit("if (!fx_cond(%s)) break;", c);
     }
@@ -463,7 +485,8 @@ int generate_c(const Program *program, FILE *file) {
     Stmt *v = program->decls[i].var;
     if (!v)
       continue;
-    emit("FX_LINE(%d);", v->pos.line);
+    cur_line = v->pos.line;
+    emit("FX_LINE(%d);", cur_line);
     gen_var(v, 1);
   }
   emit("f_main();");
