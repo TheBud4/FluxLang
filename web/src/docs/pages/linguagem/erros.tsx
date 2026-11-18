@@ -1445,6 +1445,7 @@ Estouro de inteiro.`}
       <H3 title="R7: estouro de pilha" />
       <P>
         Acontece quando uma recursão não termina ou é funda demais. A mensagem é {mono('Estouro de pilha: recursão profunda demais.')}
+        Há uma segunda causa, a estrutura circular impressa, descrita depois deste exemplo.
       </P>
       <Code lang="flux" example>
         {`func f(n:int):int {
@@ -1459,6 +1460,32 @@ func main () {
         {`Erro de execução [linha 2]:
 Estouro de pilha: recursão profunda demais.`}
       </Code>
+      <P>
+        O R7 também acontece ao imprimir uma estrutura circular: um objeto ou uma lista que contém a si mesmo, direta
+        ou indiretamente ({mono('a.b = b;')} e {mono('b.a = a;')}). Imprimir uma lista ou um objeto escreve o que está
+        dentro dele, e o que está dentro do que está dentro, sem fim num ciclo. Vale para {mono('terminal.log')},{' '}
+        {mono('info')}, {mono('warn')}, {mono('error')}, {mono('toString')} e para a mensagem do {mono('abort if')}. A
+        mensagem é {mono('Estrutura circular ou profunda demais para imprimir.')}, na linha do comando que imprime.
+        Criar o ciclo não é erro: só imprimir.
+      </P>
+      <Code lang="flux" example>
+        {`func main () {
+    var o = { nome: "raiz" };
+    o.me = o;
+    terminal.log(o.nome);
+    terminal.log(o);
+}`}
+      </Code>
+      <Code lang="text">
+        {`raiz
+Erro de execução [linha 5]:
+Estrutura circular ou profunda demais para imprimir.`}
+      </Code>
+      <P>
+        Uma estrutura funda mas finita continua sendo impressa: mil objetos um dentro do outro saem normalmente. O
+        limite é o mesmo da recursão, o tamanho da pilha: no Linux, com a pilha padrão de 8 MB, 60 mil níveis ainda
+        são impressos e 80 mil dão o R7.
+      </P>
       <H2 title="Recuperação de erros" />
       <P>
         O compilador não para no primeiro erro léxico ou sintático: ele entra em modo pânico, descarta tokens até um

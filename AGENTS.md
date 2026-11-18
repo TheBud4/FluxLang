@@ -99,7 +99,7 @@ as decisões pendentes listadas em "Em aberto" (ver `docs/TAREFAS.md`). O Trabal
 
 ```
 make            # gera ./flux
-make test       # tests/run.sh: 235 casos; leva alguns minutos (passadas do coletor e do Windows)
+make test       # tests/run.sh: 263 casos; leva alguns minutos (passadas do coletor e do Windows)
 make asan       # compilador e programas gerados com ASan + UBSan + LeakSanitizer; restaura o build normal
 make web        # interface em http://127.0.0.1:5173 (Node 20+)
 ```
@@ -339,7 +339,8 @@ O refinamento da seção 6 do ERROS.md foi medido e descartado.
 **Geração de código:** `./flux --c` imprime um programa C, `--build [-o x]`
 gera o executável e `--run` roda (via `gcc`). Todo valor é um `FxValue` com
 etiqueta; a biblioteca `src/backend/runtime/flux_rt.h` (embutida no `.c`) faz os operadores
-e dá os erros de execução R1 a R7 (R7 é o estouro de pilha). Cada subexpressão
+e dá os erros de execução R1 a R7 (R7 é o estouro de pilha, também ao imprimir uma
+lista ou um objeto cíclico ou fundo demais). Cada subexpressão
 vai para um temporário, para a ordem de avaliação ser da esquerda para a
 direita. `terminal.log` e `info` vão para a saída padrão, `warn` e `error` para
 a de erro, sem prefixo; `toString` de float usa a forma mais curta com `.0`

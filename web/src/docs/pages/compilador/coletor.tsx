@@ -55,7 +55,7 @@ interface Piece {
 const BLOCK: Piece[] = [
   { label: 'next', note: '8 bytes', x: 10, width: 110 },
   { label: 'size', note: '8 bytes', x: 120, width: 110 },
-  { label: 'kind, mark', note: '1 + 1, e o resto', x: 230, width: 130 },
+  { label: 'kind, mark, busy', note: '1 + 1 + 1, e o resto', x: 230, width: 130 },
   { label: 'conteúdo', note: 'size bytes, zerados', x: 360, width: 330 },
 ]
 
@@ -131,12 +131,17 @@ export function Coletor() {
 typedef struct FxBlock {
   struct FxBlock *next;
   size_t size;
-  unsigned char kind, mark;
+  unsigned char kind, mark, busy;
 } __attribute__((aligned(16))) FxBlock;`}
       </Code>
+      <P>
+        {mono('mark')} é do coletor: vale 1 durante uma coleta nos blocos já alcançados. {mono('busy')} não é do coletor: só {mono('fx_repr')} o usa, num {mono('FxList')} ou {mono('FxObj')}, para saber que o
+        bloco está sendo impresso agora (ver &quot;Texto: toString e a formatação dos valores&quot; na página da <PageLink to="compilador/runtime">biblioteca</PageLink>). O byte cabe no espaço que o alinhamento
+        de 16 já deixava sobrando: o cabeçalho continua com 32 bytes, medido no Linux e no {mono('mingw')}.
+      </P>
       <Diagram
         title="Um bloco: o cabeçalho FxBlock, de 32 bytes (medido), e o conteúdo"
-        label="Quatro caixas lado a lado: next, size, kind e mark, e o conteúdo. Abaixo, o ponteiro para o cabeçalho e o ponteiro para o conteúdo."
+        label="Quatro caixas lado a lado: next, size, os bytes kind, mark e busy, e o conteúdo. Abaixo, o ponteiro para o cabeçalho e o ponteiro para o conteúdo."
       >
         <BlockDiagram />
       </Diagram>
@@ -460,7 +465,7 @@ FLUX_GC=0 FLUX_GC_STATS=1:
           ['Sem compactação', <>Os blocos não se movem (um coletor conservador não poderia mover um bloco que talvez seja só um inteiro na pilha); o {mono('free')} devolve a memória ao {mono('malloc')}, e a fragmentação fica com ele.</>],
           ['Coleta que para tudo', <>Uma coleta é completa e síncrona; o custo de uma coleta é o de ordenar todos os blocos ({mono('qsort')}, proporcional a {mono('n log n')}) mais a varredura.</>],
           ['Uma thread', <>A biblioteca nunca cria threads (no Windows, a única thread extra é a do próprio programa). O coletor não é seguro para threads.</>],
-          ['Ciclos de ponteiros', <>Não são problema: o marcador não segue o mesmo bloco duas vezes. Mas imprimir uma estrutura cíclica ({mono('o.me = o;')}) estoura a pilha do C em {mono('fx_repr')}, ver a página da <PageLink to="compilador/runtime">biblioteca</PageLink>.</>],
+          ['Ciclos de ponteiros', <>Não são problema: o marcador não segue o mesmo bloco duas vezes, e a marcação usa a pilha de rastreamento ({mono('fx_gc_todo')}), não a recursão do C, então uma lista aninhada a qualquer profundidade também não estoura a pilha. Imprimir uma estrutura cíclica ({mono('o.me = o;')}) é o erro R7, ver a página da <PageLink to="compilador/runtime">biblioteca</PageLink>.</>],
           ['Estruturas de dados da biblioteca', <>As raízes, o vetor ordenado e a pilha de rastreamento são de {mono('malloc')} e {mono('realloc')}, fora do coletor, e a mensagem de {mono('fx_die') } também.</>],
           ['Arquiteturas fora do x86-64', <>Usam {mono('__builtin_unwind_init')}, que a nota que havia no código dizia não bastar no {mono('clang')}. Nunca testado (AGENTS.md: macOS nunca foi testado).</>],
         ]}

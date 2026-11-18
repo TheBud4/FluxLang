@@ -146,9 +146,13 @@ FX_FN void fx_type_err(const char *expected, FxValue got) {
 static const char *fx_stack_base;
 static size_t fx_stack_limit;
 
-FX_FN void fx_check_stack(void) {
+FX_FN int fx_stack_full(void) {
   const char *here = __builtin_frame_address(0);
-  if ((size_t)(fx_stack_base - here) > fx_stack_limit)
+  return (size_t)(fx_stack_base - here) > fx_stack_limit;
+}
+
+FX_FN void fx_check_stack(void) {
+  if (fx_stack_full())
     fx_die("Estouro de pilha: recursão profunda demais.");
 }
 
@@ -157,7 +161,7 @@ typedef enum { FXB_RAW, FXB_LIST, FXB_VALUES, FXB_OBJ, FXB_KEYS } FxBlockKind;
 typedef struct FxBlock {
   struct FxBlock *next;
   size_t size;
-  unsigned char kind, mark;
+  unsigned char kind, mark, busy;
 } __attribute__((aligned(16))) FxBlock;
 
 static FxBlock *fx_blocks;
@@ -760,6 +764,14 @@ FX_FN const char *fx_fmt_float(double f) {
 
 FX_FN const char *fx_repr(FxValue v, int quote);
 
+FX_FN FxBlock *fx_repr_enter(const void *payload) {
+  FxBlock *b = (FxBlock *)payload - 1;
+  if (b->busy || fx_stack_full())
+    fx_die("Estrutura circular ou profunda demais para imprimir.");
+  b->busy = 1;
+  return b;
+}
+
 FX_FN const char *fx_repr(FxValue v, int quote) {
   switch (v.tag) {
   case FX_NULL:   return "null";
@@ -768,16 +780,20 @@ FX_FN const char *fx_repr(FxValue v, int quote) {
   case FX_BOOL:   return v.as.b ? "true" : "false";
   case FX_STRING: return quote ? fx_dup_printf("\"%s\"", v.as.s) : v.as.s;
   case FX_LIST: {
+    FxBlock *b = fx_repr_enter(v.as.l);
     const char *s = "[";
     for (int i = 0; i < v.as.l->n; i++)
       s = fx_dup_printf("%s%s%s", s, i ? ", " : "", fx_repr(v.as.l->v[i], 1));
+    b->busy = 0;
     return fx_dup_printf("%s]", s);
   }
   default: {
+    FxBlock *b = fx_repr_enter(v.as.o);
     const char *s = "{";
     for (int i = 0; i < v.as.o->n; i++)
       s = fx_dup_printf("%s%s%s: %s", s, i ? ", " : "", v.as.o->keys[i],
                         fx_repr(v.as.o->vals[i], 1));
+    b->busy = 0;
     return fx_dup_printf("%s}", s);
   }
   }

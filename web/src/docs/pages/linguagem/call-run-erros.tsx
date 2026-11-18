@@ -478,6 +478,7 @@ O erro 'e' não foi tratado.`}
             mono('Estouro de inteiro.'),
           ],
           ['R7', 'Recursão sem fim ou funda demais', mono('Estouro de pilha: recursão profunda demais.')],
+          ['R7', 'Imprimir uma lista ou um objeto que contém a si mesmo', mono('Estrutura circular ou profunda demais para imprimir.')],
         ]}
       />
       <Code lang="flux" example>

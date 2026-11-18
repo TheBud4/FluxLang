@@ -75,7 +75,7 @@ Comportamentos do compilador a decidir (alguns podem ser intencionais):
 - [x] `l[f()] = g()` avalia o valor (`g`) antes do alvo (`f`), contra a ordem da esquerda para a direita (corrigido: base e índice de todos os alvos antes dos valores; `tests/exec/ordem_do_alvo.flux`)
 - [ ] Inicializadores globais rodam na ordem do arquivo: uma função chamada ali lê os globais de baixo como `null` (R3)
 - [x] `fx_line` não é restaurada no retorno de função: um erro de execução pode citar a linha do fim da função chamada (corrigido: `FX_LINE` de novo depois de cada chamada de func e de `call`, e a cada volta do `while`; `tests/exec/linha_do_erro_*.flux`)
-- [ ] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução
+- [x] Imprimir um objeto cíclico (`o.me = o;`) dá falha de segmentação (código 139) em vez de um erro de execução (corrigido: R7 `Estrutura circular ou profunda demais para imprimir.`, na linha do comando; `fx_repr` confere a pilha como as funções; `tests/exec/erro_R7_ciclo_*.flux`, `estrutura_profunda.flux`)
 - [ ] Com mais de 8192 variáveis locais, o E3 deixa de ser detectado
 - [ ] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`)
 - [ ] Pânico: um comando quebrado sem `;` antes do `}` (`x = 1 +` e `}`) tem o `}` descartado, a função fica aberta e sai `tree: null` ou um erro extra no fim do arquivo; `1 +;` solto no nível global, sem `func main` depois, dá o mesmo segundo erro e `tree: null`

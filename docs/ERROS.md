@@ -328,6 +328,7 @@ a mensagem na saída de erro e código de saída 1.
 | R5 | Valor de campo com tipo diferente do esperado | `var n:int = user.name;` com `name` valendo uma string; `user.name.x` | `Esperado int, encontrado string.` |
 | R6 | Estouro de `int` (32 bits) | `2147483647 + 1`, `-x` com `x` valendo -2147483648 | `Estouro de inteiro.` |
 | R7 | Estouro de pilha (recursão sem fim ou funda demais) | `func f(n:int):int { return f(n + 1); }` | `Estouro de pilha: recursão profunda demais.` |
+| R7 | Estrutura circular ou funda demais para imprimir (`terminal.*`, `toString`, `abort if`) | `var o = {}; o.me = o; terminal.log(o);` | `Estrutura circular ou profunda demais para imprimir.` |
 
 **Comportamentos de execução** que a especificação não dizia e a
 implementação fixou (14/11; podem ser mudados): `terminal.log` e `info` vão

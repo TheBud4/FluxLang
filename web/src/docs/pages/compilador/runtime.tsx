@@ -452,9 +452,21 @@ typedef struct {
       </Fn>
       <Fn name="fx_repr" signature="FX_FN const char *fx_repr(FxValue v, int quote)">
         O texto de qualquer valor. {mono('quote')} só importa para {mono('FX_STRING')}: com 1, o texto sai entre aspas duplas (dentro de listas e objetos, e nas mensagens de erro); com 0, como é. Listas e objetos
-        são montados elemento por elemento, cada passo um bloco novo, então o custo cresce com o quadrado do tamanho. É recursiva e não chama {mono('fx_check_stack')}: um objeto que contém a si mesmo
-        ({mono('o.me = o;')}) faz a impressão recursar até estourar a pilha do C. Medido: o programa morre com falha de segmentação (código 139), sem o erro R7, e o que ainda estava no buffer da saída padrão se perde.
+        são montados elemento por elemento, cada passo um bloco novo, então o custo cresce com o quadrado do tamanho. É recursiva: antes de escrever uma lista ou um objeto, passa por {mono('fx_repr_enter')}, e
+        o erro R7 {mono('Estrutura circular ou profunda demais para imprimir.')} sai na linha do comando que imprime.
       </Fn>
+      <Fn name="fx_repr_enter" signature="FX_FN FxBlock *fx_repr_enter(const void *payload)">
+        A entrada de {mono('fx_repr')} numa lista ou num objeto. Acha o cabeçalho do bloco ({mono('payload')} menos um {mono('FxBlock')}) e encerra com o R7 se o byte {mono('busy')} já vale 1 ou se a pilha passou do
+        limite ({mono('fx_stack_full')}); senão põe {mono('busy')} em 1 e devolve o cabeçalho. {mono('fx_repr')} volta {mono('busy')} a 0 depois do último elemento.
+      </Fn>
+      <Why>
+        {mono('flux_rt.h')}: um objeto que contém a si mesmo ({mono('o.me = o;')}), direta ou indiretamente, faria {mono('fx_repr')} recursar até estourar a pilha do C: o programa morria com falha de segmentação
+        (código 139) e perdia o que estava no buffer da saída padrão. O byte {mono('busy')} marca as listas e os objetos que estão sendo impressos agora, do de fora até o atual; achar de novo um deles é achar um
+        ciclo, e o erro sai no segundo encontro, sem descer mais. A marca sai na volta, então o mesmo objeto em dois lugares ({mono('[x, x]')}) não é ciclo e é impresso duas vezes. A conferência de pilha
+        cobre a estrutura finita funda demais, que estouraria a pilha do mesmo jeito: medido no Linux, com a pilha padrão de 8 MB, 60 mil objetos um dentro do outro ainda são impressos e 80 mil dão o R7; mil
+        níveis ({mono('tests/exec/estrutura_profunda.flux')}) saem normalmente. Só a conferência de pilha também daria o R7 num ciclo, mas depois de descer dezenas de milhares de níveis, e no estresse do
+        coletor ({mono('FLUX_GC_STRESS=1')}) cada nível que aloca faz uma coleta que varre a pilha inteira: medido com essa primeira versão, o ciclo indireto passou de 7 minutos sem terminar. Os casos são os {mono('tests/exec/erro_R7_ciclo_*.flux')}.
+      </Why>
       <Fn name="fx_to_string" signature="FX_FN FxValue fx_to_string(FxValue v)">
         {mono('toString(v)')}: {mono('fx_str(fx_repr(v, 0))')}. Aceita qualquer valor, inclusive {mono('null')} (dá o texto {mono('null')}).
       </Fn>
@@ -736,10 +748,11 @@ Divisão por zero.^[[0m`}
           ['R5', mono('fx_type_err'), <>Etiqueta diferente da que o lugar exige: {mono('fx_as_*')}, operadores, {mono('fx_cond')}, base de índice ou de campo</>, mono('Esperado int, encontrado string.')],
           ['R6', <>{mono('fx_add')}, {mono('fx_sub')}, {mono('fx_mul')}, {mono('fx_div')}, {mono('fx_neg')}</>, <>{mono('int')} que estoura na soma, subtração, multiplicação, {mono('INT32_MIN / -1') } ou {mono('-INT32_MIN')}</>, mono('Estouro de inteiro.')],
           ['R7', mono('fx_check_stack'), 'A pilha usada passou do limite, no começo de uma função', mono('Estouro de pilha: recursão profunda demais.')],
+          ['R7', mono('fx_repr_enter'), <>Imprimir ({mono('terminal.*')}, {mono('toString')}, {mono('abort if')}) uma lista ou um objeto que contém a si mesmo, ou funda demais para a pilha</>, mono('Estrutura circular ou profunda demais para imprimir.')],
         ]}
       />
       <P>
-        Medido, cada um dos casos de {mono('tests/exec/erro_R*.flux')} rodado com {mono('./flux --run')}: as sete mensagens acima saem exatamente assim, com o código de saída 1. Por exemplo o R2:
+        Medido, cada um dos casos de {mono('tests/exec/erro_R*.flux')} rodado com {mono('./flux --run')}: as oito mensagens acima (duas do R7) saem exatamente assim, com o código de saída 1. Por exemplo o R2:
       </P>
       <Code lang="text">
         {`2
@@ -773,13 +786,21 @@ Erro de execução [linha 4]:
         Escreve {mono('Memória esgotada.')} na saída de erro e sai com 2. Chamada quando uma alocação do coletor ou um buffer interno do coletor falha.
       </Fn>
       <Fn name="fx_check_stack" signature="FX_FN void fx_check_stack(void)">
-        O R7. Compara o endereço do quadro atual ({mono('__builtin_frame_address(0)')}) com a base da pilha guardada por {mono('fx_init')}; se a diferença passa de {mono('fx_stack_limit')}, chama {mono('fx_die')} com a
-        mensagem de estouro de pilha. O gerador a emite como primeiro comando de cada função e de cada workflow.
+        O R7 das funções. Se {mono('fx_stack_full')} diz que a pilha passou do limite, chama {mono('fx_die')} com a mensagem de estouro de pilha. O gerador a emite como primeiro comando de cada função e de cada
+        workflow.
+      </Fn>
+      <Fn name="fx_stack_full" signature="FX_FN int fx_stack_full(void)">
+        Compara o endereço do quadro atual ({mono('__builtin_frame_address(0)')}) com a base da pilha guardada por {mono('fx_init')}: 1 se a diferença passa de {mono('fx_stack_limit')}. Usada por{' '}
+        {mono('fx_check_stack')} e por {mono('fx_repr_enter')}, cada uma com a sua mensagem.
       </Fn>
       <Code lang="c">
-        {`FX_FN void fx_check_stack(void) {
+        {`FX_FN int fx_stack_full(void) {
   const char *here = __builtin_frame_address(0);
-  if ((size_t)(fx_stack_base - here) > fx_stack_limit)
+  return (size_t)(fx_stack_base - here) > fx_stack_limit;
+}
+
+FX_FN void fx_check_stack(void) {
+  if (fx_stack_full())
     fx_die("Estouro de pilha: recursão profunda demais.");
 }`}
       </Code>
@@ -790,7 +811,7 @@ Erro de execução [linha 4]:
       </Why>
       <Callout kind="aviso">
         A recursão do teste tem de ser {mono('1 + sem_fim(n + 1)')}, e não {mono('return sem_fim(n + 1)')}: com otimização, o {mono('clang')} transforma recursão de cauda em laço e a pilha nunca estoura (a nota está em
-        AGENTS.md, &quot;Armadilhas&quot;). O R7 só confere funções da linguagem; a recursão de {mono('fx_repr')} sobre listas aninhadas demais não passa por {mono('fx_check_stack')}.
+        AGENTS.md, &quot;Armadilhas&quot;). A recursão de {mono('fx_repr')} sobre listas e objetos aninhados confere a mesma pilha por {mono('fx_repr_enter')}, com a mensagem própria.
       </Callout>
 
       <H2 title="A entrada do programa: fx_init, fx_start e main" />
