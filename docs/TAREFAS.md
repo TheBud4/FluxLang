@@ -85,13 +85,13 @@ Comportamentos do compilador a decidir (alguns podem ser intencionais):
 - [ ] `ação` dá um L1 por caractere não ASCII, e um texto partido em duas linhas dá dois L2
 - [ ] A thread de 64 MB do programa só existe no Windows; no POSIX o programa roda na thread principal
 - [ ] O `asm` que salva os registradores no coletor: só `__builtin_unwind_init` passou com clang 22 e gcc 16 (a falha descrita no antigo comentário não se reproduziu); o `asm` fica até o usuário decidir
-- [ ] A nota de AGENTS.md (Armadilhas) sobre o clang transformar a recursão de cauda em laço não se reproduziu em 18/11 (gcc e clang, -O1 a -O3): rever a nota
+- [x] A nota de AGENTS.md (Armadilhas) sobre o clang transformar a recursão de cauda em laço não se reproduziu em 18/11 (gcc e clang, -O1 a -O3) (corrigido: a nota diz o que foi medido)
 
 Interface e documentação:
 
 - [ ] A saída impressa antes de um tempo esgotado do `/api/run` se perde (o buffer da saída num cano não é esvaziado antes do SIGKILL)
 - [ ] O CORS padrão do Vite aceita o pré-voo de outra porta em localhost; só a conferência de `Origin` do plugin barra o pedido
-- [ ] Um `PageLink` ou endereço com id de página desconhecido abre a Introdução sem aviso (talvez uma tela "página não encontrada")
+- [x] Um `PageLink` ou endereço com id de página desconhecido abre a Introdução sem aviso (corrigido: a Introdução abre com um aviso que cita o id, e o endereço não é reescrito)
 - [ ] `tests/exec/entrada_com_stdin.flux` falha às vezes na passada wine/estresse (duas vezes neste trabalho; passa ao repetir)
 
 Lacunas do README (o compilador já faz; falta ratificar ou mudar):

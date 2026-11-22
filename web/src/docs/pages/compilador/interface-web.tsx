@@ -457,7 +457,7 @@ export default defineConfig({
           [<>{mono('focusPending')} (uma {mono('ref')})</>, mono('false'), <>Marca que um &quot;Abrir no editor&quot; está esperando a tela do editor aparecer.</>],
           [<>{mono('result')}, {mono('loading')}, {mono('failure')}</>, <>de {mono('useCompile')}</>, 'O último JSON, se há um pedido em curso e a falha do servidor.'],
           [mono('runState'), <>de {mono('useRun')}</>, 'A fase da execução e o resultado.'],
-          [<>{mono('view')}, {mono('pageId')}</>, <>de {mono('useHashRoute')}</>, 'A tela atual e a página da documentação.'],
+          [<>{mono('view')}, {mono('pageId')}, {mono('missing')}</>, <>de {mono('useHashRoute')}</>, 'A tela atual, a página da documentação e o id pedido quando ele não existe.'],
         ]}
       />
       <P>

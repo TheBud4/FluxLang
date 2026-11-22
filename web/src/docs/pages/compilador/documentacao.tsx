@@ -64,16 +64,17 @@ export function Documentacao() {
       </Fn>
       <H2 title="A rota da documentação" />
       <P>
-        O endereço decide a tela: {mono('#/doc/<secao>/<slug>')} abre aquela página; {mono('#/doc')} sozinho ou um {mono('id')} desconhecido abrem a primeira página (a Introdução da linguagem), e o endereço é
-        corrigido para o canônico com {mono('history.replaceState')}, sem criar entrada no histórico; qualquer outro endereço é o editor. Os links entre páginas são âncoras comuns ({mono('href="#/doc/..."')}),
+        O endereço decide a tela: {mono('#/doc/<secao>/<slug>')} abre aquela página; {mono('#/doc')} sozinho abre a primeira página (a Introdução da linguagem), e o endereço é
+        corrigido para o canônico com {mono('history.replaceState')}, sem criar entrada no histórico. Um {mono('id')} desconhecido também abre a Introdução, mas o endereço não é reescrito e a página
+        começa com um aviso que cita o {mono('id')}; qualquer outro endereço é o editor. Os links entre páginas são âncoras comuns ({mono('href="#/doc/..."')}),
         então o botão Voltar do navegador funciona.
       </P>
-      <Fn name="useHashRoute" signature="export function useHashRoute(): { view: 'editor' | 'docs'; pageId: string; goDoc(id: string): void; goEditor(): void }">
+      <Fn name="useHashRoute" signature="export function useHashRoute(): { view: 'editor' | 'docs'; pageId: string; missing?: string; goDoc(id: string): void; goEditor(): void }">
         Lê {mono('location.hash')}, ouve {mono('hashchange')} e devolve a tela e a página. Lembra a última página vista ({mono('lastId')}): ao voltar do editor para a aba Documentação, {mono('App')} chama{' '}
         {mono('goDoc(pageId)')} e a mesma página reabre. {mono('goDoc')} põe {mono('#/doc/<id>')}; {mono('goEditor')} põe {mono('#/editor')}.
       </Fn>
       <Fn name="parse (interna)" signature="function parse(hash: string, lastId: string): Route">
-        Converte o {mono('hash')} em {mono('{ view, pageId, canonical }')}, com as regras do parágrafo acima.
+        Converte o {mono('hash')} em {mono('{ view, pageId, canonical, missing }')}, com as regras do parágrafo acima. {mono('missing')} só existe quando o {mono('id')} pedido não está em {mono('PAGES')}: é o texto pedido, e nesse caso {mono('canonical')} é o próprio endereço, para o {mono('useEffect')} não o reescrever.
       </Fn>
       <H2 title="Os blocos" />
       <P>
@@ -153,7 +154,7 @@ export function Documentacao() {
       <Table
         head={['Componente', 'Propriedades', 'O que faz']}
         rows={[
-          [mono('DocsView'), mono('pageId'), <>A tela da documentação: barra com Menu (só abaixo de {mono('lg')}) e Buscar (com a dica Ctrl K), menu lateral (a partir de {mono('lg')}), o artigo (título, resumo, página, Anterior e Próxima) e o &quot;Nesta página&quot; (a partir de {mono('xl')}, 80 rem). Ao trocar de página, rola para o topo e põe o foco no {mono('h1')}. {mono('Ctrl+K')} ou {mono('Cmd+K')} abre a busca. Com um diálogo aberto, o resto fica {mono('inert')}; ao fechar, o foco volta a quem abriu. O menu fecha sozinho se a janela crescer até {mono('lg')}.</>],
+          [mono('DocsView'), <>{mono('pageId')}, {mono('missing?')}</>, <>A tela da documentação: barra com Menu (só abaixo de {mono('lg')}) e Buscar (com a dica Ctrl K), menu lateral (a partir de {mono('lg')}), o artigo (título, resumo, página, Anterior e Próxima) e o &quot;Nesta página&quot; (a partir de {mono('xl')}, 80 rem). Com {mono('missing')}, um aviso ({mono('Callout')}) acima do título diz que a página pedida não existe. Ao trocar de página, rola para o topo e põe o foco no {mono('h1')}. {mono('Ctrl+K')} ou {mono('Cmd+K')} abre a busca. Com um diálogo aberto, o resto fica {mono('inert')}; ao fechar, o foco volta a quem abriu. O menu fecha sozinho se a janela crescer até {mono('lg')}.</>],
           [mono('DocsNav'), <>{mono('pageId')}, {mono('className?')}, {mono('onNavigate?')}</>, <>A lista de páginas por seção, com {mono('aria-current="page"')} na atual.</>],
           [mono('DocsDrawer'), <>{mono('pageId')}, {mono('onNavigate')}, {mono('onClose')}</>, <>O {mono('DocsNav')} numa gaveta à esquerda ({mono('role="dialog"')}, {mono('aria-modal')}), com botão Fechar e véu que fecha ao clicar. O foco começa no primeiro link.</>],
           [mono('DocsSearch'), <>{mono('onChoose')}, {mono('onClose')}</>, <>O diálogo de busca: um campo {mono('role="combobox"')} com {mono('aria-activedescendant')}, até 8 resultados ({mono('MAX_HITS')}) numa {mono('role="listbox"')}, setas para escolher, Enter para abrir, Esc ou clique fora para fechar, e uma linha {mono('role="status"')} com a contagem.</>],

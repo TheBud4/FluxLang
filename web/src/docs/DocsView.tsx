@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { HeadingIdsContext } from './blocks'
+import { Callout, HeadingIdsContext } from './blocks'
 import { DocsDrawer, DocsNav } from './DocsNav'
 import { DocsSearch } from './DocsSearch'
 import { DocsToc } from './DocsToc'
@@ -14,7 +14,7 @@ const toolButton =
 
 type Overlay = 'menu' | 'search' | null
 
-export function DocsView({ pageId }: { pageId: string }) {
+export function DocsView({ pageId, missing }: { pageId: string; missing?: string }) {
   const page = findPage(pageId)
   const heading = useRef<HTMLHeadingElement>(null)
   const [scroller, scrollTabIndex] = useOverflowFocus<HTMLElement>(pageId)
@@ -111,6 +111,11 @@ export function DocsView({ pageId }: { pageId: string }) {
             className="min-h-0 overflow-auto focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-accent"
           >
             <article className="mx-auto max-w-3xl px-4 py-6">
+              {missing !== undefined && (
+                <Callout kind="aviso">
+                  Não existe a página <code className="font-mono">{missing}</code> no manual. Esta é a página inicial: use o menu ou a busca para achar o que procurava.
+                </Callout>
+              )}
               <h1
                 ref={heading}
                 tabIndex={-1}

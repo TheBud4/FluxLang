@@ -205,9 +205,11 @@ escuro (contraste).
   `calloc`). Mexeu em alocação da biblioteca? Rode o `exec` em estresse e o
   `make asan`. `FLUX_GC=0` desliga o coletor para investigar.
 - **Teste com mais de um compilador.** O `gcc` escondeu esse bug do coletor; o
-  `clang` o mostrou. O `clang -O1` também transforma recursão de cauda em
-  laço, então um teste de "recursão infinita" precisa de recursão que não é de
-  cauda (`1 + f(n + 1)`).
+  `clang` o mostrou. Uma nota antiga dizia que o `clang -O1` transforma recursão
+  de cauda em laço; isso não se reproduziu em 18/11/2026 (gcc 16 e clang 22,
+  `-O1` a `-O3`: `return f(n + 1);` também termina em R7). Os testes de
+  "recursão infinita" ainda usam `1 + f(n + 1)`, que vale em qualquer
+  otimização.
 - **Testes de estouro de pilha e laço infinito** deixam executáveis órfãos se o
   pai morrer por timeout (`pgrep -f /tmp/fluxexe`). Mate-os depois.
 - **`--generate` roda a suíte toda** (inclusive Windows e estresse): demora.

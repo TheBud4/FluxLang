@@ -37,7 +37,7 @@ export default function App() {
   const focusPending = useRef(false)
   const { result, loading, failure, compileNow } = useCompile(source, semantic)
   const { state: runState, run } = useRun()
-  const { view, pageId, goDoc, goEditor } = useHashRoute()
+  const { view, pageId, missing, goDoc, goEditor } = useHashRoute()
 
   useEffect(() => {
     if (view !== 'editor' || !focusPending.current) return
@@ -134,7 +134,7 @@ export default function App() {
             goEditor()
           }}
         >
-          <DocsView pageId={pageId} />
+          <DocsView pageId={pageId} missing={missing} />
         </DocsProvider>
       )}
     </div>

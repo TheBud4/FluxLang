@@ -8,6 +8,7 @@ interface Route {
   view: 'editor' | 'docs'
   pageId: string
   canonical: string
+  missing?: string
 }
 
 function parse(hash: string, lastId: string): Route {
@@ -15,7 +16,10 @@ function parse(hash: string, lastId: string): Route {
     return { view: 'editor', pageId: lastId, canonical: hash }
   }
   const wanted = hash.slice(PREFIX.length + 1)
-  const pageId = findPage(wanted) ? wanted : PAGES[0].id
+  if (wanted !== '' && !findPage(wanted)) {
+    return { view: 'docs', pageId: PAGES[0].id, canonical: hash, missing: wanted }
+  }
+  const pageId = wanted === '' ? PAGES[0].id : wanted
   return { view: 'docs', pageId, canonical: `${PREFIX}/${pageId}` }
 }
 
@@ -47,5 +51,5 @@ export function useHashRoute() {
     window.location.hash = EDITOR_HASH
   }, [])
 
-  return { view: route.view, pageId: route.pageId, goDoc, goEditor }
+  return { view: route.view, pageId: route.pageId, missing: route.missing, goDoc, goEditor }
 }
