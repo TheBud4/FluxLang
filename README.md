@@ -295,7 +295,8 @@ mensagens, está em [`ERROS.md`](docs/ERROS.md#4-erros-semânticos).
   o arquivo, também dentro de funções declaradas antes deles; por isso uma
   variável local não pode reutilizar o nome de um global declarado depois.
   Só o inicializador de um global segue a ordem do arquivo: ele usa apenas
-  globais declarados acima.
+  globais declarados acima, e uma função que ele chame (direta ou
+  indiretamente) também não pode ler um global declarado depois (E25).
   Os nomes da biblioteca (`terminal`, `toString`, `toInt`, `toFloat`,
   `toBool`) já existem no escopo global, então também não podem ser
   redeclarados.
@@ -415,7 +416,7 @@ make                            # gera ./flux
 ./flux --tree programa.flux    # imprime a árvore de derivação
 ./flux --json programa.flux    # tokens, erros e árvore em JSON (para a interface)
 ./flux --ast programa.flux     # a AST (a árvore de derivação sem a burocracia da gramática)
-./flux --semantic programa.flux # confere também os erros semânticos (E1 a E24)
+./flux --semantic programa.flux # confere também os erros semânticos (E1 a E25)
 ./flux --c programa.flux        # imprime o programa em C (a biblioteca de execução vai junto)
 ./flux --build programa.flux    # gera o executável ./programa (via gcc); -o escolhe o nome
 ./flux --run programa.flux      # gera, executa e apaga o executável (a saída é colorida num terminal; NO_COLOR desliga)
@@ -444,7 +445,7 @@ sai com código 1 se encontrou algum.
 | `src/frontend/parser.y` | Analisador sintático (Bison): a BNF regra por regra, mais as mensagens de erro |
 | `src/frontend/tree.c`, `src/frontend/tree.h` | Árvore de derivação: um nó por não-terminal da BNF (inclusive os `*_rest` da fatoração LL(1)), folhas de token, de ε e de `error` |
 | `src/semantic/types.c`, `ast.c`, `ast_build.c` | Tipos da linguagem, a AST e a conversão da árvore de derivação em AST |
-| `src/semantic/sema.c` | Análise semântica (E1 a E24): tabela de símbolos, tipos e análise de fluxo |
+| `src/semantic/sema.c` | Análise semântica (E1 a E25): tabela de símbolos, tipos e análise de fluxo |
 | `src/backend/codegen_c.c`, `src/backend/runtime/flux_rt.h` | Gerador de código C e a biblioteca de execução que ele embute (os valores, os operadores, `run`, `terminal` e os erros R1 a R7) |
 | `src/util/mem.c`, `src/util/mem.h` | Arena de memória do compilador (tudo é liberado no fim) |
 | `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
@@ -472,9 +473,16 @@ reconhecidos, a árvore sintática, o resultado (`Programa aceito` ou
 Clicar num erro, token ou nó da árvore seleciona o trecho no código. A
 árvore é a de derivação, fiel à gramática LL(1); a opção "ocultar `*_rest`"
 remove os nós criados na fatoração e sobe os filhos deles para o pai. O
-código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E24, o botão **Executar** compila o programa para C e o roda (se o programa usa `terminal.input`, aparece o campo "Entrada do programa": uma linha para cada `terminal.input`, na ordem, e a resposta aparece ao lado do prompt;a saída aparece no painel "Saída", em ordem e colorida pelo tipo: `log` em azul, `info` em ciano, `warn` em amarelo, `error` e os erros de execução em vermelho, cada linha com o nome do tipo ao lado; o painel mostra também o código de saída; um programa que passa de 10 segundos é interrompido e a saída é cortada em 1 MB), e há botões
+código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E25, o botão **Executar** compila o programa para C e o roda (se o programa usa `terminal.input`, aparece o campo "Entrada do programa": uma linha para cada `terminal.input`, na ordem, e a resposta aparece ao lado do prompt;a saída aparece no painel "Saída", em ordem e colorida pelo tipo: `log` em azul, `info` em ciano, `warn` em amarelo, `error` e os erros de execução em vermelho, cada linha com o nome do tipo ao lado; o painel mostra também o código de saída; um programa que passa de 10 segundos é interrompido e a saída é cortada em 1 MB), e há botões
 para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
 `invalido.flux`.
+
+**Documentação.** A aba **Documentação** da interface (endereço `#/doc`; cada
+página fica em `#/doc/<seção>/<página>`, como `#/doc/linguagem/tipos`) traz o
+manual da linguagem, que explica cada regra em detalhe com exemplos e as
+mensagens reais do compilador, e a documentação do compilador (cada etapa
+e uma referência arquivo por arquivo), com uma busca. Este README continua sendo a especificação da
+linguagem; o manual a explica por inteiro e os dois devem dizer a mesma coisa.
 
 **Segurança do Executar.** Executar roda o programa de verdade neste computador,
 inclusive os comandos que ele pedir em `run`. O servidor só escuta em
@@ -495,7 +503,8 @@ computador seu e não a exponha na rede.
 }
 ```
 
-`kind` do erro é `léxico` ou `sintático`. Cada nó da árvore tem `kind`
+`kind` do erro é `léxico`, `sintático` ou, com `--semantic` (que a interface
+liga por padrão), `semântico`. Cada nó da árvore tem `kind`
 (`rule` para não-terminal, `token`, `empty` para ε, `error` para o trecho
 descartado pelo modo pânico), `label` e, quando há token, `text`, `line` e
 `column`; `children` só existe se o nó tem filhos.

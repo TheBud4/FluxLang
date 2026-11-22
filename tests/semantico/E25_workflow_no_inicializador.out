@@ -1,0 +1,4 @@
+Erro semântico [linha 1, coluna 12]:
+'call' só pode ser usado em workflow ou na main.
+Programa rejeitado.
+[código 1]

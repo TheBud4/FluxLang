@@ -6,15 +6,9 @@ const DEBOUNCE_MS = 400
 interface State {
   result: CompileResult | null
   loading: boolean
-  /** Falha do servidor ou do compilador (não confundir com erros do programa). */
   failure: string | null
 }
 
-/**
- * Compila `source` chamando `POST /api/compile`. Recompila sozinho 400 ms depois
- * da última alteração (a primeira vez é na hora) e descarta respostas de
- * pedidos que já foram substituídos por outros mais novos.
- */
 export function useCompile(source: string, semantic: boolean) {
   const [state, setState] = useState<State>({ result: null, loading: true, failure: null })
   const pending = useRef<AbortController | null>(null)

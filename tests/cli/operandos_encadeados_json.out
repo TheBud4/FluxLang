@@ -1,0 +1,3 @@
+"accepted": false,
+  {"kind":"sintático","line":2,"column":19991,"message":"Programa grande ou aninhado demais: o analisador esgotou a pilha (expressão encadeada longa demais)."}
+[código 1]

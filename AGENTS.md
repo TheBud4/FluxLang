@@ -25,10 +25,11 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 | Caminho | Papel | Quem edita |
 |---|---|---|
 | `README.md` | Especificação da linguagem (seções 1–10, Gramática, Escopo da v1, Em aberto) | Agente, com revisão do usuário |
-| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E24, exemplo inválido, modo pânico, execução R1–R7, saída colorida/etiquetada, memória e Windows | Agente, com revisão do usuário |
+| `docs/ERROS.md` | Catálogo de erros: formato, léxicos L1–L6, sintáticos S1–S3, semânticos E1–E25, exemplo inválido, modo pânico, execução R1–R7, saída colorida/etiquetada, memória e Windows | Agente, com revisão do usuário |
 | `docs/BNF.txt` | Gramática LL(1), escrita pelo usuário | **Só o usuário** (ver regras) |
 | `docs/exemplos/valido.flux` / `invalido.flux` | Exemplos do artigo (o inválido tem 7 erros, descritos na seção 5 do ERROS.md) | Agente, com revisão do usuário |
 | `web/` | Interface web (Vite + React + Tailwind); o plugin `web/server/flux-api.ts` roda `./flux --json` (`/api/compile`) e executa programas (`/api/run`, botão Executar) | Agente, com revisão do usuário |
+| `web/src/docs/` | Aba Documentação da interface: `registry.ts` (a lista de páginas), `blocks.tsx` (os blocos de texto, código, tabela e links), a navegação, a busca e as páginas em `pages/linguagem/` (o manual da linguagem) e `pages/compilador/` (cada etapa do compilador e a referência arquivo por arquivo) | Agente, com revisão do usuário |
 | `src/` | Driver: `main.c` (opções, `report_error`), `json.c` (saída `--json`), `fluxc.h` | Agente |
 | `src/frontend/` | `lexer.l`, `parser.y`, `tree.c`/`tree.h` (análise léxica e sintática, árvore de derivação) | Agente |
 | `src/semantic/` | `types.c`, `ast.c`, `ast_build.c`, `sema.c` (+ `.h`): tipos, AST e análise semântica | Agente |
@@ -59,7 +60,8 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 4. **Toda mudança na gramática deve continuar LL(1).** Confira à mão os
    conflitos FIRST/FIRST e FIRST/FOLLOW e reporte-os.
 5. **Consistência entre arquivos.** Uma decisão tomada precisa aparecer em
-   README, ERROS.md, exemplos e (como `[pendente]`) na BNF. Os links do
+   README, ERROS.md, exemplos, nas páginas do manual
+   (`web/src/docs/pages/`) e (como `[pendente]`) na BNF. Os links do
    README usam o prefixo `docs/`; os do ERROS.md são relativos a `docs/`.
 6. **Idioma:** documentação e mensagens do compilador em português; a
    BNF usa nomes de não-terminais em inglês (`<before_main>`,
@@ -75,21 +77,29 @@ está descrito em "Estado atual (handoff)" abaixo, com as flags do `./flux`.
 9. **Medir antes de afirmar.** Tentativas que pioraram o resultado ficam
    registradas na documentação com o número que as derrubou (ver o
    refinamento do pânico em ERROS.md, seção 6) para ninguém repeti-las.
+10. **O código não leva comentário.** Vale para `src/` e `web/`; ficam só as
+    diretivas que têm efeito (como `@ts-expect-error`). A explicação, inclusive
+    o porquê de cada escolha, vai na página de documentação correspondente em
+    `web/src/docs/pages/` (a página `compilador/referencia` diz qual página
+    cobre cada arquivo). Mudou o código, atualize a página na mesma mudança.
 
-## Estado atual (15/11/2026): handoff
+## Estado atual (17/11/2026): handoff
 
 **Resumo.** O Trabalho 2 vence em 26/11/2026. O compilador está completo para
 o enunciado e para os dois extras: lexer, parser com modo pânico, árvore de
-derivação, `--json`, interface web, AST, análise semântica (E1 a E24) e um
-gerador de C com biblioteca de execução. O que falta não é código: os slides,
-a demonstração e o ensaio (feitos por outras pessoas) e a pergunta ao
-professor (ver `docs/TAREFAS.md`). O Trabalho 1 foi entregue em 01/10.
+derivação, `--json`, interface web, AST, análise semântica (E1 a E25) e um
+gerador de C com biblioteca de execução. A interface tem uma aba Documentação
+(`#/doc`) com o manual da linguagem (15 páginas) e a documentação do compilador
+(17 páginas, com a referência arquivo por arquivo); os comentários do código
+foram para essas páginas (regra 10). O que falta não é código: os slides, a
+demonstração e o ensaio (feitos por outras pessoas), a pergunta ao professor e
+as decisões pendentes listadas em "Em aberto" (ver `docs/TAREFAS.md`). O Trabalho 1 foi entregue em 01/10.
 
 ### Como construir e testar
 
 ```
 make            # gera ./flux
-make test       # tests/run.sh: 203 casos; leva alguns minutos (passadas do coletor e do Windows)
+make test       # tests/run.sh: 288 casos; leva alguns minutos (passadas do coletor e do Windows)
 make asan       # compilador e programas gerados com ASan + UBSan + LeakSanitizer; restaura o build normal
 make web        # interface em http://127.0.0.1:5173 (Node 20+)
 ```
@@ -109,7 +119,7 @@ um à mão**, ele grava o que o compilador imprimiu.
 | `-t` | só os tokens |
 | `--tree` / `--ast` | árvore de derivação (fiel à BNF) / AST enxuta |
 | `--json` | tokens, erros, linhas e árvore, para a interface |
-| `--semantic` | confere E1 a E24 (a interface a liga por padrão) |
+| `--semantic` | confere E1 a E25 (a interface a liga por padrão) |
 | `--c` | imprime o programa em C, com a biblioteca embutida |
 | `--build [-o x]` / `--run` | gera o executável via `gcc` / gera, roda e apaga |
 | `--windows` | com `--build`/`--run`: `.exe` com `mingw64-gcc`; o `--run` usa o `wine` |
@@ -127,10 +137,23 @@ valor é um `FxValue` com etiqueta, cada subexpressão vai para um temporário
 `build/runtime_src.c`) e tem os operadores, `run`, `terminal`, o coletor de
 lixo e as versões Windows/POSIX. O compilador aloca de um arena (`mem.c`).
 
+### Documentação na interface (`web/src/docs/`)
+
+A aba Documentação lê `registry.ts`, que junta as listas de
+`pages/linguagem/index.ts` e `pages/compilador/index.ts`; cada página é um
+componente `.tsx` feito com os blocos de `blocks.tsx`, e a busca e o "Nesta
+página" saem do texto delas. A rota é `#/doc/<seção>/<página>`. Para criar ou
+mudar uma página, siga a página `compilador/documentacao` (o sistema, os
+blocos e o passo a passo); confira que todo `PageLink` aponta para um id
+registrado e rode `npx tsc -b` e os gates do hook de design. O manual
+documenta o comportamento atual do compilador; onde ele diverge do README ou
+tem um defeito conhecido, a página diz isso e o item está em "Em aberto" do
+`docs/TAREFAS.md`, à espera do usuário.
+
 ### Testes (`tests/run.sh`)
 
 `lexico`, `sintatico`, `arvore`, `json`, `ast`, `semantico` (um caso por regra
-E1 a E24 e casos de borda), `exec` (programas que rodam e têm a saída
+E1 a E25 e casos de borda), `exec` (programas que rodam e têm a saída
 conferida; `X.in` é a entrada padrão, se existir), `exec_tagged`, `exec_color`,
 `exec_nocolor`, `exec_windows`. Além disso, o `run.sh` repete `exec` com o
 coletor em estresse (`FLUX_GC_STRESS=1`, coleta a cada alocação, a saída tem de
@@ -145,8 +168,9 @@ ser idêntica) e como `.exe` no `wine` (normal e em estresse).
 - D1 a D8 (campo de object dinâmico, list/object por referência, globais
   visíveis em todo o arquivo, `terminal.*` com qualquer tipo, conversões
   enxutas, `1 == 1.0`, estouro de int é erro R6, caminhos que terminam em
-  return/break/continue contam), mais E23 (global sem valor inicial) e E24
-  (só chamadas valem como comando). `[1, 2.5]` é `list<float>`.
+  return/break/continue contam), mais E23 (global sem valor inicial), E24
+  (só chamadas valem como comando) e E25 (inicializador de global que chama
+  função que lê global declarado depois). `[1, 2.5]` é `list<float>`.
 - Slides, demonstração e ensaio são de outras pessoas.
 
 ### Escolhas minhas que o usuário não confirmou (mudáveis, em ERROS.md §4 e §7)
@@ -162,7 +186,7 @@ escuro (contraste).
 
 | Item | Situação |
 |---|---|
-| Cascata de erros no pânico | Um `{` esquecido, ou função com o bloco aberto, gera erros extras. O refinamento foi medido e **piora**; não repetir. |
+| Cascata de erros no pânico | Um `{` esquecido, ou função com o bloco aberto, gera erros extras. Retomar em `}` ou em palavra de comando foi medido duas vezes (14/11 e 18/11) e **piora** (+35% a +45% de erros); não repetir. Só a retomada no nível global (`global_no_func: error`, sem `yyerrok`) ficou. |
 | `flux` e interface web no Windows | Só via WSL. Só o programa gerado roda no Windows. |
 | macOS | Nunca testado. A biblioteca é POSIX e passou com `clang`, mas não houve execução lá. |
 | Testes automáticos da interface web | Só tipos, build e os gates de acessibilidade; a API foi testada à mão com `curl`. |
@@ -181,9 +205,11 @@ escuro (contraste).
   `calloc`). Mexeu em alocação da biblioteca? Rode o `exec` em estresse e o
   `make asan`. `FLUX_GC=0` desliga o coletor para investigar.
 - **Teste com mais de um compilador.** O `gcc` escondeu esse bug do coletor; o
-  `clang` o mostrou. O `clang -O1` também transforma recursão de cauda em
-  laço, então um teste de "recursão infinita" precisa de recursão que não é de
-  cauda (`1 + f(n + 1)`).
+  `clang` o mostrou. Uma nota antiga dizia que o `clang -O1` transforma recursão
+  de cauda em laço; isso não se reproduziu em 18/11/2026 (gcc 16 e clang 22,
+  `-O1` a `-O3`: `return f(n + 1);` também termina em R7). Os testes de
+  "recursão infinita" ainda usam `1 + f(n + 1)`, que vale em qualquer
+  otimização.
 - **Testes de estouro de pilha e laço infinito** deixam executáveis órfãos se o
   pai morrer por timeout (`pgrep -f /tmp/fluxexe`). Mate-os depois.
 - **`--generate` roda a suíte toda** (inclusive Windows e estresse): demora.
@@ -202,7 +228,9 @@ escuro (contraste).
 ### Para retomar
 
 Leia, nesta ordem: este arquivo, `docs/TAREFAS.md` (o que falta), `docs/ERROS.md`
-(erros, formatos de saída, coletor, Windows) e o README seção 9 (uso). A memória do
+(erros, formatos de saída, coletor, Windows) e o README seção 9 (uso). O porquê
+de cada parte do código está nas páginas do compilador na aba Documentação
+(`make web`, depois `#/doc/compilador/visao-geral`). A memória do
 agente (`~/.claude/projects/.../memory/`) guarda as decisões do usuário e os motivos.
 
 ## A linguagem em uma página
@@ -251,7 +279,8 @@ Nada acontece se `e` for `null`. O operando precisa ser uma variável de
 erro (a segunda variável de um `call`/`run`). Um workflow cria um erro
 próprio com `return null, "mensagem";`. Os outros erros de execução
 (conversão impossível, índice fora da lista, uso de `null`, divisão
-inteira por zero, tipo errado de campo, estouro de `int`) são fatais: R1–R6.
+inteira por zero, tipo errado de campo, estouro de `int`, estouro de pilha)
+são fatais: R1–R7.
 
 **Controle de fluxo:** `if (cond) { } else { }` sem `else if` (o `else`
 é seguido de bloco); `while (cond) { }`; `for item in lista { }`, sem
@@ -262,7 +291,8 @@ bloco `{ }` cria escopo; a variável do `for` vive só no laço.
 Blocos irmãos podem reutilizar nomes. Os nomes da biblioteca (`terminal`,
 `toString`, `toInt`, `toFloat`, `toBool`) são globais pré-declarados. Os
 globais (`var`, `const`, `func`, `workflow`) valem em todo o arquivo, mas o
-inicializador de um global só usa globais declarados acima (D3). Uma
+inicializador de um global só usa globais declarados acima (D3), e uma
+função que ele chame não pode ler um declarado depois (E25). Uma
 variável sem valor precisa ser atribuída em todos os caminhos antes do
 uso (regra do Java); um caminho que termina em `return`, `break` ou
 `continue` conta, e código depois deles é permitido (D8).
@@ -313,7 +343,8 @@ O refinamento da seção 6 do ERROS.md foi medido e descartado.
 **Geração de código:** `./flux --c` imprime um programa C, `--build [-o x]`
 gera o executável e `--run` roda (via `gcc`). Todo valor é um `FxValue` com
 etiqueta; a biblioteca `src/backend/runtime/flux_rt.h` (embutida no `.c`) faz os operadores
-e dá os erros de execução R1 a R7 (R7 é o estouro de pilha). Cada subexpressão
+e dá os erros de execução R1 a R7 (R7 é o estouro de pilha, também ao imprimir uma
+lista ou um objeto cíclico ou fundo demais). Cada subexpressão
 vai para um temporário, para a ordem de avaliação ser da esquerda para a
 direita. `terminal.log` e `info` vão para a saída padrão, `warn` e `error` para
 a de erro, sem prefixo; `toString` de float usa a forma mais curta com `.0`

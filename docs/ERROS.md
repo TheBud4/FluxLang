@@ -108,6 +108,17 @@ sufixo do alvo: `x`, `obj.a`, `l[0]` e `f().x` são aceitos; `f()`,
 `(x)`, `a + b` e `10` dão S3. A posição é a do `=`, também na
 atribuição múltipla (`a, f() = 1, 2;`).
 
+Um quarto caso não vem da gramática: a pilha do Bison tem 10000 posições, e uma
+expressão com 5000 ou mais operandos encadeados (`1 + 1 + ... + 1`) a esgota. O
+erro é sintático, sem código próprio, na posição do último token lido:
+
+```
+Erro sintático [linha 2, coluna 19991]:
+Programa grande ou aninhado demais: o analisador esgotou a pilha (expressão encadeada longa demais).
+```
+
+No modo `--json` ele entra em `errors`; o programa é rejeitado e a árvore é `null`.
+
 Casos comuns (mensagens esperadas):
 
 | Situação | Exemplo | Encontrado | Esperado |
@@ -125,7 +136,7 @@ Casos comuns (mensagens esperadas):
 | `main` com tipo de retorno | `func main ():int {` | `':'` | `'{'` |
 | `call`/`run` como comando isolado | `call build(x);` | `palavra reservada 'call'` | `'}' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` |
 | `call`/`run` dentro de expressão | `terminal.log(call f());` | `palavra reservada 'call'` | `')' (call e run só aparecem logo depois do '=' de um var ou de uma atribuição)` |
-| Bloco não fechado | falta o `}` final | `fim do arquivo` | `'}'` |
+| Bloco não fechado | falta o `}` final | `fim do arquivo` | `comando ou '}'` |
 | `stop`/`abort` sem `if` | `abort err;` | `identificador 'err'` | `'if'` |
 | Erro que não é identificador simples | `stop if r.err;` | `'.'` | `';'` |
 | `>=` colado no tipo | `var l:list<int>= [1];` | `'>='` | `'>'` |
@@ -172,6 +183,7 @@ impressos ordenados por linha e coluna, no formato
 | E22 | Chamada de algo que não é função nem método | `idade.push(1)` (int), `terminal.foo()`, `user.name()` | `'idade' não tem o método 'push'.` |
 | E23 | `var` global sem valor inicial | `var g:int;` no nível global | `A variável global 'g' precisa de valor inicial.` |
 | E24 | Expressão solta como comando | `x + 1;`, `idade;`, `l[0];` | `Esta expressão não faz nada: só chamadas podem ser usadas como comando.` |
+| E25 | Inicializador de global que chama função que lê global declarado depois | `var a:int = f();` antes de `var b:int = 5;`, com `func f():int { return b; }` | `O inicializador de 'a' chama 'f', que lê o global 'b', declarado depois (linha 2).` |
 
 Decisões de 14/11 que afetam esta tabela (detalhes na seção 8 do README):
 valor de campo de `object` é dinâmico e passa em E4 e E5 (conferido em R5);
@@ -185,6 +197,7 @@ README (outro tipo de argumento é E4).
 que exatamente deu errado:
 
 - E1: `'b' só é declarado depois deste ponto.` (um inicializador de global usa um global declarado abaixo, D3).
+- E25: `O inicializador de 'a' chama 'f' e, por ela, 'g', que lê o global 'b', declarado depois (linha 2).` (a leitura está numa função alcançada pela chamada) e, quando a leitura é do próprio global ou de outro da mesma declaração, `... que lê o global 'a', que ainda não tem valor neste ponto (linha 1).` Cada chamada do inicializador dá no máximo um E25, na posição do nome da função chamada, e só conta função (`call` não é expressão, então um workflow ali já é o erro de `call` fora de workflow ou `main`).
 - E4: `Operador '-' não aceita string.`; `'soma' é uma função, não um valor.` (também para `terminal.log`); os argumentos e os elementos de um literal de lista são conferidos um a um.
 - E7: no plural e no singular (`1 variável e 2 valores.`).
 - E12: `A função 'f' não retorna valor.` e `A função 'g' deve retornar um valor int.`
@@ -266,7 +279,7 @@ consome e continua.
 o `}` do `if` fecharia o bloco da função e geraria erros em cascata.
 
 **Fim do arquivo:** se ainda falta fechar um bloco, reporta
-`Token encontrado: fim do arquivo` / `Esperado: '}'` e encerra.
+`Token encontrado: fim do arquivo` / `Esperado: comando ou '}'` (o S2) e encerra.
 
 **Como está implementado (versão simples, `src/frontend/parser.y`):** as regras
 com o token `error` são os pontos de recuperação, um por construção, como
@@ -274,7 +287,7 @@ no código feito em sala (`try/catch` + `consumeUntil`):
 
 ```
 command:        error SEMICOLON | error block
-global_no_func: error SEMICOLON | error block
+global_no_func: error SEMICOLON | error block | error   // sem yyerrok
 after_func:     MAIN error block after_main      // main com o cabeçalho quebrado
 ```
 
@@ -285,6 +298,16 @@ o que evita cascata em `else if (...) { }` e em `if x > 5 { }`). O
 só reportaria de novo depois de 3 tokens lidos com sucesso. Um erro léxico
 entra como o token `YYerror`, sem segunda mensagem. O erro S3 só reporta
 (o comando já terminou) e o programa fica rejeitado.
+
+A terceira alternativa do nível global, `error` sozinha (18/11/2026), fecha a
+recuperação sem esperar `;` nem `{`: um texto solto sem `;`, antes ou depois da
+`func main`, deixa de engolir a função (o corpo era lido como o bloco da regra)
+e de produzir o erro extra de fim do arquivo. Ela não chama `yyerrok`: com ele o
+erro se repete no mesmo token e o parser só pára no teto de 10000 erros; sem
+ele o Bison descarta o token que falhou e segue. O preço é que, enquanto o
+contador de recuperação não volta a 0 (três tokens deslocados com sucesso), um
+erro real logo depois não é reportado, e a árvore ganha um nó `global_no_func`
+só com `error` por token descartado.
 
 O que a versão simples **não** faz, em relação ao texto acima: retomar a
 análise em `}` e nas palavras que iniciam comando (ela descarta até o
@@ -304,6 +327,25 @@ chaves, como um literal de objeto (`run { command: "npm", ... }`): o resto
 do objeto passa a ser lido como comandos e o `}` do objeto fecha o bloco
 errado. Restringir a retomada a `}` e `func`/`workflow` não ajudou. A
 versão simples (regras `error` + bloco lido inteiro) foi mantida.
+
+**Segunda medição (18/11/2026).** O corpus foi refeito a partir de
+`docs/exemplos/valido.flux` (598 tokens): esquecer cada token (598 programas),
+repetir cada token (598) e trocar cada token por uma de duas palavras
+reservadas (1.188), 2.384 programas. Total de mensagens de erro e programas
+rejeitados que ainda têm árvore no `--json`:
+
+| Variante | Esquecer | Repetir | Reservada | Total | Com árvore |
+|---|---|---|---|---|---|
+| Regra simples (antes) | 744 | 701 | 1.527 | 2.972 | 2.135 |
+| `global_no_func: error`, sem `yyerrok` (**aplicada**) | 743 | 697 | 1.527 | 2.967 | 2.194 |
+| `command: error RBRACE`, devolvendo o `}` | 991 | 988 | 2.047 | 4.026 | 2.181 |
+| `command: error`, retomando em palavra de comando | 1.052 | 1.039 | 2.208 | 4.299 | 2.181 |
+
+Só a primeira variante não aumenta o total e foi aplicada; as outras duas
+(+35% e +45% de erros) foram descartadas. O `invalido.flux` mantém os sete
+erros nas mesmas posições. O caso do `}` que falta (`x = 1 +` e `}`) continua
+com duas mensagens e sem árvore, e `1 +;` solto, sem `func main` no arquivo,
+também: a segunda mensagem é a falta da `main`.
 
 ## 7. Erros em tempo de execução
 
@@ -328,6 +370,7 @@ a mensagem na saída de erro e código de saída 1.
 | R5 | Valor de campo com tipo diferente do esperado | `var n:int = user.name;` com `name` valendo uma string; `user.name.x` | `Esperado int, encontrado string.` |
 | R6 | Estouro de `int` (32 bits) | `2147483647 + 1`, `-x` com `x` valendo -2147483648 | `Estouro de inteiro.` |
 | R7 | Estouro de pilha (recursão sem fim ou funda demais) | `func f(n:int):int { return f(n + 1); }` | `Estouro de pilha: recursão profunda demais.` |
+| R7 | Estrutura circular ou funda demais para imprimir (`terminal.*`, `toString`, `abort if`) | `var o = {}; o.me = o; terminal.log(o);` | `Estrutura circular ou profunda demais para imprimir.` |
 
 **Comportamentos de execução** que a especificação não dizia e a
 implementação fixou (14/11; podem ser mudados): `terminal.log` e `info` vão

@@ -7,12 +7,6 @@ export type RunState =
   | { phase: 'done'; result: RunResult }
   | { phase: 'failed'; message: string }
 
-/**
- * Executa o programa pelo servidor (`POST /api/run`): ele compila, roda neste
- * computador, com `stdin` como entrada (uma linha para cada `terminal.input`), e
- * devolve a saída. O cabeçalho X-Flux-Run é o que o servidor exige
- * para aceitar o pedido: um outro site aberto no navegador não consegue enviá-lo.
- */
 export function useRun() {
   const [state, setState] = useState<RunState>({ phase: 'idle' })
   const pending = useRef<AbortController | null>(null)

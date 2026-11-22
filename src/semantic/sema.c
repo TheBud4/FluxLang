@@ -1,32 +1,9 @@
-/* Análise semântica da FluxLang: os erros E1 a E22 de docs/ERROS.md, seção 4.
- *
- * Roda sobre a AST (ast.h), só depois de um parse sem erros, em três passadas:
- *   1. declara todos os globais (var, const, func, workflow): E2, e é o que
- *      faz os globais valerem em todo o arquivo (decisão D3);
- *   2. confere os inicializadores dos globais, na ordem do arquivo (um global
- *      só usa globais declarados acima);
- *   3. confere o corpo de cada func e workflow.
- *
- * O que ela precisa guardar:
- *   - uma pilha de escopos (Scope) com os símbolos visíveis;
- *   - o tipo de cada expressão, calculado de baixo para cima (check_expr);
- *   - o "fluxo" (Flow): quais variáveis já têm valor no ponto atual e se o
- *     caminho já terminou (return, break, continue). É copiado nos ramos do
- *     if e unido depois; serve para o E3 (usar sem inicializar) e o E20
- *     (func sem return em todos os caminhos).
- *
- * Uma expressão que já teve erro ganha o tipo T_ERROR, que combina com
- * qualquer tipo, para não gerar uma segunda mensagem em cascata. Os erros vão
- * para um buffer e são impressos ordenados por linha e coluna. */
-
 #include "ast.h"
 #include "fluxc.h"
 #include "mem.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
-
-/* ---------- Erros (em buffer, ordenados no fim) ---------- */
 
 typedef struct {
   int line, column, order;
@@ -50,7 +27,7 @@ static void err(Pos pos, const char *fmt, ...) {
   va_start(args, fmt);
   vsnprintf(d->message, sizeof d->message, fmt, args);
   va_end(args);
-  for (int i = 0; i < n_diags; i++) /* a mesma mensagem no mesmo lugar não repete */
+  for (int i = 0; i < n_diags; i++)
     if (diags[i].line == d->line && diags[i].column == d->column &&
         strcmp(diags[i].message, d->message) == 0)
       return;
@@ -65,8 +42,6 @@ static int by_position(const void *a, const void *b) {
     return x->column - y->column;
   return x->order - y->order;
 }
-
-/* ---------- Tipos: atalhos ---------- */
 
 static Type *T(TypeKind k) { return type_prim(k); }
 
@@ -84,23 +59,25 @@ static const char *plural(int n, const char *one, const char *many) {
   return n == 1 ? one : many;
 }
 
-/* ---------- Símbolos e escopos ---------- */
-
 typedef enum { SYM_VAR, SYM_FUNC, SYM_WORKFLOW, SYM_LIBFN, SYM_TERMINAL } SymKind;
-
-#define MAX_SYMS 8192 /* variáveis locais rastreadas pelo fluxo */
 
 typedef struct Symbol {
   char *name;
   SymKind kind;
-  Type *type;       /* SYM_VAR; NULL num global que ainda não foi resolvido */
+  Type *type;
   int is_const;
-  int flow_id;      /* índice no Flow, ou -1 se não é rastreada */
-  int is_err;       /* variável de erro de um call/run */
+  int flow_id;
+  int is_err;
   int handled;
   Pos err_pos;
-  Func *func;       /* SYM_FUNC e SYM_WORKFLOW */
-  Pos decl_pos;     /* onde foi declarado */
+  Func *func;
+  Pos decl_pos;
+  int decl_index;
+  int visit;
+  struct Symbol **calls;
+  int n_calls;
+  struct Symbol **reads;
+  int n_reads;
   struct Symbol *next;
 } Symbol;
 
@@ -109,8 +86,8 @@ typedef struct Scope {
   struct Scope *parent;
 } Scope;
 
-static Scope *scope;      /* o escopo atual */
-static Scope *globals;    /* o escopo global */
+static Scope *scope;
+static Scope *globals;
 static int next_flow_id;
 
 static void scope_push(void) {
@@ -119,8 +96,6 @@ static void scope_push(void) {
   scope = s;
 }
 
-/* Ao sair de um bloco, todo erro de call/run declarado nele já tem de ter
- * sido tratado (E9). */
 static void scope_pop(void) {
   for (Symbol *s = scope->syms; s; s = s->next)
     if (s->is_err && !s->handled)
@@ -142,12 +117,10 @@ static Symbol *new_symbol(const char *name, SymKind kind, Type *type) {
   s->kind = kind;
   s->type = type;
   s->flow_id = -1;
+  s->decl_index = -1;
   return s;
 }
 
-/* Declara um nome no escopo atual. Um nome já visível (no mesmo escopo ou
- * num externo, inclusive os globais e os da biblioteca) é o E2: não há
- * shadowing. Devolve NULL nesse caso. */
 static Symbol *declare(Name *name, SymKind kind, Type *type) {
   if (lookup(name->name)) {
     err(name->pos, "'%s' já foi declarada.", name->name);
@@ -160,50 +133,110 @@ static Symbol *declare(Name *name, SymKind kind, Type *type) {
   return s;
 }
 
-/* ---------- Fluxo: quem já tem valor, e se o caminho terminou ---------- */
-
 typedef struct {
-  unsigned char init[MAX_SYMS];
-  int dead; /* o caminho já terminou em return, break ou continue */
+  unsigned char *init;
+  int len;
+  int dead;
 } Flow;
 
 static Flow flow;
 
-/* Interseção: depois de um if, só vale o que os dois ramos garantem. Um ramo
- * que terminou (dead) não restringe nada (decisão D8). */
+static int flow_has(const Flow *f, int id) { return id < f->len && f->init[id]; }
+
+static void flow_set(Flow *f, int id) {
+  if (id >= f->len) {
+    int len = f->len * 2 > id + 1 ? f->len * 2 : id + 1;
+    if (len < 64)
+      len = 64;
+    f->init = mem_grow(f->init, (size_t)f->len, (size_t)len);
+    f->len = len;
+  }
+  f->init[id] = 1;
+}
+
+static Flow flow_clone(const Flow *f) {
+  Flow c = *f;
+  c.init = mem_alloc((size_t)f->len);
+  if (f->len)
+    memcpy(c.init, f->init, (size_t)f->len);
+  return c;
+}
+
 static Flow merge(const Flow *a, const Flow *b) {
   if (a->dead)
-    return *b;
+    return flow_clone(b);
   if (b->dead)
-    return *a;
+    return flow_clone(a);
   Flow r;
   r.dead = 0;
-  for (int i = 0; i < MAX_SYMS; i++)
+  r.len = a->len < b->len ? a->len : b->len;
+  r.init = mem_alloc((size_t)r.len);
+  for (int i = 0; i < r.len; i++)
     r.init[i] = a->init[i] && b->init[i];
   return r;
 }
 
 static void mark_initialized(Symbol *s) {
   if (s->flow_id >= 0)
-    flow.init[s->flow_id] = 1;
+    flow_set(&flow, s->flow_id);
 }
 
-/* ---------- Contexto: onde estamos ---------- */
-
-static Func *cur_func;       /* NULL no nível global */
+static Func *cur_func;
 static int loop_depth;
-static int in_global_init;   /* conferindo o inicializador de um global */
+static int in_global_init;
+static Symbol *cur_sym;
+static int n_func_syms;
+
+typedef struct {
+  Symbol *callee;
+  Pos pos;
+  int decl;
+  const char *var_name;
+} InitCall;
+
+static InitCall *init_calls;
+static int n_init_calls, cap_init_calls;
+static const char *init_name;
+static int init_decl;
+
+static void link_symbol(Symbol ***list, int *n, Symbol *target) {
+  for (int i = 0; i < *n; i++)
+    if ((*list)[i] == target)
+      return;
+  if (*n == 0)
+    *list = mem_alloc(4 * sizeof **list);
+  else if (*n >= 4 && (*n & (*n - 1)) == 0)
+    *list = mem_grow(*list, (size_t)*n * sizeof **list, (size_t)*n * 2 * sizeof **list);
+  (*list)[(*n)++] = target;
+}
+
+static void record_call(Symbol *callee, Pos pos) {
+  if (cur_sym) {
+    link_symbol(&cur_sym->calls, &cur_sym->n_calls, callee);
+    return;
+  }
+  if (!in_global_init)
+    return;
+  if (n_init_calls == cap_init_calls) {
+    int cap = cap_init_calls ? cap_init_calls * 2 : 16;
+    init_calls = mem_grow(init_calls, (size_t)cap_init_calls * sizeof *init_calls,
+                          (size_t)cap * sizeof *init_calls);
+    cap_init_calls = cap;
+  }
+  init_calls[n_init_calls++] = (InitCall){callee, pos, init_decl, init_name};
+}
+
+static void record_read(Symbol *global) {
+  if (cur_sym && global->decl_index >= 0)
+    link_symbol(&cur_sym->reads, &cur_sym->n_reads, global);
+}
 
 static int can_use_call_run(void) {
   return cur_func && (cur_func->is_workflow || cur_func->is_main);
 }
 
-/* ---------- Expressões ---------- */
-
 static Type *check_expr(Expr *e);
 
-/* Como check_expr, mas o valor tem de existir: uma chamada que não devolve
- * valor (func sem :tipo, push, remove) não pode ser usada como valor (E13). */
 static const char *callee_name(const Expr *e);
 
 static Type *value_of(Expr *e) {
@@ -216,7 +249,6 @@ static Type *value_of(Expr *e) {
   return t;
 }
 
-/* O nome para as mensagens: o da função chamada, ou do identificador. */
 static const char *callee_name(const Expr *e) {
   if (e->kind == EX_CALL)
     return callee_name(e->a);
@@ -230,9 +262,6 @@ static void expect_assignable(Type *to, Expr *e, Type *got) {
     err(e->pos, "Tipo incompatível: esperado %s, encontrado %s.", tn(to), tn(got));
 }
 
-/* Confere o valor `e` contra o tipo esperado `to` (E4). Um literal de lista é
- * conferido elemento a elemento, então `var l:list<float> = [1, 2];` vale
- * (cada int vira float) mesmo sendo `[1, 2]` uma list<int> sozinha. */
 static void check_assign_to(Type *to, Expr *e) {
   if (e->kind == EX_LIST && to->kind == T_LIST) {
     for (int i = 0; i < e->n_items; i++)
@@ -264,8 +293,6 @@ static const char *op_text(Op op) {
   }
 }
 
-/* A tabela de operadores da seção 3 do README. Um operando dinâmico (valor
- * de campo de object, decisão D1) deixa o resultado dinâmico. */
 static Type *check_binary(Expr *e) {
   Type *l = value_of(e->a), *r = value_of(e->b);
   if (l->kind == T_ERROR || r->kind == T_ERROR)
@@ -279,7 +306,6 @@ static Type *check_binary(Expr *e) {
       return T(T_STRING);
     if (dyn && (l->kind == T_STRING || r->kind == T_STRING))
       return T(T_DYN);
-    /* fallthrough */
   case OP_SUB: case OP_MUL: case OP_DIV:
     if (num_or_dyn(l) && num_or_dyn(r)) {
       if (dyn)
@@ -301,7 +327,7 @@ static Type *check_binary(Expr *e) {
   case OP_EQ: case OP_NE:
     if (dyn || l->kind == T_NULL || r->kind == T_NULL)
       return T(T_BOOL);
-    if (is_num(l) && is_num(r)) /* int e float se comparam (D6) */
+    if (is_num(l) && is_num(r))
       return T(T_BOOL);
     if (l->kind == r->kind && l->kind != T_LIST && l->kind != T_OBJECT)
       return T(T_BOOL);
@@ -339,8 +365,6 @@ static int is_terminal(const Expr *e) {
   return s && s->kind == SYM_TERMINAL;
 }
 
-/* Uma leitura de nome. Vale o E1 (não declarado), o E3 (usado sem valor) e as
- * regras de globais (D3): num inicializador, só vale o que vem acima. */
 static Type *check_ident(Expr *e) {
   Symbol *s = lookup(e->text);
   if (!s) {
@@ -359,13 +383,14 @@ static Type *check_ident(Expr *e) {
   default:
     break;
   }
-  if (!s->type) { /* global ainda não resolvido: declarado depois, ou é ele mesmo */
+  if (!s->type) {
     err(e->pos, "'%s' só é declarado depois deste ponto.", e->text);
     return T(T_ERROR);
   }
-  if (s->flow_id >= 0 && !flow.dead && !flow.init[s->flow_id]) {
+  record_read(s);
+  if (s->flow_id >= 0 && !flow.dead && !flow_has(&flow, s->flow_id)) {
     err(e->pos, "Variável '%s' utilizada antes de ser inicializada.", e->text);
-    flow.init[s->flow_id] = 1; /* uma mensagem por variável basta */
+    flow_set(&flow, s->flow_id);
   }
   return s->type;
 }
@@ -402,7 +427,7 @@ static Type *check_field(Expr *e) {
   if (base->kind == T_ERROR)
     return base;
   if (base->kind == T_OBJECT || base->kind == T_DYN)
-    return T(T_DYN); /* o tipo do campo só se sabe na execução (D1) */
+    return T(T_DYN);
   err(e->pos, "Tipo incompatível: esperado object, encontrado %s.", tn(base));
   return T(T_ERROR);
 }
@@ -419,15 +444,14 @@ static Type *check_list_literal(Expr *e) {
     if (!elem)
       elem = t;
     else if (type_assignable(elem, t)) {
-      /* cabe */
     } else if (type_assignable(t, elem)) {
-      elem = t; /* alarga: null -> int, int -> float */
+      elem = t;
     } else {
       err(e->items[i]->pos, "Tipo incompatível: esperado %s, encontrado %s.", tn(elem), tn(t));
     }
   }
   if (!elem)
-    return had_error ? T(T_ERROR) : type_list(T(T_NULL)); /* o literal [] */
+    return had_error ? T(T_ERROR) : type_list(T(T_NULL));
   return type_list(elem);
 }
 
@@ -437,7 +461,6 @@ static Type *check_object_literal(Expr *e) {
   return T(T_OBJECT);
 }
 
-/* Confere os argumentos de uma chamada contra uma lista de tipos esperados. */
 static void check_arg_count(Expr *call, const char *name, int expected) {
   if (call->n_items != expected)
     err(call->pos, "'%s' espera %d %s, recebeu %d.", name, expected,
@@ -459,7 +482,6 @@ static void check_args_against(Expr *call, const char *name, Param **params, int
   }
 }
 
-/* toString, toInt, toFloat, toBool, com as entradas da decisão D5. */
 static Type *check_conversion(Expr *call, const char *name) {
   check_arg_count(call, name, 1);
   eval_args(call);
@@ -467,7 +489,6 @@ static Type *check_conversion(Expr *call, const char *name) {
     return T(T_ERROR);
   Type *a = call->items[0]->type;
   if (a->kind == T_ERROR || a->kind == T_DYN) {
-    /* nada a conferir */
   } else if (strcmp(name, "toInt") == 0 && a->kind != T_STRING && a->kind != T_FLOAT) {
     err(call->items[0]->pos, "Tipo incompatível: esperado string ou float, encontrado %s.", tn(a));
   } else if (strcmp(name, "toFloat") == 0 && a->kind != T_STRING && a->kind != T_INT) {
@@ -486,7 +507,7 @@ static Type *check_terminal_call(Expr *call, const char *method) {
       strcmp(method, "warn") == 0 || strcmp(method, "error") == 0) {
     char name[40];
     snprintf(name, sizeof name, "terminal.%s", method);
-    check_arg_count(call, name, 1); /* qualquer tipo (D4) */
+    check_arg_count(call, name, 1);
     eval_args(call);
     return T(T_VOID);
   }
@@ -504,7 +525,6 @@ static Type *check_terminal_call(Expr *call, const char *method) {
   return T(T_ERROR);
 }
 
-/* l.length(), l.push(v) e l.remove(i). Um valor dinâmico aceita os mesmos. */
 static Type *check_list_method(Expr *call, const char *method, Type *base) {
   int dyn = base->kind == T_DYN;
   if (strcmp(method, "length") == 0) {
@@ -570,6 +590,7 @@ static Type *check_call(Expr *call) {
   }
   switch (s->kind) {
   case SYM_FUNC:
+    record_call(s, callee->pos);
     check_args_against(call, s->name, s->func->params, s->func->n_params);
     return s->func->ret ? s->func->ret : T(T_VOID);
   case SYM_WORKFLOW:
@@ -610,10 +631,6 @@ static Type *check_expr(Expr *e) {
   return t;
 }
 
-/* ---------- call e run (o lado direito de um var ou de uma atribuição) ---------- */
-
-/* Os campos de um `run { ... }` (E14): command (string, obrigatório), flags
- * (list<string>) e workingDir (string); sem repetição nem campo desconhecido. */
 static void check_run_object(Expr *obj) {
   int seen_command = 0;
   for (int i = 0; i < obj->n_items; i++) {
@@ -649,8 +666,6 @@ static void check_run_object(Expr *obj) {
     err(obj->pos, "'run' sem o campo obrigatório 'command'.");
 }
 
-/* Confere um `call` ou `run` e devolve o tipo do resultado (o primeiro dos
- * dois valores; o segundo é sempre o erro, uma string). */
 static Type *check_call_or_run(Rhs *r) {
   if (!can_use_call_run()) {
     err(r->pos, "'%s' só pode ser usado em workflow ou na main.",
@@ -681,10 +696,8 @@ static Type *check_call_or_run(Rhs *r) {
     return T(T_ERROR);
   }
   check_args_against(&fake, s->name, s->func->params, s->func->n_params);
-  return s->func->ret ? s->func->ret : T(T_NULL); /* sem :tipo, o resultado é null */
+  return s->func->ret ? s->func->ret : T(T_NULL);
 }
-
-/* ---------- Comandos ---------- */
 
 static void check_stmt(Stmt *s);
 static void check_block(Stmt *block);
@@ -694,14 +707,12 @@ static void count_mismatch(Pos pos, int vars, int values) {
       plural(values, "valor", "valores"));
 }
 
-/* Marca uma variável como variável de erro (a segunda de um call/run). */
 static void make_error_var(Symbol *s, Pos pos) {
   s->is_err = 1;
   s->handled = 0;
   s->err_pos = pos;
 }
 
-/* var e const, locais e globais. */
 static void check_var(Stmt *s, int is_global) {
   Type *types[64];
   int n = s->n_names < 64 ? s->n_names : 64;
@@ -712,6 +723,8 @@ static void check_var(Stmt *s, int is_global) {
   if (s->rhs && s->rhs->kind == RHS_EXPRS) {
     Rhs *r = s->rhs;
     for (int i = 0; i < r->n_exprs; i++) {
+      if (is_global)
+        init_name = s->names[i < s->n_names ? i : 0]->name;
       if (i < n && s->declared) {
         check_assign_to(s->declared, r->exprs[i]);
         continue;
@@ -731,7 +744,7 @@ static void check_var(Stmt *s, int is_global) {
     }
     if (r->n_exprs != s->n_names)
       count_mismatch(s->pos, s->n_names, r->n_exprs);
-  } else if (s->rhs) { /* call ou run: dois valores */
+  } else if (s->rhs) {
     Type *result = check_call_or_run(s->rhs);
     if (s->n_names != 2)
       count_mismatch(s->pos, s->n_names, 2);
@@ -747,14 +760,13 @@ static void check_var(Stmt *s, int is_global) {
     }
   }
 
-  /* Só agora os nomes entram no escopo: `var x = x + 1;` não enxerga o x novo. */
   for (int i = 0; i < s->n_names; i++) {
     Symbol *sym;
-    if (is_global) { /* já foi declarado na passada 1: só falta o tipo */
+    if (is_global) {
       sym = lookup(s->names[i]->name);
       if (!sym || sym->kind != SYM_VAR || sym->decl_pos.line != s->names[i]->pos.line ||
           sym->decl_pos.column != s->names[i]->pos.column)
-        continue; /* nome repetido (E2): vale a primeira declaração */
+        continue;
       sym->is_const = s->is_const;
       sym->type = i < n ? types[i] : T(T_ERROR);
     } else {
@@ -762,8 +774,7 @@ static void check_var(Stmt *s, int is_global) {
       if (!sym)
         continue;
       sym->is_const = s->is_const;
-      if (next_flow_id < MAX_SYMS)
-        sym->flow_id = next_flow_id++;
+      sym->flow_id = next_flow_id++;
       if (has_value)
         mark_initialized(sym);
     }
@@ -772,7 +783,6 @@ static void check_var(Stmt *s, int is_global) {
   }
 }
 
-/* O alvo de uma atribuição: nome, campo ou índice. Devolve o tipo esperado. */
 static Type *check_target(Expr *t, Symbol **sym_out) {
   *sym_out = NULL;
   if (t->kind == EX_IDENT) {
@@ -799,8 +809,6 @@ static Type *check_target(Expr *t, Symbol **sym_out) {
     t->type = s->type;
     return s->type;
   }
-  /* campo ou índice: a base é lida (e conferida) normalmente; o conteúdo de
-     um const pode mudar, então não há E6 aqui */
   return check_expr(t);
 }
 
@@ -821,7 +829,7 @@ static void check_assign(Stmt *s) {
     }
     if (r->n_exprs != s->n_targets)
       count_mismatch(s->pos, s->n_targets, r->n_exprs);
-  } else { /* call ou run: o resultado e o erro */
+  } else {
     Type *result = check_call_or_run(s->rhs);
     if (s->n_targets != 2) {
       count_mismatch(s->pos, s->n_targets, 2);
@@ -840,16 +848,14 @@ static void check_assign(Stmt *s) {
       }
     }
   }
-  /* depois do comando, os nomes atribuídos têm valor */
   for (int i = 0; i < n; i++)
     if (syms[i])
       mark_initialized(syms[i]);
 }
 
-/* return, conforme onde estamos (E12). */
 static void check_return(Stmt *s) {
   Func *f = cur_func;
-  if (!f) /* o parser não deixa, mas por segurança */
+  if (!f)
     return;
   if (f->is_workflow) {
     for (int i = 0; i < s->n_exprs; i++)
@@ -888,8 +894,7 @@ static void check_stmt(Stmt *s) {
     check_assign(s);
     break;
   case ST_EXPR:
-    check_expr(s->exprs[0]); /* uma chamada que não devolve valor é permitida aqui */
-    /* só uma chamada faz alguma coisa sozinha: `x + 1;` não faz nada (E24) */
+    check_expr(s->exprs[0]);
     if (s->exprs[0]->kind != EX_CALL)
       err(s->pos, "Esta expressão não faz nada: só chamadas podem ser usadas como comando.");
     break;
@@ -898,10 +903,10 @@ static void check_stmt(Stmt *s) {
     break;
   case ST_IF: {
     check_cond(s->cond, "if");
-    Flow before = flow;
+    Flow before = flow_clone(&flow);
     check_block(s->then);
     Flow after_then = flow;
-    flow = before; /* sem else, o ramo "falso" não muda nada */
+    flow = flow_clone(&before);
     if (s->els)
       check_block(s->els);
     Flow merged = merge(&after_then, &flow);
@@ -910,11 +915,11 @@ static void check_stmt(Stmt *s) {
   }
   case ST_WHILE: {
     check_cond(s->cond, "while");
-    Flow before = flow;
+    Flow before = flow_clone(&flow);
     loop_depth++;
     check_block(s->then);
     loop_depth--;
-    flow = before; /* o laço pode não rodar nenhuma vez */
+    flow = before;
     break;
   }
   case ST_FOR: {
@@ -930,12 +935,11 @@ static void check_stmt(Stmt *s) {
       err(s->cond->pos, "'for' exige uma lista, encontrado %s.", tn(it));
       elem = T(T_ERROR);
     }
-    Flow before = flow;
-    scope_push(); /* a variável do laço vive só dentro dele */
+    Flow before = flow_clone(&flow);
+    scope_push();
     Symbol *v = declare(&s->var, SYM_VAR, elem);
     if (v) {
-      if (next_flow_id < MAX_SYMS)
-        v->flow_id = next_flow_id++;
+      v->flow_id = next_flow_id++;
       mark_initialized(v);
     }
     loop_depth++;
@@ -977,15 +981,15 @@ static void check_block(Stmt *block) {
   scope_pop();
 }
 
-/* ---------- Funções e o programa ---------- */
-
 static void check_func(Func *f) {
+  Symbol *self = lookup(f->name.name);
+  cur_sym = self && (self->kind == SYM_FUNC || self->kind == SYM_WORKFLOW) ? self : NULL;
   cur_func = f;
   loop_depth = 0;
   next_flow_id = 0;
-  memset(&flow, 0, sizeof flow);
+  flow = (Flow){0};
 
-  scope_push(); /* os parâmetros */
+  scope_push();
   for (int i = 0; i < f->n_params; i++) {
     Symbol *p = declare(&f->params[i]->name, SYM_VAR, f->params[i]->type);
     if (p) {
@@ -994,13 +998,56 @@ static void check_func(Func *f) {
     }
   }
   check_block(f->body);
-  /* func com :tipo precisa retornar em todos os caminhos (E20); o workflow
-     que termina sem return devolve (null, null) */
   if (f->ret && !f->is_workflow && !f->is_main && !flow.dead)
     err(f->name.pos, "A função '%s' deve retornar %s em todos os caminhos.", f->name.name,
         tn(f->ret));
   scope_pop();
   cur_func = NULL;
+  cur_sym = NULL;
+}
+
+static int find_late_read(Symbol *start, int decl, Symbol **reader, Symbol **global,
+                          int stamp) {
+  Symbol **stack = mem_alloc((size_t)(n_func_syms + 1) * sizeof *stack);
+  int top = 0;
+  stack[top++] = start;
+  start->visit = stamp;
+  while (top > 0) {
+    Symbol *f = stack[--top];
+    for (int i = 0; i < f->n_reads; i++)
+      if (f->reads[i]->decl_index >= decl) {
+        *reader = f;
+        *global = f->reads[i];
+        return 1;
+      }
+    for (int i = f->n_calls - 1; i >= 0; i--)
+      if (f->calls[i]->visit != stamp) {
+        f->calls[i]->visit = stamp;
+        stack[top++] = f->calls[i];
+      }
+  }
+  return 0;
+}
+
+static void check_init_order(void) {
+  for (int i = 0; i < n_init_calls; i++) {
+    InitCall *c = &init_calls[i];
+    Symbol *reader, *global;
+    if (!find_late_read(c->callee, c->decl, &reader, &global, i + 1))
+      continue;
+    char via[200];
+    if (reader == c->callee)
+      snprintf(via, sizeof via, "'%s'", c->callee->name);
+    else
+      snprintf(via, sizeof via, "'%s' e, por ela, '%s'", c->callee->name, reader->name);
+    if (global->decl_index > c->decl)
+      err(c->pos, "O inicializador de '%s' chama %s, que lê o global '%s', declarado depois (linha %d).",
+          c->var_name, via, global->name, global->decl_pos.line);
+    else
+      err(c->pos,
+          "O inicializador de '%s' chama %s, que lê o global '%s', que ainda não tem valor neste ponto (linha %d).",
+          c->var_name, via, global->name, global->decl_pos.line);
+  }
 }
 
 static void declare_library(void) {
@@ -1015,51 +1062,58 @@ static void declare_library(void) {
   }
 }
 
-/* Devolve quantos erros semânticos foram reportados. */
 int semantic_check(Program *program) {
   n_diags = 0;
+  n_init_calls = 0;
+  n_func_syms = 0;
+  cur_sym = NULL;
   scope = NULL;
   scope_push();
   globals = scope;
   declare_library();
 
-  /* Passada 1: todos os nomes globais existem em todo o arquivo (D3). */
   for (int i = 0; i < program->n_decls; i++) {
     Decl *d = &program->decls[i];
     if (d->func && !d->func->is_main) {
       Symbol *s = declare(&d->func->name, d->func->is_workflow ? SYM_WORKFLOW : SYM_FUNC, NULL);
-      if (s)
+      if (s) {
         s->func = d->func;
+        n_func_syms++;
+      }
     } else if (d->var) {
-      for (int k = 0; k < d->var->n_names; k++)
-        declare(d->var->names[k], SYM_VAR, NULL);
+      for (int k = 0; k < d->var->n_names; k++) {
+        Symbol *g = declare(d->var->names[k], SYM_VAR, NULL);
+        if (g)
+          g->decl_index = i;
+      }
     }
   }
 
-  /* Passada 2: os inicializadores dos globais, na ordem do arquivo. */
   for (int i = 0; i < program->n_decls; i++) {
     Decl *d = &program->decls[i];
     if (!d->var)
       continue;
-    if (!d->var->rhs) /* todo var global precisa de valor inicial (E23) */
+    if (!d->var->rhs)
       for (int k = 0; k < d->var->n_names; k++)
         err(d->var->names[k]->pos, "A variável global '%s' precisa de valor inicial.",
             d->var->names[k]->name);
     cur_func = NULL;
     in_global_init = 1;
-    memset(&flow, 0, sizeof flow);
+    init_decl = i;
+    flow = (Flow){0};
     check_var(d->var, 1);
     in_global_init = 0;
   }
 
-  /* Passada 3: o corpo de cada função. */
   for (int i = 0; i < program->n_decls; i++)
     if (program->decls[i].func)
       check_func(program->decls[i].func);
 
-  scope_pop(); /* E9 em nível global não existe: o call/run global já é E18 */
+  check_init_order();
 
-  if (n_diags > 1) /* qsort não aceita NULL, nem com zero elementos */
+  scope_pop();
+
+  if (n_diags > 1)
     qsort(diags, n_diags, sizeof *diags, by_position);
   for (int i = 0; i < n_diags; i++)
     report_error("semântico", diags[i].line, diags[i].column, "%s", diags[i].message);

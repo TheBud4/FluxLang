@@ -1,7 +1,5 @@
 @import 'tailwindcss';
 
-/* Tokens de cor. Os componentes usam só estas classes (bg-panel, text-ink,
-   border-line, text-bad...), então o tema escuro é só trocar os valores. */
 @theme {
   --color-bg: #f4f5f7;
   --color-panel: #ffffff;
@@ -13,6 +11,7 @@
   --color-bad: #b42318;
   --color-warn: #926100;
   --color-info: #0e7490;
+  --color-scrim: rgb(0 0 0 / 0.4);
   --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --font-mono: ui-monospace, 'JetBrains Mono', 'Cascadia Code', Menlo, Consolas, monospace;
 }
@@ -29,6 +28,7 @@
     --color-bad: #ff7b72;
     --color-warn: #facc15;
     --color-info: #67e8f9;
+    --color-scrim: rgb(0 0 0 / 0.6);
   }
 }
 
@@ -43,8 +43,6 @@ body {
   font-family: var(--font-sans);
 }
 
-/* Código sempre como foi digitado: sem ligaduras, que desenhariam `<=` como um
-   só símbolo (e `->`, `!=`...) numa tela que mostra o código de um compilador. */
 .font-mono {
   font-variant-ligatures: none;
 }

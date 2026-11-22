@@ -3,3 +3,6 @@ compile_commands.json
 build/
 flux
 *.vsix
+.superpowers/
+.playwright-mcp/
+.impeccable/

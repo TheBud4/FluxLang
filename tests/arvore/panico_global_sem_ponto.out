@@ -1,0 +1,28 @@
+Erro sintático [linha 1, coluna 1]:
+Token encontrado: identificador 'texto'
+Esperado: 'var', 'const', 'func' ou 'workflow'
+program
+  before_main
+    global_no_func
+      error 1:1
+    before_main
+      global_no_func
+        error 1:1
+      before_main
+        global_no_func
+          error 1:7
+        before_main
+          FUNC 'func' 2:1
+          after_func
+            MAIN 'main' 2:6
+            LPAREN '(' 2:11
+            RPAREN ')' 2:12
+            block
+              LBRACE '{' 2:14
+              commands
+                ε
+              RBRACE '}' 3:1
+            after_main
+              ε
+Programa rejeitado.
+[código 1]

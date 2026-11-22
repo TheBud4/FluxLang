@@ -1,20 +1,8 @@
-/* Converte a árvore de derivação (tree.h) em AST (ast.h).
- *
- * A árvore de derivação tem um nó por regra da BNF, inclusive os *_rest da
- * fatoração LL(1). Aqui cada regra vira um construtor: por exemplo
- *   or_expr -> and_expr or_rest        or_rest -> OR and_expr or_rest | e
- * vira um laço que monta Binary(||, a, b) associativo à esquerda.
- *
- * O formato exato de cada regra está em docs/BNF.txt; os comentários abaixo
- * repetem a regra que cada função lê. */
-
 #include "ast.h"
 #include "mem.h"
 #include "tree.h"
 #include <stdlib.h>
 #include <string.h>
-
-/* ---------- Leitura da árvore ---------- */
 
 static const Node *kid(const Node *n, int i) {
   const Node *c = n->first_child;
@@ -27,7 +15,6 @@ static int is(const Node *n, const char *label) {
   return n && strcmp(n->label, label) == 0;
 }
 
-/* O nó tem conteúdo de verdade (não é uma produção vazia ε)? */
 static int filled(const Node *n) {
   return n->first_child && n->first_child->kind != NODE_EMPTY;
 }
@@ -50,8 +37,6 @@ static int has_error_node(const Node *n) {
   return 0;
 }
 
-/* ---------- Vetor de ponteiros ---------- */
-
 typedef struct {
   void **v;
   int n, cap;
@@ -66,9 +51,6 @@ static void push(Vec *vec, void *p) {
   vec->v[vec->n++] = p;
 }
 
-/* ---------- Tipos ---------- */
-
-/* <type> ::= TYPE_INT | ... | TYPE_LIST LOWER_THAN <type> GREATER_THAN */
 static Type *build_type(const Node *t) {
   const Node *first = kid(t, 0);
   if (is(first, "TYPE_INT"))    return type_prim(T_INT);
@@ -76,10 +58,8 @@ static Type *build_type(const Node *t) {
   if (is(first, "TYPE_STRING")) return type_prim(T_STRING);
   if (is(first, "TYPE_BOOL"))   return type_prim(T_BOOL);
   if (is(first, "TYPE_OBJECT")) return type_prim(T_OBJECT);
-  return type_list(build_type(kid(t, 2))); /* TYPE_LIST < type > */
+  return type_list(build_type(kid(t, 2)));
 }
-
-/* ---------- Expressões ---------- */
 
 static Expr *new_expr(ExprKind kind, const Node *at) {
   Expr *e = ast_alloc(sizeof *e);
@@ -106,11 +86,6 @@ static Op op_from_token(const char *label) {
   return OP_ADD;
 }
 
-/* Os seis níveis binários têm a mesma forma:
- *   <x_expr> ::= <y_expr> <x_rest>
- *   <x_rest> ::= <x_op> <y_expr> <x_rest> | e
- * (em or_rest e and_rest o operador é o próprio token). Lê da esquerda para a
- * direita, então a e b e c vira Binary(Binary(a, b), c). */
 static Expr *build_binary(const Node *n) {
   Expr *left = build_expr(kid(n, 0));
   const Node *rest = kid(n, 1);
@@ -127,8 +102,6 @@ static Expr *build_binary(const Node *n) {
   return left;
 }
 
-/* <expression_list> ::= <expression> <expression_list_rest>
- * <expression_list_rest> ::= COMMA <expression> <expression_list_rest> | e */
 static void build_expr_list(const Node *list, Vec *out) {
   push(out, build_expr(kid(list, 0)));
   const Node *rest = kid(list, 1);
@@ -138,16 +111,11 @@ static void build_expr_list(const Node *list, Vec *out) {
   }
 }
 
-/* <args> ::= <expression_list> | e */
 static void build_args(const Node *args, Vec *out) {
   if (filled(args))
     build_expr_list(kid(args, 0), out);
 }
 
-/* <list_literal> ::= LBRACKET <list_items> RBRACKET
- * <list_items> ::= <expression> <list_rest> | e
- * <list_rest> ::= COMMA <list_after_comma> | e
- * <list_after_comma> ::= <expression> <list_rest> | e   (vírgula final) */
 static Expr *build_list(const Node *lit) {
   Expr *e = new_expr(EX_LIST, lit);
   Vec items = {0};
@@ -168,12 +136,10 @@ static Expr *build_list(const Node *lit) {
   return e;
 }
 
-/* <field> ::= <field_key> COLON <expression>; a chave é IDENTIFIER ou
- * STRING_LITERAL (sem as aspas). */
 static void build_field(const Node *field, Vec *keys, Vec *values) {
   const Node *key = kid(kid(field, 0), 0);
   char *text = dup(key->text);
-  if (is(key, "STRING_LITERAL")) { /* tira as aspas */
+  if (is(key, "STRING_LITERAL")) {
     size_t len = strlen(text);
     memmove(text, text + 1, len - 2);
     text[len - 2] = '\0';
@@ -182,10 +148,6 @@ static void build_field(const Node *field, Vec *keys, Vec *values) {
   push(values, build_expr(kid(field, 2)));
 }
 
-/* <object_literal> ::= LBRACE <object_items> RBRACE
- * <object_items> ::= <field> <fields_rest> | e
- * <fields_rest> ::= COMMA <fields_after_comma> | e
- * <fields_after_comma> ::= <field> <fields_rest> | e */
 static Expr *build_object(const Node *lit) {
   Expr *e = new_expr(EX_OBJECT, lit);
   Vec keys = {0}, values = {0};
@@ -207,8 +169,6 @@ static Expr *build_object(const Node *lit) {
   return e;
 }
 
-/* <primary> ::= literais | IDENTIFIER | LPAREN <expression> RPAREN
- *             | <list_literal> | <object_literal> */
 static Expr *build_primary(const Node *n) {
   const Node *first = kid(n, 0);
   Expr *e;
@@ -233,17 +193,13 @@ static Expr *build_primary(const Node *n) {
     e->text = dup(first->text);
   } else if (is(first, "NULL_LITERAL")) {
     e = new_expr(EX_NULL, first);
-  } else { /* TRUE ou FALSE */
+  } else {
     e = new_expr(EX_BOOL, first);
     e->bval = is(first, "TRUE");
   }
   return e;
 }
 
-/* <postfix_expr> ::= <primary> <postfix_rest>
- * <postfix_rest> ::= DOT IDENTIFIER <postfix_rest>
- *                  | LBRACKET <expression> RBRACKET <postfix_rest>
- *                  | LPAREN <args> RPAREN <postfix_rest> | e */
 static Expr *build_postfix(const Node *n) {
   Expr *base = build_primary(kid(n, 0));
   const Node *rest = kid(n, 1);
@@ -259,11 +215,11 @@ static Expr *build_postfix(const Node *n) {
       e = new_expr(EX_INDEX, first);
       e->a = base;
       e->b = build_expr(kid(rest, 1));
-    } else { /* LPAREN */
+    } else {
       Vec args = {0};
       build_args(kid(rest, 1), &args);
       e = new_expr(EX_CALL, first);
-      e->pos = base->pos; /* os erros de chamada apontam para o início dela */
+      e->pos = base->pos;
       e->a = base;
       e->items = (Expr **)args.v;
       e->n_items = args.n;
@@ -274,7 +230,6 @@ static Expr *build_postfix(const Node *n) {
   return base;
 }
 
-/* <unary_expr> ::= <unary_op> <unary_expr> | <postfix_expr> */
 static Expr *build_unary(const Node *n) {
   const Node *first = kid(n, 0);
   if (is(first, "unary_op")) {
@@ -294,10 +249,8 @@ static Expr *build_expr(const Node *n) {
     return build_unary(n);
   if (is(n, "postfix_expr"))
     return build_postfix(n);
-  return build_binary(n); /* or_expr, and_expr, equality_expr, ... */
+  return build_binary(n);
 }
-
-/* ---------- Comandos ---------- */
 
 static Stmt *new_stmt(StmtKind kind, const Node *at) {
   Stmt *s = ast_alloc(sizeof *s);
@@ -311,8 +264,6 @@ static Name make_name(const Node *token) {
   return n;
 }
 
-/* <rhs> ::= CALL IDENTIFIER LPAREN <args> RPAREN | RUN <object_literal>
- *         | <expression_list> */
 static Rhs *build_rhs(const Node *rhs) {
   Rhs *r = ast_alloc(sizeof *r);
   const Node *first = kid(rhs, 0);
@@ -336,7 +287,6 @@ static Rhs *build_rhs(const Node *rhs) {
   return r;
 }
 
-/* RHS_EXPRS a partir de uma <expression_list> solta (o const) */
 static Rhs *rhs_from_list(const Node *list) {
   Rhs *r = ast_alloc(sizeof *r);
   Vec items = {0};
@@ -348,8 +298,6 @@ static Rhs *rhs_from_list(const Node *list) {
   return r;
 }
 
-/* <identifier_list> ::= IDENTIFIER <identifier_list_rest>
- * <identifier_list_rest> ::= COMMA IDENTIFIER <identifier_list_rest> | e */
 static void build_names(const Node *list, Stmt *s) {
   Vec names = {0};
   Name *n = ast_alloc(sizeof *n);
@@ -366,9 +314,6 @@ static void build_names(const Node *list, Stmt *s) {
   s->n_names = names.n;
 }
 
-/* <variable_declaration> ::= VAR <identifier_list> <variable_rest> SEMICOLON
- * <variable_rest> ::= COLON <type> <initializer> | ASSIGN <rhs>
- * <initializer> ::= ASSIGN <rhs> | e */
 static Stmt *build_var(const Node *n) {
   Stmt *s = new_stmt(ST_VAR, n);
   build_names(kid(n, 1), s);
@@ -384,9 +329,6 @@ static Stmt *build_var(const Node *n) {
   return s;
 }
 
-/* <constant_declaration> ::= CONST <identifier_list> <constant_rest> SEMICOLON
- * <constant_rest> ::= COLON <type> ASSIGN <expression_list>
- *                   | ASSIGN <expression_list> */
 static Stmt *build_const(const Node *n) {
   Stmt *s = new_stmt(ST_VAR, n);
   s->is_const = 1;
@@ -403,8 +345,6 @@ static Stmt *build_const(const Node *n) {
 
 static Stmt *build_block(const Node *block);
 
-/* <command_expression> ::= <expression> <assignment_rest> SEMICOLON
- * <assignment_rest> ::= ASSIGN <rhs> | COMMA <expression_list> ASSIGN <rhs> | e */
 static Stmt *build_expression_stmt(const Node *n) {
   Expr *first = build_expr(kid(n, 0));
   const Node *rest = kid(n, 1);
@@ -418,7 +358,7 @@ static Stmt *build_expression_stmt(const Node *n) {
   Stmt *s = new_stmt(ST_ASSIGN, n);
   Vec targets = {0};
   push(&targets, first);
-  if (is(kid(rest, 0), "COMMA")) { /* a, b = ... */
+  if (is(kid(rest, 0), "COMMA")) {
     Vec more = {0};
     build_expr_list(kid(rest, 1), &more);
     for (int i = 0; i < more.n; i++)
@@ -441,7 +381,7 @@ static Stmt *build_command(const Node *cmd) {
   if (is(n, "command_expression"))
     return build_expression_stmt(n);
 
-  if (is(n, "command_if")) { /* IF ( expr ) block else_part */
+  if (is(n, "command_if")) {
     Stmt *s = new_stmt(ST_IF, n);
     s->cond = build_expr(kid(n, 2));
     s->then = build_block(kid(n, 4));
@@ -450,20 +390,20 @@ static Stmt *build_command(const Node *cmd) {
       s->els = build_block(kid(els, 1));
     return s;
   }
-  if (is(n, "command_while")) { /* WHILE ( expr ) block */
+  if (is(n, "command_while")) {
     Stmt *s = new_stmt(ST_WHILE, n);
     s->cond = build_expr(kid(n, 2));
     s->then = build_block(kid(n, 4));
     return s;
   }
-  if (is(n, "command_for")) { /* FOR IDENTIFIER IN expr block */
+  if (is(n, "command_for")) {
     Stmt *s = new_stmt(ST_FOR, n);
     s->var = make_name(kid(n, 1));
     s->cond = build_expr(kid(n, 3));
     s->then = build_block(kid(n, 4));
     return s;
   }
-  if (is(n, "command_return")) { /* RETURN <return_values> SEMICOLON */
+  if (is(n, "command_return")) {
     Stmt *s = new_stmt(ST_RETURN, n);
     const Node *values = kid(n, 1);
     Vec items = {0};
@@ -478,7 +418,6 @@ static Stmt *build_command(const Node *cmd) {
   if (is(n, "command_continue"))
     return new_stmt(ST_CONTINUE, n);
 
-  /* command_error: <error_action> IF IDENTIFIER SEMICOLON */
   Stmt *s = new_stmt(ST_ERRACT, n);
   const Node *action = kid(kid(n, 0), 0);
   s->act = is(action, "STOP") ? ACT_STOP : is(action, "ABORT") ? ACT_ABORT : ACT_PROCEED;
@@ -486,8 +425,6 @@ static Stmt *build_command(const Node *cmd) {
   return s;
 }
 
-/* <block> ::= LBRACE <commands> RBRACE
- * <commands> ::= <command> <commands> | e */
 static Stmt *build_block(const Node *block) {
   Stmt *s = new_stmt(ST_BLOCK, block);
   Vec stmts = {0};
@@ -501,14 +438,6 @@ static Stmt *build_block(const Node *block) {
   return s;
 }
 
-/* ---------- Declarações ---------- */
-
-/* <function_rest> ::= LPAREN <parameter_list> RPAREN <return_type> <block>
- * <parameter_list> ::= <parameters> | e
- * <parameters> ::= <parameter> <parameters_rest>
- * <parameters_rest> ::= COMMA <parameter> <parameters_rest> | e
- * <parameter> ::= IDENTIFIER COLON <type>
- * <return_type> ::= COLON <type> | e */
 static Func *build_func(const Node *name, const Node *rest, int is_workflow) {
   Func *f = ast_alloc(sizeof *f);
   f->name = make_name(name);
@@ -548,9 +477,6 @@ static void add_decl(Vec *decls, Stmt *var, Func *func) {
   push(decls, d);
 }
 
-/* <global_no_func> ::= <variable_declaration> | <constant_declaration>
- *                    | <workflow>
- * <workflow> ::= WORKFLOW IDENTIFIER <function_rest> */
 static void add_global(Vec *decls, const Node *g) {
   const Node *n = kid(g, 0);
   if (is(n, "variable_declaration"))
@@ -561,26 +487,24 @@ static void add_global(Vec *decls, const Node *g) {
     add_decl(decls, NULL, build_func(kid(n, 1), kid(n, 2), 1));
 }
 
-/* Percorre <before_main>, <after_func> e <after_main>, que se chamam em
- * círculo (ver a seção 1 da BNF), juntando as declarações na ordem do arquivo. */
 Program *build_ast(const Node *root) {
   if (!root || has_error_node(root))
     return NULL;
 
   Program *program = ast_alloc(sizeof *program);
   Vec decls = {0};
-  const Node *cur = kid(root, 0); /* before_main */
+  const Node *cur = kid(root, 0);
 
   for (;;) {
     if (is(cur, "before_main")) {
       if (is(kid(cur, 0), "global_no_func")) {
         add_global(&decls, kid(cur, 0));
         cur = kid(cur, 1);
-      } else { /* FUNC <after_func> */
+      } else {
         cur = kid(cur, 1);
       }
     } else if (is(cur, "after_func")) {
-      if (is(kid(cur, 0), "MAIN")) { /* MAIN ( ) <block> <after_main> */
+      if (is(kid(cur, 0), "MAIN")) {
         Func *f = ast_alloc(sizeof *f);
         f->name = make_name(kid(cur, 0));
         f->is_main = 1;
@@ -588,17 +512,17 @@ Program *build_ast(const Node *root) {
         program->main = f;
         add_decl(&decls, NULL, f);
         cur = kid(cur, 4);
-      } else { /* IDENTIFIER <function_rest> <before_main> */
+      } else {
         add_decl(&decls, NULL, build_func(kid(cur, 0), kid(cur, 1), 0));
         cur = kid(cur, 2);
       }
-    } else { /* after_main */
+    } else {
       if (!filled(cur))
         break;
       if (is(kid(cur, 0), "global_no_func")) {
         add_global(&decls, kid(cur, 0));
         cur = kid(cur, 1);
-      } else { /* FUNC IDENTIFIER <function_rest> <after_main> */
+      } else {
         add_decl(&decls, NULL, build_func(kid(cur, 1), kid(cur, 2), 0));
         cur = kid(cur, 3);
       }

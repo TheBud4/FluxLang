@@ -3,11 +3,6 @@ interface InputBoxProps {
   onChange: (value: string) => void
 }
 
-/**
- * A entrada do programa: uma linha para cada `terminal.input`, na ordem. A
- * página não é um terminal interativo; o programa roda de uma vez, com esse
- * texto como entrada padrão (quando as linhas acabam, o input devolve "").
- */
 export function InputBox({ value, onChange }: InputBoxProps) {
   return (
     <div className="border-b border-line px-3 py-2">

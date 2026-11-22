@@ -1,0 +1,6 @@
+Erro semântico [linha 3, coluna 16]:
+Variável 'primeira' utilizada antes de ser inicializada.
+Erro semântico [linha 8205, coluna 16]:
+Variável 'ultima' utilizada antes de ser inicializada.
+Programa rejeitado.
+[código 1]

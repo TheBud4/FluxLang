@@ -23,7 +23,7 @@ void *mem_alloc(size_t size) {
     size = 16;
   if (!chunks || chunks->used + size > chunks->size) {
     size_t chunk_size = size > CHUNK_SIZE ? size : CHUNK_SIZE;
-    Chunk *c = calloc(1, sizeof(Chunk) + chunk_size); /* calloc: o arena nasce zerado */
+    Chunk *c = calloc(1, sizeof(Chunk) + chunk_size);
     if (!c)
       die_no_memory();
     c->size = chunk_size;

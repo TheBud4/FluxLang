@@ -1,0 +1,4 @@
+Erro semântico [linha 1, coluna 13]:
+O inicializador de 'a' chama 'f' e, por ela, 'g', que lê o global 'b', declarado depois (linha 2).
+Programa rejeitado.
+[código 1]

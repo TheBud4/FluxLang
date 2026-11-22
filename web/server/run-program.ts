@@ -3,11 +3,10 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 
-const OUTPUT_LIMIT = 1024 * 1024 // 1 MB de saída por fluxo
+const OUTPUT_LIMIT = 1024 * 1024
 const BUILD_TIMEOUT_MS = 30_000
 const RUN_TIMEOUT_MS = 10_000
 
-/** Quem imprimiu a linha: as quatro funções do terminal, o erro de execução e o prompt. */
 export type OutputKind = 'log' | 'info' | 'warn' | 'error' | 'fatal' | 'prompt' | 'answer' | 'raw' | 'stderr'
 
 export interface OutputLine {
@@ -16,13 +15,10 @@ export interface OutputLine {
 }
 
 export interface RunResult {
-  /** ok: o programa rodou; rejected: não passou na análise; timeout: passou do tempo. */
   status: 'ok' | 'rejected' | 'internal-error' | 'timeout'
   exitCode: number | null
-  /** A saída do programa, em ordem, cada linha com o tipo de quem a imprimiu. */
   output: OutputLine[]
   truncated: boolean
-  /** Rejeitado: as mensagens do compilador. Erro interno ou sinal: o motivo. */
   message?: string
 }
 
@@ -45,13 +41,6 @@ const KINDS: Record<string, OutputKind> = {
   A: 'answer',
 }
 
-/**
- * Lê a saída do programa no modo etiquetado (FLUX_TAGGED=1, ver
- * src/backend/runtime/flux_rt.h): uma sequência de registros  \x1e <tipo> <bytes> : <texto> .
- * O tamanho é em bytes, então o texto pode ter qualquer coisa (inclusive
- * quebras de linha). Um texto solto fora de um registro não deveria existir,
- * mas aparece como 'raw' em vez de se perder.
- */
 export function parseTagged(buf: Buffer): OutputLine[] {
   const lines: OutputLine[] = []
   let i = 0
@@ -67,7 +56,7 @@ export function parseTagged(buf: Buffer): OutputLine[] {
     const colon = buf.indexOf(0x3a, i + 2)
     const size = colon < 0 ? NaN : Number(buf.subarray(i + 2, colon).toString('ascii'))
     if (!kind || !Number.isInteger(size) || size < 0) {
-      i += 1 // registro malformado: pula o separador
+      i += 1
       continue
     }
     const start = colon + 1
@@ -77,11 +66,6 @@ export function parseTagged(buf: Buffer): OutputLine[] {
   return lines
 }
 
-/**
- * Roda um comando e junta a saída. O processo vira líder de um grupo, para o
- * timeout poder matar também os comandos que o programa FluxLang disparou com
- * `run`. A saída é limitada, mas continua sendo lida (para o processo não travar).
- */
 function exec(
   command: string,
   args: string[],
@@ -145,12 +129,6 @@ function exec(
   })
 }
 
-/**
- * Compila o código com `flux --build` (que já confere a análise semântica) e
- * roda o executável com a entrada padrão que veio da interface. O código vem do navegador e o programa roda
- * neste computador, com os comandos que ele pedir em `run`: quem chama tem de
- * ter conferido que o pedido veio da própria interface (ver flux-api.ts).
- */
 export async function runProgram(fluxPath: string, source: string, stdin = ''): Promise<RunResult> {
   const dir = await mkdtemp(path.join(tmpdir(), 'flux-web-'))
   const exe = path.join(dir, 'programa')
@@ -172,8 +150,6 @@ export async function runProgram(fluxPath: string, source: string, stdin = ''): 
       }
     }
 
-    // FLUX_TAGGED=1 faz o programa marcar cada impressão com o tipo de quem a fez
-    // a entrada digitada na interface vai para a entrada padrão: uma linha por terminal.input
     const run = await exec(exe, [], {
       input: stdin,
       timeoutMs: RUN_TIMEOUT_MS,
@@ -181,7 +157,7 @@ export async function runProgram(fluxPath: string, source: string, stdin = ''): 
     })
     const output = parseTagged(run.stdout)
     const stderr = run.stderr.toString('utf8').trimEnd()
-    if (stderr) output.push({ kind: 'stderr', text: stderr }) // não deveria haver; ex.: falha do sistema
+    if (stderr) output.push({ kind: 'stderr', text: stderr })
     return {
       status: run.timedOut ? 'timeout' : 'ok',
       exitCode: run.code,

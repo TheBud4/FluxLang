@@ -5,8 +5,6 @@
 
 void *ast_alloc(size_t size) { return mem_alloc(size); }
 
-/* ---------- Impressão (--ast) ---------- */
-
 static const char *op_name(Op op) {
   switch (op) {
   case OP_OR:  return "||";  case OP_AND: return "&&";

@@ -1,19 +1,3 @@
-/* Gerador de código C da FluxLang (./flux --c, --build e --run).
- *
- * Percorre a AST (já conferida pela análise semântica) e escreve um programa C
- * que usa a biblioteca de execução (src/backend/runtime/flux_rt.h), embutida no próprio
- * arquivo gerado: o resultado compila sozinho com o gcc.
- *
- * Duas ideias seguram o gerador:
- *  - Todo valor é um FxValue (ver a biblioteca). O tipo estático da AST só
- *    decide as conversões: int -> float, e a conferência de um valor
- *    dinâmico (campo de object) contra o tipo de uma variável (R5).
- *  - O C não define a ordem de avaliação dos argumentos de uma chamada. Para
- *    a linguagem ter ordem da esquerda para a direita, cada subexpressão vai
- *    para um temporário, na ordem do código. expr() emite as linhas que
- *    calculam o valor e devolve o nome do temporário (ou um construtor
- *    simples, como fx_int(1)). `&&` e `||` viram `if`, para o curto-circuito. */
-
 #include "ast.h"
 #include "fluxc.h"
 #include "mem.h"
@@ -24,15 +8,14 @@
 #include <sys/wait.h>
 #include <unistd.h>
 
-extern const char flux_runtime_source[]; /* build/runtime_src.c, gerado de src/backend/runtime/flux_rt.h */
-
-/* ---------- Saída ---------- */
+extern const char flux_runtime_source[];
 
 static FILE *out;
 static int depth;
 static int next_tmp;
 static const Program *prog;
 static const Func *cur_func;
+static int cur_line;
 
 static void emit(const char *fmt, ...) {
   va_list args;
@@ -43,7 +26,6 @@ static void emit(const char *fmt, ...) {
   fputc('\n', out);
 }
 
-/* Uma string formatada, em memória que nunca é liberada (o gerador roda uma vez). */
 static char *fstr(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -67,8 +49,6 @@ static const Func *find_func(const char *name) {
   return NULL;
 }
 
-/* ---------- Expressões ---------- */
-
 static char *expr(Expr *e);
 
 static char *float_literal(double d) {
@@ -79,18 +59,13 @@ static char *float_literal(double d) {
   return fstr("%s", buf);
 }
 
-/* Calcula `e` e o converte para o tipo `target` (quando há um):
- *  - int vira float onde se espera float;
- *  - um valor dinâmico (campo de object) é conferido contra o tipo esperado,
- *    e o erro R5 sai em tempo de execução se for de outro tipo. */
-static char *convert(Expr *e, const Type *target) {
-  char *v = expr(e);
-  if (!target || !e->type || e->type->kind == T_ERROR)
+static char *coerce(char *v, const Type *from, const Type *target) {
+  if (!target || !from || from->kind == T_ERROR)
     return v;
-  int dyn = e->type->kind == T_DYN;
+  int dyn = from->kind == T_DYN;
   switch (target->kind) {
   case T_FLOAT:
-    if (e->type->kind == T_INT)
+    if (from->kind == T_INT)
       return fstr("fx_to_float(%s)", v);
     if (dyn)
       return fstr("fx_as_float(%s)", v);
@@ -105,6 +80,8 @@ static char *convert(Expr *e, const Type *target) {
   }
   return v;
 }
+
+static char *convert(Expr *e, const Type *target) { return coerce(expr(e), e->type, target); }
 
 static const char *binary_fn(Op op) {
   switch (op) {
@@ -173,10 +150,10 @@ static char *gen_call(Expr *c) {
       args[i] = convert(c->items[i], f->params[i]->type);
     t = new_tmp();
     emit("FxValue %s = f_%s(%s);", t, name, join_args(args, c->n_items));
+    emit("FX_LINE(%d);", cur_line);
     return t;
   }
 
-  /* chamada de método: terminal.log(...), lista.push(...) */
   Expr *base = callee->a;
   const char *m = callee->text;
   if (base->kind == EX_IDENT && strcmp(base->text, "terminal") == 0) {
@@ -184,7 +161,7 @@ static char *gen_call(Expr *c) {
     if (strcmp(m, "input") == 0) {
       char *prompt = c->n_items > 0 ? expr(c->items[0]) : fstr("fx_null()");
       emit("FxValue %s = fx_input(%s);", t, prompt);
-    } else { /* log, info, warn, error */
+    } else {
       char *a = expr(c->items[0]);
       emit("FxValue %s = fx_%s(%s);", t, m, a);
     }
@@ -199,7 +176,7 @@ static char *gen_call(Expr *c) {
     const Type *elem = base->type && base->type->kind == T_LIST ? base->type->elem : NULL;
     char *v = convert(c->items[0], elem);
     emit("FxValue %s = fx_push(%s, %s);", t, b, v);
-  } else { /* remove */
+  } else {
     char *i = expr(c->items[0]);
     emit("FxValue %s = fx_remove(%s, %s);", t, b, i);
   }
@@ -211,10 +188,10 @@ static char *expr(Expr *e) {
   switch (e->kind) {
   case EX_INT:    return fstr("fx_int(%ld)", e->ival);
   case EX_FLOAT:  return fstr("fx_float(%s)", float_literal(e->fval));
-  case EX_STRING: return fstr("fx_str(%s)", e->text); /* os escapes do C são os da FluxLang */
+  case EX_STRING: return fstr("fx_str(%s)", e->text);
   case EX_BOOL:   return fstr("fx_bool(%d)", e->bval);
   case EX_NULL:   return fstr("fx_null()");
-  case EX_IDENT: /* copia: uma chamada mais à direita pode mudar a variável */
+  case EX_IDENT:
     t = new_tmp();
     emit("FxValue %s = v_%s;", t, e->text);
     return t;
@@ -251,7 +228,7 @@ static char *expr(Expr *e) {
     }
     return t;
   }
-  default: { /* EX_OBJECT */
+  default: {
     t = new_tmp();
     emit("FxValue %s = fx_new_object();", t);
     for (int i = 0; i < e->n_items; i++) {
@@ -263,11 +240,8 @@ static char *expr(Expr *e) {
   }
 }
 
-/* ---------- Comandos ---------- */
-
 static void gen_stmt(Stmt *s);
 
-/* call e run: devolve o temporário que guarda o FxPair (resultado, erro). */
 static char *gen_pair(Rhs *r) {
   char *t = new_tmp();
   if (r->kind == RHS_RUN) {
@@ -280,11 +254,12 @@ static char *gen_pair(Rhs *r) {
   for (int i = 0; i < r->n_args; i++)
     args[i] = convert(r->args[i], f->params[i]->type);
   emit("FxPair %s = w_%s(%s);", t, r->callee.name, join_args(args, r->n_args));
+  emit("FX_LINE(%d);", cur_line);
   return t;
 }
 
 static void gen_var(Stmt *s, int global) {
-  if (!s->rhs) { /* var x:int; só ganha valor numa atribuição (a análise garante) */
+  if (!s->rhs) {
     for (int i = 0; i < s->n_names; i++)
       emit("FxValue v_%s = fx_null();", s->names[i]->name);
     return;
@@ -292,7 +267,7 @@ static void gen_var(Stmt *s, int global) {
   Rhs *r = s->rhs;
   if (r->kind == RHS_EXPRS) {
     char **vals = mem_alloc((r->n_exprs + 1) * sizeof(char *));
-    for (int i = 0; i < r->n_exprs; i++) /* todos os valores, depois as variáveis */
+    for (int i = 0; i < r->n_exprs; i++)
       vals[i] = convert(r->exprs[i], s->declared);
     for (int i = 0; i < s->n_names && i < r->n_exprs; i++)
       emit(global ? "v_%s = %s;" : "FxValue v_%s = %s;", s->names[i]->name, vals[i]);
@@ -303,34 +278,46 @@ static void gen_var(Stmt *s, int global) {
   emit(global ? "v_%s = %s.error;" : "FxValue v_%s = %s.error;", s->names[1]->name, pair);
 }
 
-/* Atribui o valor `value` (um temporário) a um alvo: nome, campo ou índice. */
-static void assign_to(Expr *target, const char *value) {
-  if (target->kind == EX_IDENT) {
-    emit("v_%s = %s;", target->text, value);
-  } else if (target->kind == EX_FIELD) {
-    char *base = expr(target->a);
-    emit("fx_set_field(%s, \"%s\", %s);", base, target->text, value);
-  } else { /* EX_INDEX */
-    char *base = expr(target->a);
-    char *idx = expr(target->b);
-    emit("fx_set_index(%s, %s, %s);", base, idx, value);
-  }
+typedef struct {
+  Expr *target;
+  char *base, *idx;
+} Place;
+
+static Place place_of(Expr *target) {
+  Place p = {target, NULL, NULL};
+  if (target->kind != EX_IDENT)
+    p.base = expr(target->a);
+  if (target->kind == EX_INDEX)
+    p.idx = expr(target->b);
+  return p;
+}
+
+static void store(Place p, const char *value) {
+  if (p.target->kind == EX_IDENT)
+    emit("v_%s = %s;", p.target->text, value);
+  else if (p.target->kind == EX_FIELD)
+    emit("fx_set_field(%s, \"%s\", %s);", p.base, p.target->text, value);
+  else
+    emit("fx_set_index(%s, %s, %s);", p.base, p.idx, value);
 }
 
 static void gen_assign(Stmt *s) {
   Rhs *r = s->rhs;
+  Place *places = mem_alloc((s->n_targets + 1) * sizeof(Place));
+  for (int i = 0; i < s->n_targets; i++)
+    places[i] = place_of(s->targets[i]);
   if (r->kind == RHS_EXPRS) {
-    /* a, b = b, a: todos os valores à direita antes de atribuir */
     char **vals = mem_alloc((r->n_exprs + 1) * sizeof(char *));
     for (int i = 0; i < r->n_exprs; i++)
       vals[i] = convert(r->exprs[i], i < s->n_targets ? s->targets[i]->type : NULL);
     for (int i = 0; i < s->n_targets && i < r->n_exprs; i++)
-      assign_to(s->targets[i], vals[i]);
+      store(places[i], vals[i]);
     return;
   }
   char *pair = gen_pair(r);
-  assign_to(s->targets[0], fstr("%s.result", pair));
-  assign_to(s->targets[1], fstr("%s.error", pair));
+  const Func *w = r->kind == RHS_CALL ? find_func(r->callee.name) : NULL;
+  store(places[0], coerce(fstr("%s.result", pair), w ? w->ret : NULL, s->targets[0]->type));
+  store(places[1], fstr("%s.error", pair));
 }
 
 static void gen_block(Stmt *block) {
@@ -344,7 +331,7 @@ static void gen_block(Stmt *block) {
 
 static void gen_return(Stmt *s) {
   const Func *f = cur_func;
-  if (f->is_workflow) { /* return resultado, erro; */
+  if (f->is_workflow) {
     char *result = convert(s->exprs[0], f->ret);
     char *error = expr(s->exprs[1]);
     emit("return fx_pair(%s, %s);", result, error);
@@ -356,8 +343,11 @@ static void gen_return(Stmt *s) {
 }
 
 static void gen_stmt(Stmt *s) {
-  if (s->kind != ST_BLOCK && s->kind != ST_BREAK && s->kind != ST_CONTINUE)
-    emit("FX_LINE(%d);", s->pos.line);
+  if (s->kind != ST_BLOCK && s->kind != ST_BREAK && s->kind != ST_CONTINUE) {
+    cur_line = s->pos.line;
+    if (s->kind != ST_WHILE)
+      emit("FX_LINE(%d);", cur_line);
+  }
   switch (s->kind) {
   case ST_VAR:
     gen_var(s, 0);
@@ -383,10 +373,11 @@ static void gen_stmt(Stmt *s) {
     }
     break;
   }
-  case ST_WHILE: /* a condição é recalculada a cada volta, então fica dentro do laço */
+  case ST_WHILE:
     emit("for (;;) {");
     depth++;
     {
+      emit("FX_LINE(%d);", cur_line);
       char *c = expr(s->cond);
       emit("if (!fx_cond(%s)) break;", c);
     }
@@ -430,8 +421,6 @@ static void gen_stmt(Stmt *s) {
   }
 }
 
-/* ---------- Funções e o programa ---------- */
-
 static void signature(const Func *f, int with_semicolon) {
   char *params = fstr("%s", "");
   for (int i = 0; i < f->n_params; i++)
@@ -453,7 +442,6 @@ static void gen_func(const Func *f) {
   emit("fx_check_stack();");
   for (int i = 0; i < f->body->n_stmts; i++)
     gen_stmt(f->body->stmts[i]);
-  /* o fim do corpo: func devolve null; workflow devolve (null, null) */
   emit(f->is_workflow ? "return fx_pair(fx_null(), fx_null());" : "return fx_null();");
   depth--;
   emit("}");
@@ -470,13 +458,13 @@ int generate_c(const Program *program, FILE *file) {
   fputs(flux_runtime_source, out);
   fputs("\n/* ---------- programa ---------- */\n\n", out);
 
-  for (int i = 0; i < program->n_decls; i++) { /* globais */
+  for (int i = 0; i < program->n_decls; i++) {
     Stmt *v = program->decls[i].var;
     for (int k = 0; v && k < v->n_names; k++)
       fprintf(out, "static FxValue v_%s;\n", v->names[k]->name);
   }
   fputc('\n', out);
-  for (int i = 0; i < program->n_decls; i++) /* protótipos: a ordem das funções é livre */
+  for (int i = 0; i < program->n_decls; i++)
     if (program->decls[i].func)
       signature(program->decls[i].func, 1);
   fputc('\n', out);
@@ -484,12 +472,11 @@ int generate_c(const Program *program, FILE *file) {
     if (program->decls[i].func)
       gen_func(program->decls[i].func);
 
-  /* main: inicializa os globais na ordem do arquivo e chama a main da FluxLang */
   next_tmp = 0;
   fputs("static int fx_program(void) {\n", out);
   depth = 1;
   emit("fx_init(__builtin_frame_address(0));");
-  for (int i = 0; i < program->n_decls; i++) { /* os globais são raízes do coletor */
+  for (int i = 0; i < program->n_decls; i++) {
     Stmt *v = program->decls[i].var;
     for (int k = 0; v && k < v->n_names; k++)
       emit("fx_gc_root(&v_%s);", v->names[k]->name);
@@ -498,7 +485,8 @@ int generate_c(const Program *program, FILE *file) {
     Stmt *v = program->decls[i].var;
     if (!v)
       continue;
-    emit("FX_LINE(%d);", v->pos.line);
+    cur_line = v->pos.line;
+    emit("FX_LINE(%d);", cur_line);
     gen_var(v, 1);
   }
   emit("f_main();");
@@ -507,15 +495,10 @@ int generate_c(const Program *program, FILE *file) {
   return 0;
 }
 
-/* ---------- gcc ---------- */
-
-/* --windows: o executável é para Windows (gcc do MinGW, ligado estaticamente, e
- * rodado pelo wine no --run). */
 static int windows_target;
 void set_windows_target(void) { windows_target = 1; }
 int is_windows_target(void) { return windows_target; }
 
-/* Roda `argv` e devolve o código de saída, ou -1 se não conseguiu executar. */
 static int run_program(char *const argv[]) {
   pid_t pid = fork();
   if (pid < 0)
@@ -534,11 +517,7 @@ static int run_program(char *const argv[]) {
 }
 
 int compile_c(const char *c_path, const char *exe_path) {
-  /* Os avisos do gcc falam do C gerado, não da FluxLang, então ficam desligados
-   * (-w). FLUX_CC_WARN=1 os liga, para depurar o gerador; FLUX_CC troca o gcc. */
-  const char *cc = getenv("FLUX_CC");
-  if (!cc && windows_target)
-    cc = "x86_64-w64-mingw32-gcc";
+  const char *cc = windows_target ? "x86_64-w64-mingw32-gcc" : getenv("FLUX_CC");
   const char *warn = getenv("FLUX_CC_WARN") ? "-Wall" : "-w";
   char *argv[64];
   int n = 0;
@@ -547,11 +526,8 @@ int compile_c(const char *c_path, const char *exe_path) {
   argv[n++] = "c";
   argv[n++] = "-O1";
   argv[n++] = (char *)warn;
-  if (windows_target) /* o .exe leva a libgcc e a winpthreads junto: roda sem DLLs soltas */
+  if (windows_target)
     argv[n++] = "-static";
-  /* FLUX_CC_FLAGS: flags extras para o gcc (ex.: -fsanitize=address no make asan).
-   * Não valem para --windows: são do compilador deste computador (o MinGW não tem
-   * as bibliotecas dos sanitizadores). */
   char *extra = getenv("FLUX_CC_FLAGS") && !windows_target ? mem_strdup(getenv("FLUX_CC_FLAGS")) : NULL;
   for (char *tok = extra ? strtok(extra, " ") : NULL; tok && n < 56; tok = strtok(NULL, " "))
     argv[n++] = tok;
@@ -564,7 +540,7 @@ int compile_c(const char *c_path, const char *exe_path) {
 }
 
 int execute_program(const char *exe_path) {
-  if (windows_target) { /* um .exe roda no Linux pelo wine (sem as mensagens de depuração dele) */
+  if (windows_target) {
     setenv("WINEDEBUG", "-all", 0);
     char *wine_argv[] = {"wine", (char *)exe_path, NULL};
     return run_program(wine_argv);

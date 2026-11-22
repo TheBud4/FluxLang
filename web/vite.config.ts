@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import { fluxApi } from './server/flux-api.ts'
 
-// Raiz do repositório: os exemplos em docs/exemplos/ são importados pela interface.
 const repoRoot = fileURLToPath(new URL('..', import.meta.url))
 
 export default defineConfig({
