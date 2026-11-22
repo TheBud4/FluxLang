@@ -202,7 +202,7 @@ typedef struct {
         da mensagem.
       </Fn>
       <Why>
-        {mono('flux_rt.h')}: {mono('fx_line')} é uma variável só, e a função chamada a muda a cada comando dela. Por isso quem chama a grava de novo quando a chamada volta: o que vem depois da chamada no
+        {mono('codegen_c.c')} e {mono('flux_rt.h')}: {mono('fx_line')} (em {mono('flux_rt.h')}) é uma variável só, e a função chamada a muda a cada comando dela. Por isso quem chama (o código que o {mono('codegen_c.c')} gera) a grava de novo quando a chamada volta: o que vem depois da chamada no
         mesmo comando dá o erro com a linha desse comando. Medido, com {mono('var x = f(f(2)) + 1 / z;')} na linha 10 e o último comando de {mono('f')} na linha 6: a divisão por zero sai com{' '}
         {mono('[linha 10]')} (antes da correção saía {mono('[linha 6]')}). Um erro dentro da função chamada continua com a linha dela, porque a restauração só acontece na volta. Os detalhes estão em{' '}
         <PageLink to="compilador/gerador-c">Gerador de C</PageLink>, na seção de comandos.

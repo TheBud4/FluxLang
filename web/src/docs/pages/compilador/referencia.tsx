@@ -582,7 +582,7 @@ const backend: Area = {
         { name: 'gen_assign', kind: 'função estática', page: 'gerador-c', what: <>Atribuição; os alvos e depois os valores são todos calculados antes de qualquer gravação.</> },
         { name: 'gen_block', kind: 'função estática', page: 'gerador-c', what: <>Um bloco entre chaves.</> },
         { name: 'gen_return', kind: 'função estática', page: 'gerador-c', what: <>{mono('return')} de função ou de workflow.</> },
-        { name: 'gen_stmt', kind: 'função estática', page: 'gerador-c', what: <>Um comando, precedido de {mono('FX_LINE')} (fora blocos, {mono('break')} e {mono('continue')}).</> },
+        { name: 'gen_stmt', kind: 'função estática', page: 'gerador-c', what: <>Um comando, precedido de {mono('FX_LINE')} (fora blocos, {mono('break')} e {mono('continue')}); o {mono('while')} grava a linha de novo a cada volta, antes da condição.</> },
         { name: 'signature', kind: 'função estática', page: 'gerador-c', what: <>A assinatura C de uma função ({mono('f_nome')}) ou workflow ({mono('w_nome')}).</> },
         { name: 'gen_func', kind: 'função estática', page: 'gerador-c', what: <>Uma função inteira, com {mono('fx_check_stack')} na entrada.</> },
         { name: 'generate_c', kind: 'função', page: 'gerador-c', what: <>O arquivo C inteiro: a biblioteca, os globais, as funções e {mono('fx_program')}.</> },

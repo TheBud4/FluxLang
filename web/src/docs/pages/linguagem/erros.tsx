@@ -1579,10 +1579,12 @@ Esperado: comando ou '}'`}
         parte dela.
       </P>
       <Callout kind="nota">
-        Um refinamento da recuperação foi tentado e medido em 3.950 programas obtidos por mutação de um programa
-        válido, e reportou mais erros que a versão simples em todos os tipos de mutação. Por isso o compilador atual
-        mantém a versão simples, e os erros em cascata são uma limitação conhecida. Ao corrigir um programa, trate
-        sempre o primeiro erro e recompile.
+        Refinamentos da recuperação foram tentados e medidos duas vezes em programas obtidos por mutação de um
+        programa válido (3.950 em 14/11 e 2.384 em 18/11), e retomar em {mono('}')} ou em palavra de comando
+        reportou de 35% a 45% mais erros que a versão simples. Só a retomada no nível global ficou, para texto solto
+        sem {mono(';')} fora de função. Por isso o compilador atual mantém a versão simples dentro dos blocos, e os
+        erros em cascata são uma limitação conhecida. Ao corrigir um programa, trate sempre o primeiro erro e
+        recompile.
       </Callout>
     </>
   )

@@ -64,9 +64,10 @@
 
 ### Decisões pendentes com o usuário (achados da documentação)
 
-Achados ao escrever o manual. As páginas documentam o comportamento atual
-do compilador; nada aqui foi mudado. Cada item espera uma decisão: corrigir,
-ratificar no README ou deixar como está.
+Achados ao escrever o manual. Em 18/11/2026 os defeitos do compilador foram
+corrigidos (os itens marcados, cada um com o teste que o cobre) e as páginas
+do manual passaram a descrever a regra correta. O que continua aberto espera
+uma decisão: corrigir, ratificar no README ou deixar como está.
 
 Comportamentos do compilador a decidir (alguns podem ser intencionais):
 
@@ -80,6 +81,7 @@ Comportamentos do compilador a decidir (alguns podem ser intencionais):
 - [x] Mais de 4995 operandos encadeados estouram a pilha do Bison: o `--json` rejeita sem nenhuma mensagem (`errors: []`, `tree: null`) (corrigido: erro sintático em português, também no JSON; `tests/cli/operandos_encadeados_*.sh`)
 - [x] Pânico: medido de novo em 18/11/2026 (2.384 mutações de `valido.flux`; números em `docs/ERROS.md` seção 6): aplicada só a retomada no nível global (`global_no_func: error`, sem `yyerrok`), que tira o erro extra de fim do arquivo e devolve a árvore quando há texto solto sem `;` antes ou depois da `main` (2.972 para 2.967 erros, 2.135 para 2.194 árvores); retomar em `}` ou em palavra de comando piora (4.026 e 4.299 erros) e foi descartada. Continuam como estão: `x = 1 +` antes de `}` (o `}` é descartado, duas mensagens, sem árvore) e `1 +;` solto sem `func main` (a segunda mensagem é a falta da `main`)
 - [x] `FLUX_CC` também troca o compilador do alvo `--windows` (com `FLUX_CC=clang`, as passadas Windows falham) (corrigido: o alvo Windows ignora `FLUX_CC`; `tests/cli/windows_ignora_flux_cc.sh`)
+- [ ] Ordem da atribuição múltipla: hoje `i, l[i] = 2, 50` grava no `l[i]` antigo (alvos e valores são calculados antes de qualquer gravação, como no Go). Decidir: ratificar essa regra no README e em `tipos.tsx`, voltar à regra do Python (reabre o `l[f()] = g()` fora de ordem) ou declarar não especificado
 - [ ] `ação` dá um L1 por caractere não ASCII, e um texto partido em duas linhas dá dois L2
 - [ ] A thread de 64 MB do programa só existe no Windows; no POSIX o programa roda na thread principal
 - [ ] O `asm` que salva os registradores no coletor: só `__builtin_unwind_init` passou com clang 22 e gcc 16 (a falha descrita no antigo comentário não se reproduziu); o `asm` fica até o usuário decidir

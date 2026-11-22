@@ -190,7 +190,7 @@ export function EscopoV1() {
         rows={[
           [
             'Erros em cascata',
-            <>Uma chave {mono('{')} ou {mono('}')} esquecida, ou um {mono(';')} esquecido antes de {mono('}')}, gera erros extras depois do primeiro. Veja a recuperação de erros no <PageLink to="linguagem/erros">Catálogo de erros</PageLink>.</>,
+            <>Uma chave {mono('{')} ou {mono('}')} esquecida, ou um {mono(';')} esquecido antes de {mono('}')}, gera erros extras depois do primeiro (texto solto sem {mono(';')} fora de função já não gera). Veja a recuperação de erros no <PageLink to="linguagem/erros">Catálogo de erros</PageLink>.</>,
           ],
           [
             'Windows',
