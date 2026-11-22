@@ -18,8 +18,10 @@ int is_windows_target(void);
 
 void json_enable(void);
 int json_enabled(void);
-void json_record_token(const char *type, const char *text, int line, int column);
-void json_record_error(const char *kind, int line, int column, const char *message);
+void json_record_token(const char *type, const char *text, int line,
+                       int column);
+void json_record_error(const char *kind, int line, int column,
+                       const char *message);
 void json_print(FILE *out, int accepted, int lines);
 
 int source_lines(void);

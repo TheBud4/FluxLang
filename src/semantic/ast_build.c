@@ -24,9 +24,7 @@ static Pos pos_of(const Node *n) {
   return p;
 }
 
-static char *dup(const char *s) {
-  return mem_strdup(s);
-}
+static char *dup(const char *s) { return mem_strdup(s); }
 
 static int has_error_node(const Node *n) {
   if (n->kind == NODE_ERROR)
@@ -53,11 +51,16 @@ static void push(Vec *vec, void *p) {
 
 static Type *build_type(const Node *t) {
   const Node *first = kid(t, 0);
-  if (is(first, "TYPE_INT"))    return type_prim(T_INT);
-  if (is(first, "TYPE_FLOAT"))  return type_prim(T_FLOAT);
-  if (is(first, "TYPE_STRING")) return type_prim(T_STRING);
-  if (is(first, "TYPE_BOOL"))   return type_prim(T_BOOL);
-  if (is(first, "TYPE_OBJECT")) return type_prim(T_OBJECT);
+  if (is(first, "TYPE_INT"))
+    return type_prim(T_INT);
+  if (is(first, "TYPE_FLOAT"))
+    return type_prim(T_FLOAT);
+  if (is(first, "TYPE_STRING"))
+    return type_prim(T_STRING);
+  if (is(first, "TYPE_BOOL"))
+    return type_prim(T_BOOL);
+  if (is(first, "TYPE_OBJECT"))
+    return type_prim(T_OBJECT);
   return type_list(build_type(kid(t, 2)));
 }
 
@@ -71,14 +74,17 @@ static Expr *new_expr(ExprKind kind, const Node *at) {
 static Expr *build_expr(const Node *n);
 
 static Op op_from_token(const char *label) {
-  static const struct { const char *label; Op op; } table[] = {
-      {"OR", OP_OR},          {"AND", OP_AND},
-      {"EQUAL", OP_EQ},       {"NOT_EQUAL", OP_NE},
-      {"LOWER_THAN", OP_LT},  {"LOWER_THAN_EQUAL", OP_LE},
+  static const struct {
+    const char *label;
+    Op op;
+  } table[] = {
+      {"OR", OP_OR},           {"AND", OP_AND},
+      {"EQUAL", OP_EQ},        {"NOT_EQUAL", OP_NE},
+      {"LOWER_THAN", OP_LT},   {"LOWER_THAN_EQUAL", OP_LE},
       {"GREATER_THAN", OP_GT}, {"GREATER_THAN_EQUAL", OP_GE},
-      {"PLUS", OP_ADD},       {"MINUS", OP_SUB},
-      {"MUL", OP_MUL},        {"DIV", OP_DIV},
-      {"MOD", OP_MOD},        {"NOT", OP_NOT},
+      {"PLUS", OP_ADD},        {"MINUS", OP_SUB},
+      {"MUL", OP_MUL},         {"DIV", OP_DIV},
+      {"MOD", OP_MOD},         {"NOT", OP_NOT},
   };
   for (size_t i = 0; i < sizeof table / sizeof table[0]; i++)
     if (strcmp(table[i].label, label) == 0)
@@ -420,7 +426,9 @@ static Stmt *build_command(const Node *cmd) {
 
   Stmt *s = new_stmt(ST_ERRACT, n);
   const Node *action = kid(kid(n, 0), 0);
-  s->act = is(action, "STOP") ? ACT_STOP : is(action, "ABORT") ? ACT_ABORT : ACT_PROCEED;
+  s->act = is(action, "STOP")    ? ACT_STOP
+           : is(action, "ABORT") ? ACT_ABORT
+                                 : ACT_PROCEED;
   s->var = make_name(kid(n, 2));
   return s;
 }

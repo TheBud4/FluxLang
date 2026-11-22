@@ -7,14 +7,36 @@ void *ast_alloc(size_t size) { return mem_alloc(size); }
 
 static const char *op_name(Op op) {
   switch (op) {
-  case OP_OR:  return "||";  case OP_AND: return "&&";
-  case OP_EQ:  return "==";  case OP_NE:  return "!=";
-  case OP_LT:  return "<";   case OP_LE:  return "<=";
-  case OP_GT:  return ">";   case OP_GE:  return ">=";
-  case OP_ADD: return "+";   case OP_SUB: return "-";
-  case OP_MUL: return "*";   case OP_DIV: return "/";
-  case OP_MOD: return "%";   case OP_NEG: return "-";
-  default:     return "!";
+  case OP_OR:
+    return "||";
+  case OP_AND:
+    return "&&";
+  case OP_EQ:
+    return "==";
+  case OP_NE:
+    return "!=";
+  case OP_LT:
+    return "<";
+  case OP_LE:
+    return "<=";
+  case OP_GT:
+    return ">";
+  case OP_GE:
+    return ">=";
+  case OP_ADD:
+    return "+";
+  case OP_SUB:
+    return "-";
+  case OP_MUL:
+    return "*";
+  case OP_DIV:
+    return "/";
+  case OP_MOD:
+    return "%";
+  case OP_NEG:
+    return "-";
+  default:
+    return "!";
   }
 }
 
@@ -35,12 +57,24 @@ static void print_exprs(Expr **items, int n, int depth, FILE *out) {
 static void print_expr(const Expr *e, int depth, FILE *out) {
   indent(out, depth);
   switch (e->kind) {
-  case EX_INT:    fprintf(out, "Int %ld\n", e->ival); break;
-  case EX_FLOAT:  fprintf(out, "Float %g\n", e->fval); break;
-  case EX_STRING: fprintf(out, "String %s\n", e->text); break;
-  case EX_BOOL:   fprintf(out, "Bool %s\n", e->bval ? "true" : "false"); break;
-  case EX_NULL:   fprintf(out, "Null\n"); break;
-  case EX_IDENT:  fprintf(out, "Ident %s\n", e->text); break;
+  case EX_INT:
+    fprintf(out, "Int %ld\n", e->ival);
+    break;
+  case EX_FLOAT:
+    fprintf(out, "Float %g\n", e->fval);
+    break;
+  case EX_STRING:
+    fprintf(out, "String %s\n", e->text);
+    break;
+  case EX_BOOL:
+    fprintf(out, "Bool %s\n", e->bval ? "true" : "false");
+    break;
+  case EX_NULL:
+    fprintf(out, "Null\n");
+    break;
+  case EX_IDENT:
+    fprintf(out, "Ident %s\n", e->text);
+    break;
   case EX_UNARY:
     fprintf(out, "Unary %s\n", op_name(e->op));
     print_expr(e->a, depth + 1, out);
@@ -168,7 +202,9 @@ static void print_stmt(const Stmt *s, int depth, FILE *out) {
   case ST_ERRACT:
     indent(out, depth);
     fprintf(out, "%s if %s\n",
-            s->act == ACT_STOP ? "Stop" : s->act == ACT_ABORT ? "Abort" : "Proceed",
+            s->act == ACT_STOP    ? "Stop"
+            : s->act == ACT_ABORT ? "Abort"
+                                  : "Proceed",
             s->var.name);
     break;
   case ST_EXPR:

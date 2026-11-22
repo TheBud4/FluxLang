@@ -1,6 +1,6 @@
-#include "ast.h"
 #include "fluxc.h"
 #include "mem.h"
+#include "semantic/ast.h"
 #include <stdarg.h>
 #include <stdlib.h>
 #include <string.h>
@@ -70,32 +70,60 @@ static char *coerce(char *v, const Type *from, const Type *target) {
     if (dyn)
       return fstr("fx_as_float(%s)", v);
     break;
-  case T_INT:    if (dyn) return fstr("fx_as_int(%s)", v); break;
-  case T_BOOL:   if (dyn) return fstr("fx_as_bool(%s)", v); break;
-  case T_STRING: if (dyn) return fstr("fx_as_string(%s)", v); break;
-  case T_LIST:   if (dyn) return fstr("fx_as_list(%s)", v); break;
-  case T_OBJECT: if (dyn) return fstr("fx_as_object(%s)", v); break;
+  case T_INT:
+    if (dyn)
+      return fstr("fx_as_int(%s)", v);
+    break;
+  case T_BOOL:
+    if (dyn)
+      return fstr("fx_as_bool(%s)", v);
+    break;
+  case T_STRING:
+    if (dyn)
+      return fstr("fx_as_string(%s)", v);
+    break;
+  case T_LIST:
+    if (dyn)
+      return fstr("fx_as_list(%s)", v);
+    break;
+  case T_OBJECT:
+    if (dyn)
+      return fstr("fx_as_object(%s)", v);
+    break;
   default:
     break;
   }
   return v;
 }
 
-static char *convert(Expr *e, const Type *target) { return coerce(expr(e), e->type, target); }
+static char *convert(Expr *e, const Type *target) {
+  return coerce(expr(e), e->type, target);
+}
 
 static const char *binary_fn(Op op) {
   switch (op) {
-  case OP_ADD: return "fx_add";
-  case OP_SUB: return "fx_sub";
-  case OP_MUL: return "fx_mul";
-  case OP_DIV: return "fx_div";
-  case OP_MOD: return "fx_mod";
-  case OP_LT:  return "fx_lt";
-  case OP_LE:  return "fx_le";
-  case OP_GT:  return "fx_gt";
-  case OP_GE:  return "fx_ge";
-  case OP_EQ:  return "fx_eq";
-  default:     return "fx_ne";
+  case OP_ADD:
+    return "fx_add";
+  case OP_SUB:
+    return "fx_sub";
+  case OP_MUL:
+    return "fx_mul";
+  case OP_DIV:
+    return "fx_div";
+  case OP_MOD:
+    return "fx_mod";
+  case OP_LT:
+    return "fx_lt";
+  case OP_LE:
+    return "fx_le";
+  case OP_GT:
+    return "fx_gt";
+  case OP_GE:
+    return "fx_ge";
+  case OP_EQ:
+    return "fx_eq";
+  default:
+    return "fx_ne";
   }
 }
 
@@ -132,9 +160,13 @@ static char *gen_call(Expr *c) {
 
   if (callee->kind == EX_IDENT) {
     const char *name = callee->text;
-    static const struct { const char *name, *fn; } conversions[] = {
-        {"toString", "fx_to_string"}, {"toInt", "fx_to_int"},
-        {"toFloat", "fx_to_float"},   {"toBool", "fx_to_bool"},
+    static const struct {
+      const char *name, *fn;
+    } conversions[] = {
+        {"toString", "fx_to_string"},
+        {"toInt", "fx_to_int"},
+        {"toFloat", "fx_to_float"},
+        {"toBool", "fx_to_bool"},
     };
     for (size_t i = 0; i < sizeof conversions / sizeof conversions[0]; i++) {
       if (strcmp(name, conversions[i].name) == 0) {
@@ -173,7 +205,8 @@ static char *gen_call(Expr *c) {
   if (strcmp(m, "length") == 0) {
     emit("FxValue %s = fx_length(%s);", t, b);
   } else if (strcmp(m, "push") == 0) {
-    const Type *elem = base->type && base->type->kind == T_LIST ? base->type->elem : NULL;
+    const Type *elem =
+        base->type && base->type->kind == T_LIST ? base->type->elem : NULL;
     char *v = convert(c->items[0], elem);
     emit("FxValue %s = fx_push(%s, %s);", t, b, v);
   } else {
@@ -186,11 +219,16 @@ static char *gen_call(Expr *c) {
 static char *expr(Expr *e) {
   char *t;
   switch (e->kind) {
-  case EX_INT:    return fstr("fx_int(%ld)", e->ival);
-  case EX_FLOAT:  return fstr("fx_float(%s)", float_literal(e->fval));
-  case EX_STRING: return fstr("fx_str(%s)", e->text);
-  case EX_BOOL:   return fstr("fx_bool(%d)", e->bval);
-  case EX_NULL:   return fstr("fx_null()");
+  case EX_INT:
+    return fstr("fx_int(%ld)", e->ival);
+  case EX_FLOAT:
+    return fstr("fx_float(%s)", float_literal(e->fval));
+  case EX_STRING:
+    return fstr("fx_str(%s)", e->text);
+  case EX_BOOL:
+    return fstr("fx_bool(%d)", e->bval);
+  case EX_NULL:
+    return fstr("fx_null()");
   case EX_IDENT:
     t = new_tmp();
     emit("FxValue %s = v_%s;", t, e->text);
@@ -219,7 +257,8 @@ static char *expr(Expr *e) {
   case EX_CALL:
     return gen_call(e);
   case EX_LIST: {
-    const Type *elem = e->type && e->type->kind == T_LIST ? e->type->elem : NULL;
+    const Type *elem =
+        e->type && e->type->kind == T_LIST ? e->type->elem : NULL;
     t = new_tmp();
     emit("FxValue %s = fx_new_list();", t);
     for (int i = 0; i < e->n_items; i++) {
@@ -270,12 +309,15 @@ static void gen_var(Stmt *s, int global) {
     for (int i = 0; i < r->n_exprs; i++)
       vals[i] = convert(r->exprs[i], s->declared);
     for (int i = 0; i < s->n_names && i < r->n_exprs; i++)
-      emit(global ? "v_%s = %s;" : "FxValue v_%s = %s;", s->names[i]->name, vals[i]);
+      emit(global ? "v_%s = %s;" : "FxValue v_%s = %s;", s->names[i]->name,
+           vals[i]);
     return;
   }
   char *pair = gen_pair(r);
-  emit(global ? "v_%s = %s.result;" : "FxValue v_%s = %s.result;", s->names[0]->name, pair);
-  emit(global ? "v_%s = %s.error;" : "FxValue v_%s = %s.error;", s->names[1]->name, pair);
+  emit(global ? "v_%s = %s.result;" : "FxValue v_%s = %s.result;",
+       s->names[0]->name, pair);
+  emit(global ? "v_%s = %s.error;" : "FxValue v_%s = %s.error;",
+       s->names[1]->name, pair);
 }
 
 typedef struct {
@@ -309,14 +351,16 @@ static void gen_assign(Stmt *s) {
   if (r->kind == RHS_EXPRS) {
     char **vals = mem_alloc((r->n_exprs + 1) * sizeof(char *));
     for (int i = 0; i < r->n_exprs; i++)
-      vals[i] = convert(r->exprs[i], i < s->n_targets ? s->targets[i]->type : NULL);
+      vals[i] =
+          convert(r->exprs[i], i < s->n_targets ? s->targets[i]->type : NULL);
     for (int i = 0; i < s->n_targets && i < r->n_exprs; i++)
       store(places[i], vals[i]);
     return;
   }
   char *pair = gen_pair(r);
   const Func *w = r->kind == RHS_CALL ? find_func(r->callee.name) : NULL;
-  store(places[0], coerce(fstr("%s.result", pair), w ? w->ret : NULL, s->targets[0]->type));
+  store(places[0], coerce(fstr("%s.result", pair), w ? w->ret : NULL,
+                          s->targets[0]->type));
   store(places[1], fstr("%s.error", pair));
 }
 
@@ -412,9 +456,11 @@ static void gen_stmt(Stmt *s) {
     break;
   case ST_ERRACT:
     if (s->act == ACT_STOP)
-      emit("if (v_%s.tag != FX_NULL) return fx_pair(fx_null(), v_%s);", s->var.name, s->var.name);
+      emit("if (v_%s.tag != FX_NULL) return fx_pair(fx_null(), v_%s);",
+           s->var.name, s->var.name);
     else if (s->act == ACT_ABORT)
-      emit("if (v_%s.tag != FX_NULL) fx_abort(v_%s);", s->var.name, s->var.name);
+      emit("if (v_%s.tag != FX_NULL) fx_abort(v_%s);", s->var.name,
+           s->var.name);
     else
       emit("/* proceed if %s: o erro conta como tratado */", s->var.name);
     break;
@@ -424,7 +470,8 @@ static void gen_stmt(Stmt *s) {
 static void signature(const Func *f, int with_semicolon) {
   char *params = fstr("%s", "");
   for (int i = 0; i < f->n_params; i++)
-    params = fstr("%s%sFxValue v_%s", params, i ? ", " : "", f->params[i]->name.name);
+    params = fstr("%s%sFxValue v_%s", params, i ? ", " : "",
+                  f->params[i]->name.name);
   if (f->n_params == 0)
     params = fstr("%s", "void");
   const char *ret = f->is_workflow ? "FxPair" : "FxValue";
@@ -442,7 +489,8 @@ static void gen_func(const Func *f) {
   emit("fx_check_stack();");
   for (int i = 0; i < f->body->n_stmts; i++)
     gen_stmt(f->body->stmts[i]);
-  emit(f->is_workflow ? "return fx_pair(fx_null(), fx_null());" : "return fx_null();");
+  emit(f->is_workflow ? "return fx_pair(fx_null(), fx_null());"
+                      : "return fx_null();");
   depth--;
   emit("}");
   fputc('\n', out);
@@ -454,7 +502,9 @@ int generate_c(const Program *program, FILE *file) {
   prog = program;
   depth = 0;
 
-  fputs("/* Gerado pelo compilador FluxLang (./flux --c). Compila sozinho com o gcc. */\n\n", out);
+  fputs("/* Gerado pelo compilador FluxLang (./flux --c). Compila sozinho com "
+        "o gcc. */\n\n",
+        out);
   fputs(flux_runtime_source, out);
   fputs("\n/* ---------- programa ---------- */\n\n", out);
 
@@ -517,7 +567,8 @@ static int run_program(char *const argv[]) {
 }
 
 int compile_c(const char *c_path, const char *exe_path) {
-  const char *cc = windows_target ? "x86_64-w64-mingw32-gcc" : getenv("FLUX_CC");
+  const char *cc =
+      windows_target ? "x86_64-w64-mingw32-gcc" : getenv("FLUX_CC");
   const char *warn = getenv("FLUX_CC_WARN") ? "-Wall" : "-w";
   char *argv[64];
   int n = 0;
@@ -528,8 +579,11 @@ int compile_c(const char *c_path, const char *exe_path) {
   argv[n++] = (char *)warn;
   if (windows_target)
     argv[n++] = "-static";
-  char *extra = getenv("FLUX_CC_FLAGS") && !windows_target ? mem_strdup(getenv("FLUX_CC_FLAGS")) : NULL;
-  for (char *tok = extra ? strtok(extra, " ") : NULL; tok && n < 56; tok = strtok(NULL, " "))
+  char *extra = getenv("FLUX_CC_FLAGS") && !windows_target
+                    ? mem_strdup(getenv("FLUX_CC_FLAGS"))
+                    : NULL;
+  for (char *tok = extra ? strtok(extra, " ") : NULL; tok && n < 56;
+       tok = strtok(NULL, " "))
     argv[n++] = tok;
   argv[n++] = "-o";
   argv[n++] = (char *)exe_path;

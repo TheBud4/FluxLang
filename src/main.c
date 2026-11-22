@@ -1,14 +1,14 @@
-#include "fluxc.h"
-#include "parser.tab.h"
 #include "ast.h"
+#include "fluxc.h"
 #include "mem.h"
+#include "parser.tab.h"
 #include "tree.h"
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <sys/stat.h>
 #include <unistd.h>
-#include <stdio.h>
-#include <string.h>
 
 extern FILE *yyin;
 
@@ -40,12 +40,16 @@ static void help(void) {
          "  -t, --tokens   lista os tokens reconhecidos (só o lexer)\n"
          "  --tree         imprime a árvore de derivação\n"
          "  --json         imprime tokens, erros e árvore em JSON\n"
-         "  --ast          imprime a AST (a árvore sem a burocracia da gramática)\n"
+         "  --ast          imprime a AST (a árvore sem a burocracia da "
+         "gramática)\n"
          "  --semantic     confere também os erros semânticos (E1 a E25)\n"
-         "  --c            imprime o programa em C (com a biblioteca de execução)\n"
-         "  --build [-o x] gera o executável (via gcc); sem -o, usa o nome do arquivo\n"
+         "  --c            imprime o programa em C (com a biblioteca de "
+         "execução)\n"
+         "  --build [-o x] gera o executável (via gcc); sem -o, usa o nome do "
+         "arquivo\n"
          "  --run          gera o executável, roda e apaga\n"
-         "  --windows      com --build/--run: gera um .exe de Windows (precisa do mingw64-gcc; o --run usa o wine)\n"
+         "  --windows      com --build/--run: gera um .exe de Windows (precisa "
+         "do mingw64-gcc; o --run usa o wine)\n"
          "  -h, --help     mostra esta mensagem\n");
 }
 
@@ -81,11 +85,12 @@ static char *default_exe_name(const char *file) {
 
 static int same_file(const char *a, const char *b) {
   struct stat sa, sb;
-  return stat(a, &sa) == 0 && stat(b, &sb) == 0 && sa.st_dev == sb.st_dev && sa.st_ino == sb.st_ino;
+  return stat(a, &sa) == 0 && stat(b, &sb) == 0 && sa.st_dev == sb.st_dev &&
+         sa.st_ino == sb.st_ino;
 }
 
-static int run_codegen(Program *program, int c_mode, int build_mode, const char *outfile,
-                       const char *file) {
+static int run_codegen(Program *program, int c_mode, int build_mode,
+                       const char *outfile, const char *file) {
   if (!program) {
     fprintf(stderr, "Programa rejeitado.\n");
     return 1;
@@ -97,11 +102,14 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
 
   char exe_path[512];
   if (build_mode) {
-    snprintf(exe_path, sizeof exe_path, "%s", outfile ? outfile : default_exe_name(file));
+    snprintf(exe_path, sizeof exe_path, "%s",
+             outfile ? outfile : default_exe_name(file));
     if (file && same_file(file, exe_path)) {
       fprintf(stderr,
-              "Não é possível gerar o executável '%s': ele é o próprio arquivo fonte.\n"
-              "Use -o para escolher outro nome ou dê ao fonte uma extensão (por exemplo, "
+              "Não é possível gerar o executável '%s': ele é o próprio arquivo "
+              "fonte.\n"
+              "Use -o para escolher outro nome ou dê ao fonte uma extensão "
+              "(por exemplo, "
               "prog.flux).\n",
               exe_path);
       return 2;
@@ -122,7 +130,8 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
 
   if (!build_mode) {
     const char *suffix = is_windows_target() ? ".exe" : "";
-    snprintf(exe_path, sizeof exe_path, "%s/fluxexeXXXXXX%s", tmpdir ? tmpdir : "/tmp", suffix);
+    snprintf(exe_path, sizeof exe_path, "%s/fluxexeXXXXXX%s",
+             tmpdir ? tmpdir : "/tmp", suffix);
     int exe_fd = mkstemps(exe_path, (int)strlen(suffix));
     if (exe_fd < 0) {
       perror(exe_path);
@@ -133,7 +142,9 @@ static int run_codegen(Program *program, int c_mode, int build_mode, const char 
   }
 
   if (compile_c(c_path, exe_path) != 0) {
-    fprintf(stderr, "Erro interno: o gcc não conseguiu compilar o C gerado (guardado em %s).\n",
+    fprintf(stderr,
+            "Erro interno: o gcc não conseguiu compilar o C gerado (guardado "
+            "em %s).\n",
             c_path);
     if (!build_mode)
       unlink(exe_path);
@@ -223,7 +234,8 @@ static int run(int argc, char **argv) {
     return accepted ? 0 : 1;
   }
   if (codegen)
-    return run_codegen(accepted ? program : NULL, c_mode, build_mode, outfile, file);
+    return run_codegen(accepted ? program : NULL, c_mode, build_mode, outfile,
+                       file);
   if (tree_mode)
     print_tree(parse_root, stdout);
   if (ast_mode && program)

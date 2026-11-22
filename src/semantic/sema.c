@@ -52,14 +52,22 @@ static const char *tn(const Type *t) {
   return type_name(t, buf, sizeof bufs[0]);
 }
 
-static int is_num(const Type *t) { return t->kind == T_INT || t->kind == T_FLOAT; }
+static int is_num(const Type *t) {
+  return t->kind == T_INT || t->kind == T_FLOAT;
+}
 static int num_or_dyn(const Type *t) { return is_num(t) || t->kind == T_DYN; }
 
 static const char *plural(int n, const char *one, const char *many) {
   return n == 1 ? one : many;
 }
 
-typedef enum { SYM_VAR, SYM_FUNC, SYM_WORKFLOW, SYM_LIBFN, SYM_TERMINAL } SymKind;
+typedef enum {
+  SYM_VAR,
+  SYM_FUNC,
+  SYM_WORKFLOW,
+  SYM_LIBFN,
+  SYM_TERMINAL
+} SymKind;
 
 typedef struct Symbol {
   char *name;
@@ -141,7 +149,9 @@ typedef struct {
 
 static Flow flow;
 
-static int flow_has(const Flow *f, int id) { return id < f->len && f->init[id]; }
+static int flow_has(const Flow *f, int id) {
+  return id < f->len && f->init[id];
+}
 
 static void flow_set(Flow *f, int id) {
   if (id >= f->len) {
@@ -206,7 +216,8 @@ static void link_symbol(Symbol ***list, int *n, Symbol *target) {
   if (*n == 0)
     *list = mem_alloc(4 * sizeof **list);
   else if (*n >= 4 && (*n & (*n - 1)) == 0)
-    *list = mem_grow(*list, (size_t)*n * sizeof **list, (size_t)*n * 2 * sizeof **list);
+    *list = mem_grow(*list, (size_t)*n * sizeof **list,
+                     (size_t)*n * 2 * sizeof **list);
   (*list)[(*n)++] = target;
 }
 
@@ -219,8 +230,9 @@ static void record_call(Symbol *callee, Pos pos) {
     return;
   if (n_init_calls == cap_init_calls) {
     int cap = cap_init_calls ? cap_init_calls * 2 : 16;
-    init_calls = mem_grow(init_calls, (size_t)cap_init_calls * sizeof *init_calls,
-                          (size_t)cap * sizeof *init_calls);
+    init_calls =
+        mem_grow(init_calls, (size_t)cap_init_calls * sizeof *init_calls,
+                 (size_t)cap * sizeof *init_calls);
     cap_init_calls = cap;
   }
   init_calls[n_init_calls++] = (InitCall){callee, pos, init_decl, init_name};
@@ -259,7 +271,8 @@ static const char *callee_name(const Expr *e) {
 
 static void expect_assignable(Type *to, Expr *e, Type *got) {
   if (!type_assignable(to, got))
-    err(e->pos, "Tipo incompatível: esperado %s, encontrado %s.", tn(to), tn(got));
+    err(e->pos, "Tipo incompatível: esperado %s, encontrado %s.", tn(to),
+        tn(got));
 }
 
 static void check_assign_to(Type *to, Expr *e) {
@@ -276,20 +289,43 @@ static void check_assign_to(Type *to, Expr *e) {
 static Type *check_cond(Expr *e, const char *keyword) {
   Type *t = value_of(e);
   if (t->kind != T_BOOL && t->kind != T_DYN && t->kind != T_ERROR)
-    err(e->pos, "A condição do '%s' deve ser bool, encontrado %s.", keyword, tn(t));
+    err(e->pos, "A condição do '%s' deve ser bool, encontrado %s.", keyword,
+        tn(t));
   return t;
 }
 
 static const char *op_text(Op op) {
   switch (op) {
-  case OP_OR:  return "||";  case OP_AND: return "&&";
-  case OP_EQ:  return "==";  case OP_NE:  return "!=";
-  case OP_LT:  return "<";   case OP_LE:  return "<=";
-  case OP_GT:  return ">";   case OP_GE:  return ">=";
-  case OP_ADD: return "+";   case OP_SUB: return "-";
-  case OP_MUL: return "*";   case OP_DIV: return "/";
-  case OP_MOD: return "%";   case OP_NEG: return "-";
-  default:     return "!";
+  case OP_OR:
+    return "||";
+  case OP_AND:
+    return "&&";
+  case OP_EQ:
+    return "==";
+  case OP_NE:
+    return "!=";
+  case OP_LT:
+    return "<";
+  case OP_LE:
+    return "<=";
+  case OP_GT:
+    return ">";
+  case OP_GE:
+    return ">=";
+  case OP_ADD:
+    return "+";
+  case OP_SUB:
+    return "-";
+  case OP_MUL:
+    return "*";
+  case OP_DIV:
+    return "/";
+  case OP_MOD:
+    return "%";
+  case OP_NEG:
+    return "-";
+  default:
+    return "!";
   }
 }
 
@@ -306,7 +342,9 @@ static Type *check_binary(Expr *e) {
       return T(T_STRING);
     if (dyn && (l->kind == T_STRING || r->kind == T_STRING))
       return T(T_DYN);
-  case OP_SUB: case OP_MUL: case OP_DIV:
+  case OP_SUB:
+  case OP_MUL:
+  case OP_DIV:
     if (num_or_dyn(l) && num_or_dyn(r)) {
       if (dyn)
         return T(T_DYN);
@@ -315,16 +353,21 @@ static Type *check_binary(Expr *e) {
     bad = l;
     break;
   case OP_MOD:
-    if ((l->kind == T_INT || l->kind == T_DYN) && (r->kind == T_INT || r->kind == T_DYN))
+    if ((l->kind == T_INT || l->kind == T_DYN) &&
+        (r->kind == T_INT || r->kind == T_DYN))
       return T(dyn ? T_DYN : T_INT);
     bad = l;
     break;
-  case OP_LT: case OP_LE: case OP_GT: case OP_GE:
+  case OP_LT:
+  case OP_LE:
+  case OP_GT:
+  case OP_GE:
     if (num_or_dyn(l) && num_or_dyn(r))
       return T(T_BOOL);
     bad = l;
     break;
-  case OP_EQ: case OP_NE:
+  case OP_EQ:
+  case OP_NE:
     if (dyn || l->kind == T_NULL || r->kind == T_NULL)
       return T(T_BOOL);
     if (is_num(l) && is_num(r))
@@ -333,8 +376,10 @@ static Type *check_binary(Expr *e) {
       return T(T_BOOL);
     bad = l;
     break;
-  case OP_AND: case OP_OR:
-    if ((l->kind == T_BOOL || l->kind == T_DYN) && (r->kind == T_BOOL || r->kind == T_DYN))
+  case OP_AND:
+  case OP_OR:
+    if ((l->kind == T_BOOL || l->kind == T_DYN) &&
+        (r->kind == T_BOOL || r->kind == T_DYN))
       return T(T_BOOL);
     bad = l;
     break;
@@ -342,7 +387,8 @@ static Type *check_binary(Expr *e) {
     break;
   }
   if (bad)
-    err(e->pos, "Operador '%s' não aceita %s e %s.", op_text(e->op), tn(l), tn(r));
+    err(e->pos, "Operador '%s' não aceita %s e %s.", op_text(e->op), tn(l),
+        tn(r));
   return T(T_ERROR);
 }
 
@@ -409,18 +455,21 @@ static Type *check_index(Expr *e) {
   }
   if (base->kind == T_OBJECT) {
     if (idx->kind != T_STRING && idx->kind != T_DYN) {
-      err(e->b->pos, "Chave de object deve ser string, encontrado %s.", tn(idx));
+      err(e->b->pos, "Chave de object deve ser string, encontrado %s.",
+          tn(idx));
       return T(T_ERROR);
     }
     return T(T_DYN);
   }
-  err(e->pos, "'%s' não é uma lista nem um object e não aceita [ ].", callee_name(e->a));
+  err(e->pos, "'%s' não é uma lista nem um object e não aceita [ ].",
+      callee_name(e->a));
   return T(T_ERROR);
 }
 
 static Type *check_field(Expr *e) {
   if (is_terminal(e->a)) {
-    err(e->pos, "Tipo incompatível: 'terminal.%s' é uma função, não um valor.", e->text);
+    err(e->pos, "Tipo incompatível: 'terminal.%s' é uma função, não um valor.",
+        e->text);
     return T(T_ERROR);
   }
   Type *base = value_of(e->a);
@@ -447,7 +496,8 @@ static Type *check_list_literal(Expr *e) {
     } else if (type_assignable(t, elem)) {
       elem = t;
     } else {
-      err(e->items[i]->pos, "Tipo incompatível: esperado %s, encontrado %s.", tn(elem), tn(t));
+      err(e->items[i]->pos, "Tipo incompatível: esperado %s, encontrado %s.",
+          tn(elem), tn(t));
     }
   }
   if (!elem)
@@ -472,7 +522,8 @@ static void eval_args(Expr *call) {
     value_of(call->items[i]);
 }
 
-static void check_args_against(Expr *call, const char *name, Param **params, int n) {
+static void check_args_against(Expr *call, const char *name, Param **params,
+                               int n) {
   check_arg_count(call, name, n);
   for (int i = 0; i < call->n_items; i++) {
     if (i < n)
@@ -489,16 +540,24 @@ static Type *check_conversion(Expr *call, const char *name) {
     return T(T_ERROR);
   Type *a = call->items[0]->type;
   if (a->kind == T_ERROR || a->kind == T_DYN) {
-  } else if (strcmp(name, "toInt") == 0 && a->kind != T_STRING && a->kind != T_FLOAT) {
-    err(call->items[0]->pos, "Tipo incompatível: esperado string ou float, encontrado %s.", tn(a));
-  } else if (strcmp(name, "toFloat") == 0 && a->kind != T_STRING && a->kind != T_INT) {
-    err(call->items[0]->pos, "Tipo incompatível: esperado string ou int, encontrado %s.", tn(a));
+  } else if (strcmp(name, "toInt") == 0 && a->kind != T_STRING &&
+             a->kind != T_FLOAT) {
+    err(call->items[0]->pos,
+        "Tipo incompatível: esperado string ou float, encontrado %s.", tn(a));
+  } else if (strcmp(name, "toFloat") == 0 && a->kind != T_STRING &&
+             a->kind != T_INT) {
+    err(call->items[0]->pos,
+        "Tipo incompatível: esperado string ou int, encontrado %s.", tn(a));
   } else if (strcmp(name, "toBool") == 0 && a->kind != T_STRING) {
-    err(call->items[0]->pos, "Tipo incompatível: esperado string, encontrado %s.", tn(a));
+    err(call->items[0]->pos,
+        "Tipo incompatível: esperado string, encontrado %s.", tn(a));
   }
-  if (strcmp(name, "toInt") == 0)    return T(T_INT);
-  if (strcmp(name, "toFloat") == 0)  return T(T_FLOAT);
-  if (strcmp(name, "toBool") == 0)   return T(T_BOOL);
+  if (strcmp(name, "toInt") == 0)
+    return T(T_INT);
+  if (strcmp(name, "toFloat") == 0)
+    return T(T_FLOAT);
+  if (strcmp(name, "toBool") == 0)
+    return T(T_BOOL);
   return T(T_STRING);
 }
 
@@ -513,7 +572,8 @@ static Type *check_terminal_call(Expr *call, const char *method) {
   }
   if (strcmp(method, "input") == 0) {
     if (call->n_items > 1)
-      err(call->pos, "'terminal.input' espera até 1 argumento, recebeu %d.", call->n_items);
+      err(call->pos, "'terminal.input' espera até 1 argumento, recebeu %d.",
+          call->n_items);
     for (int i = 0; i < call->n_items; i++) {
       Type *t = value_of(call->items[i]);
       expect_assignable(T(T_STRING), call->items[i], t);
@@ -546,7 +606,8 @@ static Type *check_list_method(Expr *call, const char *method, Type *base) {
   if (call->n_items >= 1) {
     Type *t = value_of(call->items[0]);
     if (t->kind != T_INT && t->kind != T_DYN && t->kind != T_ERROR)
-      err(call->items[0]->pos, "Tipo incompatível: esperado int, encontrado %s.", tn(t));
+      err(call->items[0]->pos,
+          "Tipo incompatível: esperado int, encontrado %s.", tn(t));
   }
   return T(T_VOID);
 }
@@ -562,12 +623,14 @@ static Type *check_method_call(Expr *call) {
     eval_args(call);
     return base;
   }
-  int is_list_method = strcmp(method, "length") == 0 || strcmp(method, "push") == 0 ||
+  int is_list_method = strcmp(method, "length") == 0 ||
+                       strcmp(method, "push") == 0 ||
                        strcmp(method, "remove") == 0;
   if ((base->kind == T_LIST || base->kind == T_DYN) && is_list_method)
     return check_list_method(call, method, base);
 
-  err(callee->pos, "'%s' não tem o método '%s'.", callee_name(callee->a), method);
+  err(callee->pos, "'%s' não tem o método '%s'.", callee_name(callee->a),
+      method);
   eval_args(call);
   return T(T_ERROR);
 }
@@ -594,7 +657,8 @@ static Type *check_call(Expr *call) {
     check_args_against(call, s->name, s->func->params, s->func->n_params);
     return s->func->ret ? s->func->ret : T(T_VOID);
   case SYM_WORKFLOW:
-    err(callee->pos, "'%s' é um workflow e deve ser chamado com 'call'.", s->name);
+    err(callee->pos, "'%s' é um workflow e deve ser chamado com 'call'.",
+        s->name);
     eval_args(call);
     return T(T_ERROR);
   case SYM_LIBFN:
@@ -613,19 +677,45 @@ static Type *check_call(Expr *call) {
 static Type *check_expr(Expr *e) {
   Type *t;
   switch (e->kind) {
-  case EX_INT:    t = T(T_INT); break;
-  case EX_FLOAT:  t = T(T_FLOAT); break;
-  case EX_STRING: t = T(T_STRING); break;
-  case EX_BOOL:   t = T(T_BOOL); break;
-  case EX_NULL:   t = T(T_NULL); break;
-  case EX_IDENT:  t = check_ident(e); break;
-  case EX_UNARY:  t = check_unary(e); break;
-  case EX_BINARY: t = check_binary(e); break;
-  case EX_INDEX:  t = check_index(e); break;
-  case EX_FIELD:  t = check_field(e); break;
-  case EX_CALL:   t = check_call(e); break;
-  case EX_LIST:   t = check_list_literal(e); break;
-  default:        t = check_object_literal(e); break;
+  case EX_INT:
+    t = T(T_INT);
+    break;
+  case EX_FLOAT:
+    t = T(T_FLOAT);
+    break;
+  case EX_STRING:
+    t = T(T_STRING);
+    break;
+  case EX_BOOL:
+    t = T(T_BOOL);
+    break;
+  case EX_NULL:
+    t = T(T_NULL);
+    break;
+  case EX_IDENT:
+    t = check_ident(e);
+    break;
+  case EX_UNARY:
+    t = check_unary(e);
+    break;
+  case EX_BINARY:
+    t = check_binary(e);
+    break;
+  case EX_INDEX:
+    t = check_index(e);
+    break;
+  case EX_FIELD:
+    t = check_field(e);
+    break;
+  case EX_CALL:
+    t = check_call(e);
+    break;
+  case EX_LIST:
+    t = check_list_literal(e);
+    break;
+  default:
+    t = check_object_literal(e);
+    break;
   }
   e->type = t;
   return t;
@@ -654,12 +744,18 @@ static void check_run_object(Expr *obj) {
     if (strcmp(key, "command") == 0) {
       seen_command = 1;
       if (t->kind != T_STRING && t->kind != T_DYN && t->kind != T_ERROR)
-        err(value->pos, "O campo 'command' de 'run' deve ser string, encontrado %s.", tn(t));
+        err(value->pos,
+            "O campo 'command' de 'run' deve ser string, encontrado %s.",
+            tn(t));
     } else if (strcmp(key, "workingDir") == 0) {
       if (t->kind != T_STRING && t->kind != T_DYN && t->kind != T_ERROR)
-        err(value->pos, "O campo 'workingDir' de 'run' deve ser string, encontrado %s.", tn(t));
+        err(value->pos,
+            "O campo 'workingDir' de 'run' deve ser string, encontrado %s.",
+            tn(t));
     } else if (!type_assignable(type_list(T(T_STRING)), t)) {
-      err(value->pos, "O campo 'flags' de 'run' deve ser list<string>, encontrado %s.", tn(t));
+      err(value->pos,
+          "O campo 'flags' de 'run' deve ser list<string>, encontrado %s.",
+          tn(t));
     }
   }
   if (!seen_command)
@@ -686,7 +782,8 @@ static Type *check_call_or_run(Rhs *r) {
     return T(T_ERROR);
   }
   if (s->kind == SYM_FUNC) {
-    err(r->callee.pos, "'%s' é uma função e deve ser chamada sem 'call'.", s->name);
+    err(r->callee.pos, "'%s' é uma função e deve ser chamada sem 'call'.",
+        s->name);
     eval_args(&fake);
     return T(T_ERROR);
   }
@@ -703,8 +800,8 @@ static void check_stmt(Stmt *s);
 static void check_block(Stmt *block);
 
 static void count_mismatch(Pos pos, int vars, int values) {
-  err(pos, "%d %s e %d %s.", vars, plural(vars, "variável", "variáveis"), values,
-      plural(values, "valor", "valores"));
+  err(pos, "%d %s e %d %s.", vars, plural(vars, "variável", "variáveis"),
+      values, plural(values, "valor", "valores"));
 }
 
 static void make_error_var(Symbol *s, Pos pos) {
@@ -736,7 +833,8 @@ static void check_var(Stmt *s, int is_global) {
         types[i] = t;
       } else if (t->kind == T_NULL || t->kind == T_DYN ||
                  (t->kind == T_LIST && t->elem->kind == T_NULL)) {
-        err(s->names[i]->pos, "Não é possível inferir o tipo de '%s'; declare o tipo.",
+        err(s->names[i]->pos,
+            "Não é possível inferir o tipo de '%s'; declare o tipo.",
             s->names[i]->name);
       } else {
         types[i] = t;
@@ -750,13 +848,18 @@ static void check_var(Stmt *s, int is_global) {
       count_mismatch(s->pos, s->n_names, 2);
     if (s->declared) {
       if (!type_assignable(s->declared, result))
-        err(s->rhs->pos, "Tipo incompatível: esperado %s, encontrado %s.", tn(s->declared), tn(result));
+        err(s->rhs->pos, "Tipo incompatível: esperado %s, encontrado %s.",
+            tn(s->declared), tn(result));
       if (!type_assignable(s->declared, T(T_STRING)))
-        err(s->rhs->pos, "Tipo incompatível: o erro é string, mas '%s' foi declarado %s.",
-            s->n_names > 1 ? s->names[1]->name : s->names[0]->name, tn(s->declared));
+        err(s->rhs->pos,
+            "Tipo incompatível: o erro é string, mas '%s' foi declarado %s.",
+            s->n_names > 1 ? s->names[1]->name : s->names[0]->name,
+            tn(s->declared));
     } else {
-      if (n > 0) types[0] = result;
-      if (n > 1) types[1] = T(T_STRING);
+      if (n > 0)
+        types[0] = result;
+      if (n > 1)
+        types[1] = T(T_STRING);
     }
   }
 
@@ -764,7 +867,8 @@ static void check_var(Stmt *s, int is_global) {
     Symbol *sym;
     if (is_global) {
       sym = lookup(s->names[i]->name);
-      if (!sym || sym->kind != SYM_VAR || sym->decl_pos.line != s->names[i]->pos.line ||
+      if (!sym || sym->kind != SYM_VAR ||
+          sym->decl_pos.line != s->names[i]->pos.line ||
           sym->decl_pos.column != s->names[i]->pos.column)
         continue;
       sym->is_const = s->is_const;
@@ -793,7 +897,9 @@ static Type *check_target(Expr *t, Symbol **sym_out) {
       return t->type;
     }
     if (s->kind != SYM_VAR) {
-      err(t->pos, "Tipo incompatível: '%s' é uma função e não pode receber um valor.", s->name);
+      err(t->pos,
+          "Tipo incompatível: '%s' é uma função e não pode receber um valor.",
+          s->name);
       t->type = T(T_ERROR);
       return t->type;
     }
@@ -835,14 +941,17 @@ static void check_assign(Stmt *s) {
       count_mismatch(s->pos, s->n_targets, 2);
     } else {
       if (!type_assignable(types[0], result))
-        err(s->rhs->pos, "Tipo incompatível: esperado %s, encontrado %s.", tn(types[0]), tn(result));
+        err(s->rhs->pos, "Tipo incompatível: esperado %s, encontrado %s.",
+            tn(types[0]), tn(result));
       Expr *second = s->targets[1];
       if (second->kind != EX_IDENT) {
-        err(second->pos, "O segundo valor de '%s' deve ir para uma variável de erro.",
+        err(second->pos,
+            "O segundo valor de '%s' deve ir para uma variável de erro.",
             s->rhs->kind == RHS_CALL ? "call" : "run");
       } else if (syms[1]) {
         if (!type_assignable(syms[1]->type, T(T_STRING)))
-          err(second->pos, "Tipo incompatível: esperado %s, encontrado string.", tn(syms[1]->type));
+          err(second->pos, "Tipo incompatível: esperado %s, encontrado string.",
+              tn(syms[1]->type));
         if (can_use_call_run())
           make_error_var(syms[1], second->pos);
       }
@@ -873,7 +982,8 @@ static void check_return(Stmt *s) {
     if (s->n_exprs != 1) {
       for (int i = 0; i < s->n_exprs; i++)
         value_of(s->exprs[i]);
-      err(s->pos, "A função '%s' deve retornar um valor %s.", f->name.name, tn(f->ret));
+      err(s->pos, "A função '%s' deve retornar um valor %s.", f->name.name,
+          tn(f->ret));
     } else {
       check_assign_to(f->ret, s->exprs[0]);
     }
@@ -896,7 +1006,8 @@ static void check_stmt(Stmt *s) {
   case ST_EXPR:
     check_expr(s->exprs[0]);
     if (s->exprs[0]->kind != EX_CALL)
-      err(s->pos, "Esta expressão não faz nada: só chamadas podem ser usadas como comando.");
+      err(s->pos, "Esta expressão não faz nada: só chamadas podem ser usadas "
+                  "como comando.");
     break;
   case ST_BLOCK:
     check_block(s);
@@ -956,7 +1067,8 @@ static void check_stmt(Stmt *s) {
   case ST_BREAK:
   case ST_CONTINUE:
     if (loop_depth == 0)
-      err(s->pos, "'%s' fora de um laço.", s->kind == ST_BREAK ? "break" : "continue");
+      err(s->pos, "'%s' fora de um laço.",
+          s->kind == ST_BREAK ? "break" : "continue");
     flow.dead = 1;
     break;
   case ST_ERRACT: {
@@ -983,7 +1095,9 @@ static void check_block(Stmt *block) {
 
 static void check_func(Func *f) {
   Symbol *self = lookup(f->name.name);
-  cur_sym = self && (self->kind == SYM_FUNC || self->kind == SYM_WORKFLOW) ? self : NULL;
+  cur_sym = self && (self->kind == SYM_FUNC || self->kind == SYM_WORKFLOW)
+                ? self
+                : NULL;
   cur_func = f;
   loop_depth = 0;
   next_flow_id = 0;
@@ -999,15 +1113,15 @@ static void check_func(Func *f) {
   }
   check_block(f->body);
   if (f->ret && !f->is_workflow && !f->is_main && !flow.dead)
-    err(f->name.pos, "A função '%s' deve retornar %s em todos os caminhos.", f->name.name,
-        tn(f->ret));
+    err(f->name.pos, "A função '%s' deve retornar %s em todos os caminhos.",
+        f->name.name, tn(f->ret));
   scope_pop();
   cur_func = NULL;
   cur_sym = NULL;
 }
 
-static int find_late_read(Symbol *start, int decl, Symbol **reader, Symbol **global,
-                          int stamp) {
+static int find_late_read(Symbol *start, int decl, Symbol **reader,
+                          Symbol **global, int stamp) {
   Symbol **stack = mem_alloc((size_t)(n_func_syms + 1) * sizeof *stack);
   int top = 0;
   stack[top++] = start;
@@ -1039,13 +1153,17 @@ static void check_init_order(void) {
     if (reader == c->callee)
       snprintf(via, sizeof via, "'%s'", c->callee->name);
     else
-      snprintf(via, sizeof via, "'%s' e, por ela, '%s'", c->callee->name, reader->name);
+      snprintf(via, sizeof via, "'%s' e, por ela, '%s'", c->callee->name,
+               reader->name);
     if (global->decl_index > c->decl)
-      err(c->pos, "O inicializador de '%s' chama %s, que lê o global '%s', declarado depois (linha %d).",
+      err(c->pos,
+          "O inicializador de '%s' chama %s, que lê o global '%s', declarado "
+          "depois (linha %d).",
           c->var_name, via, global->name, global->decl_pos.line);
     else
       err(c->pos,
-          "O inicializador de '%s' chama %s, que lê o global '%s', que ainda não tem valor neste ponto (linha %d).",
+          "O inicializador de '%s' chama %s, que lê o global '%s', que ainda "
+          "não tem valor neste ponto (linha %d).",
           c->var_name, via, global->name, global->decl_pos.line);
   }
 }
@@ -1075,7 +1193,8 @@ int semantic_check(Program *program) {
   for (int i = 0; i < program->n_decls; i++) {
     Decl *d = &program->decls[i];
     if (d->func && !d->func->is_main) {
-      Symbol *s = declare(&d->func->name, d->func->is_workflow ? SYM_WORKFLOW : SYM_FUNC, NULL);
+      Symbol *s = declare(&d->func->name,
+                          d->func->is_workflow ? SYM_WORKFLOW : SYM_FUNC, NULL);
       if (s) {
         s->func = d->func;
         n_func_syms++;
@@ -1095,7 +1214,8 @@ int semantic_check(Program *program) {
       continue;
     if (!d->var->rhs)
       for (int k = 0; k < d->var->n_names; k++)
-        err(d->var->names[k]->pos, "A variável global '%s' precisa de valor inicial.",
+        err(d->var->names[k]->pos,
+            "A variável global '%s' precisa de valor inicial.",
             d->var->names[k]->name);
     cur_func = NULL;
     in_global_init = 1;
@@ -1116,6 +1236,7 @@ int semantic_check(Program *program) {
   if (n_diags > 1)
     qsort(diags, n_diags, sizeof *diags, by_position);
   for (int i = 0; i < n_diags; i++)
-    report_error("semântico", diags[i].line, diags[i].column, "%s", diags[i].message);
+    report_error("semântico", diags[i].line, diags[i].column, "%s",
+                 diags[i].message);
   return n_diags;
 }

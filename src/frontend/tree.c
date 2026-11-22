@@ -1,7 +1,6 @@
 #include "tree.h"
 #include "mem.h"
 #include <stdarg.h>
-#include <stdlib.h>
 #include <string.h>
 
 Node *parse_root = NULL;

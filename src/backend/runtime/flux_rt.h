@@ -28,7 +28,15 @@
 
 #define FX_FN static __attribute__((unused))
 
-typedef enum { FX_NULL, FX_INT, FX_FLOAT, FX_BOOL, FX_STRING, FX_LIST, FX_OBJECT } FxTag;
+typedef enum {
+  FX_NULL,
+  FX_INT,
+  FX_FLOAT,
+  FX_BOOL,
+  FX_STRING,
+  FX_LIST,
+  FX_OBJECT
+} FxTag;
 
 typedef struct FxList FxList;
 typedef struct FxObj FxObj;
@@ -77,11 +85,16 @@ FX_FN int fx_use_color(int fd) {
 
 FX_FN const char *fx_color_of(char kind) {
   switch (kind) {
-  case 'L': return "\033[94m";
-  case 'I': return "\033[36m";
-  case 'W': return "\033[33m";
-  case 'E': return "\033[31m";
-  default:  return "\033[1;31m";
+  case 'L':
+    return "\033[94m";
+  case 'I':
+    return "\033[36m";
+  case 'W':
+    return "\033[33m";
+  case 'E':
+    return "\033[31m";
+  default:
+    return "\033[1;31m";
   }
 }
 
@@ -91,7 +104,8 @@ FX_FN void fx_emit(char kind, const char *text) {
   fwrite(text, 1, n, stdout);
 }
 
-FX_FN void fx_die(const char *fmt, ...) __attribute__((noreturn, format(printf, 1, 2)));
+FX_FN void fx_die(const char *fmt, ...)
+    __attribute__((noreturn, format(printf, 1, 2)));
 FX_FN void fx_die(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -116,27 +130,35 @@ FX_FN void fx_die(const char *fmt, ...) {
   }
   fflush(stdout);
   int color = fx_use_color(2);
-  fprintf(stderr, "%sErro de execução [linha %d]:\n%s%s\n", color ? fx_color_of('F') : "", fx_line,
-          text, color ? "\033[0m" : "");
+  fprintf(stderr, "%sErro de execução [linha %d]:\n%s%s\n",
+          color ? fx_color_of('F') : "", fx_line, text, color ? "\033[0m" : "");
   exit(1);
 }
 
 FX_FN const char *fx_tag_name(FxTag t) {
   switch (t) {
-  case FX_NULL:   return "null";
-  case FX_INT:    return "int";
-  case FX_FLOAT:  return "float";
-  case FX_BOOL:   return "bool";
-  case FX_STRING: return "string";
-  case FX_LIST:   return "list";
-  default:        return "object";
+  case FX_NULL:
+    return "null";
+  case FX_INT:
+    return "int";
+  case FX_FLOAT:
+    return "float";
+  case FX_BOOL:
+    return "bool";
+  case FX_STRING:
+    return "string";
+  case FX_LIST:
+    return "list";
+  default:
+    return "object";
   }
 }
 
 FX_FN void fx_null_use(void) __attribute__((noreturn));
 FX_FN void fx_null_use(void) { fx_die("Uso de valor null."); }
 
-FX_FN void fx_type_err(const char *expected, FxValue got) __attribute__((noreturn));
+FX_FN void fx_type_err(const char *expected, FxValue got)
+    __attribute__((noreturn));
 FX_FN void fx_type_err(const char *expected, FxValue got) {
   if (got.tag == FX_NULL)
     fx_null_use();
@@ -213,7 +235,8 @@ FX_FN FxBlock *fx_gc_find(const void *p) {
     return NULL;
   FxBlock *b = fx_gc_sorted[lo - 1];
   const char *end = (const char *)(b + 1) + b->size;
-  return ((const char *)p >= (const char *)b && (const char *)p < end) ? b : NULL;
+  return ((const char *)p >= (const char *)b && (const char *)p < end) ? b
+                                                                       : NULL;
 }
 
 FX_FN void fx_gc_mark_ptr(const void *p) {
@@ -232,10 +255,17 @@ FX_FN void fx_gc_mark_ptr(const void *p) {
 
 FX_FN void fx_gc_mark_value(const FxValue *v) {
   switch (v->tag) {
-  case FX_STRING: fx_gc_mark_ptr(v->as.s); break;
-  case FX_LIST:   fx_gc_mark_ptr(v->as.l); break;
-  case FX_OBJECT: fx_gc_mark_ptr(v->as.o); break;
-  default:        break;
+  case FX_STRING:
+    fx_gc_mark_ptr(v->as.s);
+    break;
+  case FX_LIST:
+    fx_gc_mark_ptr(v->as.l);
+    break;
+  case FX_OBJECT:
+    fx_gc_mark_ptr(v->as.o);
+    break;
+  default:
+    break;
   }
 }
 
@@ -266,7 +296,8 @@ FX_FN void fx_gc_scan_range(const char *lo, const char *hi)
     __attribute__((noinline, no_sanitize_address));
 FX_FN void fx_gc_scan_range(const char *lo, const char *hi) {
   uintptr_t start = ((uintptr_t)lo + 7) & ~(uintptr_t)7;
-  for (const uintptr_t *w = (const uintptr_t *)start; (const char *)(w + 1) <= hi; w++)
+  for (const uintptr_t *w = (const uintptr_t *)start;
+       (const char *)(w + 1) <= hi; w++)
     fx_gc_mark_ptr((const void *)*w);
 }
 
@@ -275,17 +306,25 @@ FX_FN void fx_gc_collect(void) {
   uintptr_t saved[16] __attribute__((aligned(16))) = {0};
 #if defined(__x86_64__) && defined(_WIN32)
   uintptr_t saved_xmm[20] __attribute__((aligned(16))) = {0};
-  __asm__ volatile("movups %%xmm6, 0(%0)\n\tmovups %%xmm7, 16(%0)\n\tmovups %%xmm8, 32(%0)\n\t"
-                   "movups %%xmm9, 48(%0)\n\tmovups %%xmm10, 64(%0)\n\tmovups %%xmm11, 80(%0)\n\t"
-                   "movups %%xmm12, 96(%0)\n\tmovups %%xmm13, 112(%0)\n\tmovups %%xmm14, 128(%0)\n\t"
+  __asm__ volatile("movups %%xmm6, 0(%0)\n\tmovups %%xmm7, 16(%0)\n\tmovups "
+                   "%%xmm8, 32(%0)\n\t"
+                   "movups %%xmm9, 48(%0)\n\tmovups %%xmm10, 64(%0)\n\tmovups "
+                   "%%xmm11, 80(%0)\n\t"
+                   "movups %%xmm12, 96(%0)\n\tmovups %%xmm13, "
+                   "112(%0)\n\tmovups %%xmm14, 128(%0)\n\t"
                    "movups %%xmm15, 144(%0)"
-                   : : "c"(saved_xmm) : "memory");
+                   :
+                   : "c"(saved_xmm)
+                   : "memory");
 #endif
 #if defined(__x86_64__)
-  __asm__ volatile("movq %%rbx, 0(%0)\n\tmovq %%rbp, 8(%0)\n\tmovq %%r12, 16(%0)\n\t"
-                   "movq %%r13, 24(%0)\n\tmovq %%r14, 32(%0)\n\tmovq %%r15, 40(%0)\n\t"
-                   "movq %%rdi, 48(%0)\n\tmovq %%rsi, 56(%0)"
-                   : : "c"(saved) : "memory");
+  __asm__ volatile(
+      "movq %%rbx, 0(%0)\n\tmovq %%rbp, 8(%0)\n\tmovq %%r12, 16(%0)\n\t"
+      "movq %%r13, 24(%0)\n\tmovq %%r14, 32(%0)\n\tmovq %%r15, 40(%0)\n\t"
+      "movq %%rdi, 48(%0)\n\tmovq %%rsi, 56(%0)"
+      :
+      : "c"(saved)
+      : "memory");
 #else
   __builtin_unwind_init();
 #endif
@@ -357,8 +396,8 @@ FX_FN void *fx_gc_alloc(size_t n, FxBlockKind kind) {
 FX_FN void *fx_alloc(size_t n) { return fx_gc_alloc(n, FXB_RAW); }
 
 FX_FN void fx_gc_report(void) {
-  fprintf(stderr, "[gc] %zu coletas, %zu blocos liberados, %zu blocos vivos\n", fx_gc_runs,
-          fx_gc_freed, fx_block_count);
+  fprintf(stderr, "[gc] %zu coletas, %zu blocos liberados, %zu blocos vivos\n",
+          fx_gc_runs, fx_gc_freed, fx_block_count);
 }
 
 FX_FN void fx_init(const void *stack_base) {
@@ -378,7 +417,8 @@ FX_FN void fx_init(const void *stack_base) {
     _setmode(_fileno(stderr), _O_BINARY);
   }
   DWORD console_mode;
-  HANDLE handles[2] = {GetStdHandle(STD_OUTPUT_HANDLE), GetStdHandle(STD_ERROR_HANDLE)};
+  HANDLE handles[2] = {GetStdHandle(STD_OUTPUT_HANDLE),
+                       GetStdHandle(STD_ERROR_HANDLE)};
   for (int i = 0; i < 2; i++)
     if (GetConsoleMode(handles[i], &console_mode))
       SetConsoleMode(handles[i], console_mode | 0x0004);
@@ -418,11 +458,34 @@ FX_FN int fx_start(int (*program)(void)) {
 FX_FN int fx_start(int (*program)(void)) { return program(); }
 #endif
 
-FX_FN FxValue fx_null(void) { FxValue v = {FX_NULL, {0}}; return v; }
-FX_FN FxValue fx_int(int32_t i) { FxValue v; v.tag = FX_INT; v.as.i = i; return v; }
-FX_FN FxValue fx_float(double f) { FxValue v; v.tag = FX_FLOAT; v.as.f = f; return v; }
-FX_FN FxValue fx_bool(int b) { FxValue v; v.tag = FX_BOOL; v.as.b = b != 0; return v; }
-FX_FN FxValue fx_str(const char *s) { FxValue v; v.tag = FX_STRING; v.as.s = s; return v; }
+FX_FN FxValue fx_null(void) {
+  FxValue v = {FX_NULL, {0}};
+  return v;
+}
+FX_FN FxValue fx_int(int32_t i) {
+  FxValue v;
+  v.tag = FX_INT;
+  v.as.i = i;
+  return v;
+}
+FX_FN FxValue fx_float(double f) {
+  FxValue v;
+  v.tag = FX_FLOAT;
+  v.as.f = f;
+  return v;
+}
+FX_FN FxValue fx_bool(int b) {
+  FxValue v;
+  v.tag = FX_BOOL;
+  v.as.b = b != 0;
+  return v;
+}
+FX_FN FxValue fx_str(const char *s) {
+  FxValue v;
+  v.tag = FX_STRING;
+  v.as.s = s;
+  return v;
+}
 
 FX_FN FxValue fx_new_list(void) {
   FxValue v;
@@ -497,7 +560,9 @@ FX_FN void fx_obj_put(FxObj *o, const char *key, FxValue v) {
   o->vals[o->n++] = v;
 }
 
-FX_FN void fx_obj_set(FxValue obj, const char *key, FxValue v) { fx_obj_put(obj.as.o, key, v); }
+FX_FN void fx_obj_set(FxValue obj, const char *key, FxValue v) {
+  fx_obj_put(obj.as.o, key, v);
+}
 
 FX_FN FxValue fx_field(FxValue base, const char *key) {
   FxObj *o = fx_as_obj_ptr(base);
@@ -565,34 +630,43 @@ FX_FN FxValue fx_remove(FxValue list, FxValue idx) {
 FX_FN FxList *fx_for_list(FxValue v) { return fx_as_list_ptr(v); }
 
 FX_FN FxValue fx_as_int(FxValue v) {
-  if (v.tag != FX_INT && v.tag != FX_NULL) fx_type_err("int", v);
+  if (v.tag != FX_INT && v.tag != FX_NULL)
+    fx_type_err("int", v);
   return v;
 }
 FX_FN FxValue fx_as_bool(FxValue v) {
-  if (v.tag != FX_BOOL && v.tag != FX_NULL) fx_type_err("bool", v);
+  if (v.tag != FX_BOOL && v.tag != FX_NULL)
+    fx_type_err("bool", v);
   return v;
 }
 FX_FN FxValue fx_as_string(FxValue v) {
-  if (v.tag != FX_STRING && v.tag != FX_NULL) fx_type_err("string", v);
+  if (v.tag != FX_STRING && v.tag != FX_NULL)
+    fx_type_err("string", v);
   return v;
 }
 FX_FN FxValue fx_as_list(FxValue v) {
-  if (v.tag != FX_LIST && v.tag != FX_NULL) fx_type_err("list", v);
+  if (v.tag != FX_LIST && v.tag != FX_NULL)
+    fx_type_err("list", v);
   return v;
 }
 FX_FN FxValue fx_as_object(FxValue v) {
-  if (v.tag != FX_OBJECT && v.tag != FX_NULL) fx_type_err("object", v);
+  if (v.tag != FX_OBJECT && v.tag != FX_NULL)
+    fx_type_err("object", v);
   return v;
 }
 
 FX_FN FxValue fx_as_float(FxValue v) {
-  if (v.tag == FX_INT) return fx_float((double)v.as.i);
-  if (v.tag != FX_FLOAT && v.tag != FX_NULL) fx_type_err("float", v);
+  if (v.tag == FX_INT)
+    return fx_float((double)v.as.i);
+  if (v.tag != FX_FLOAT && v.tag != FX_NULL)
+    fx_type_err("float", v);
   return v;
 }
 
 FX_FN int fx_is_num(FxValue v) { return v.tag == FX_INT || v.tag == FX_FLOAT; }
-FX_FN double fx_num(FxValue v) { return v.tag == FX_INT ? (double)v.as.i : v.as.f; }
+FX_FN double fx_num(FxValue v) {
+  return v.tag == FX_INT ? (double)v.as.i : v.as.f;
+}
 
 FX_FN void fx_need_nums(FxValue a, FxValue b) {
   if (a.tag == FX_NULL || b.tag == FX_NULL)
@@ -707,10 +781,26 @@ FX_FN int fx_order(FxValue a, FxValue b, int *unordered) {
   return (x > y) - (x < y);
 }
 
-FX_FN FxValue fx_lt(FxValue a, FxValue b) { int u; int c = fx_order(a, b, &u); return fx_bool(!u && c < 0); }
-FX_FN FxValue fx_le(FxValue a, FxValue b) { int u; int c = fx_order(a, b, &u); return fx_bool(!u && c <= 0); }
-FX_FN FxValue fx_gt(FxValue a, FxValue b) { int u; int c = fx_order(a, b, &u); return fx_bool(!u && c > 0); }
-FX_FN FxValue fx_ge(FxValue a, FxValue b) { int u; int c = fx_order(a, b, &u); return fx_bool(!u && c >= 0); }
+FX_FN FxValue fx_lt(FxValue a, FxValue b) {
+  int u;
+  int c = fx_order(a, b, &u);
+  return fx_bool(!u && c < 0);
+}
+FX_FN FxValue fx_le(FxValue a, FxValue b) {
+  int u;
+  int c = fx_order(a, b, &u);
+  return fx_bool(!u && c <= 0);
+}
+FX_FN FxValue fx_gt(FxValue a, FxValue b) {
+  int u;
+  int c = fx_order(a, b, &u);
+  return fx_bool(!u && c > 0);
+}
+FX_FN FxValue fx_ge(FxValue a, FxValue b) {
+  int u;
+  int c = fx_order(a, b, &u);
+  return fx_bool(!u && c >= 0);
+}
 
 FX_FN int fx_equal(FxValue a, FxValue b) {
   if (a.tag == FX_NULL || b.tag == FX_NULL)
@@ -723,17 +813,22 @@ FX_FN int fx_equal(FxValue a, FxValue b) {
   if (a.tag != b.tag)
     return 0;
   switch (a.tag) {
-  case FX_BOOL:   return a.as.b == b.as.b;
-  case FX_STRING: return strcmp(a.as.s, b.as.s) == 0;
-  case FX_LIST:   return a.as.l == b.as.l;
-  default:        return a.as.o == b.as.o;
+  case FX_BOOL:
+    return a.as.b == b.as.b;
+  case FX_STRING:
+    return strcmp(a.as.s, b.as.s) == 0;
+  case FX_LIST:
+    return a.as.l == b.as.l;
+  default:
+    return a.as.o == b.as.o;
   }
 }
 
 FX_FN FxValue fx_eq(FxValue a, FxValue b) { return fx_bool(fx_equal(a, b)); }
 FX_FN FxValue fx_ne(FxValue a, FxValue b) { return fx_bool(!fx_equal(a, b)); }
 
-FX_FN const char *fx_dup_printf(const char *fmt, ...) __attribute__((format(printf, 1, 2)));
+FX_FN const char *fx_dup_printf(const char *fmt, ...)
+    __attribute__((format(printf, 1, 2)));
 FX_FN const char *fx_dup_printf(const char *fmt, ...) {
   va_list args;
   va_start(args, fmt);
@@ -774,11 +869,16 @@ FX_FN FxBlock *fx_repr_enter(const void *payload) {
 
 FX_FN const char *fx_repr(FxValue v, int quote) {
   switch (v.tag) {
-  case FX_NULL:   return "null";
-  case FX_INT:    return fx_dup_printf("%d", v.as.i);
-  case FX_FLOAT:  return fx_fmt_float(v.as.f);
-  case FX_BOOL:   return v.as.b ? "true" : "false";
-  case FX_STRING: return quote ? fx_dup_printf("\"%s\"", v.as.s) : v.as.s;
+  case FX_NULL:
+    return "null";
+  case FX_INT:
+    return fx_dup_printf("%d", v.as.i);
+  case FX_FLOAT:
+    return fx_fmt_float(v.as.f);
+  case FX_BOOL:
+    return v.as.b ? "true" : "false";
+  case FX_STRING:
+    return quote ? fx_dup_printf("\"%s\"", v.as.s) : v.as.s;
   case FX_LIST: {
     FxBlock *b = fx_repr_enter(v.as.l);
     const char *s = "[";
@@ -801,7 +901,8 @@ FX_FN const char *fx_repr(FxValue v, int quote) {
 
 FX_FN FxValue fx_to_string(FxValue v) { return fx_str(fx_repr(v, 0)); }
 
-FX_FN void fx_cannot_convert(FxValue v, const char *to) __attribute__((noreturn));
+FX_FN void fx_cannot_convert(FxValue v, const char *to)
+    __attribute__((noreturn));
 FX_FN void fx_cannot_convert(FxValue v, const char *to) {
   fx_die("Não é possível converter %s para %s.", fx_repr(v, 1), to);
 }
@@ -821,7 +922,8 @@ FX_FN FxValue fx_to_int(FxValue v) {
     char *end;
     errno = 0;
     long n = strtol(v.as.s, &end, 10);
-    if (v.as.s[0] == '\0' || *end != '\0' || errno == ERANGE || n > INT32_MAX || n < INT32_MIN)
+    if (v.as.s[0] == '\0' || *end != '\0' || errno == ERANGE || n > INT32_MAX ||
+        n < INT32_MIN)
       fx_cannot_convert(v, "int");
     return fx_int((int32_t)n);
   }
@@ -871,13 +973,14 @@ FX_FN FxValue fx_print(char kind, int to_stderr, FxValue v) {
   if (to_stderr)
     fflush(stdout);
   int color = fx_use_color(to_stderr ? 2 : 1);
-  fprintf(stream, "%s%s%s\n", color ? fx_color_of(kind) : "", text, color ? "\033[0m" : "");
+  fprintf(stream, "%s%s%s\n", color ? fx_color_of(kind) : "", text,
+          color ? "\033[0m" : "");
   return fx_null();
 }
 
-FX_FN FxValue fx_log(FxValue v)   { return fx_print('L', 0, v); }
-FX_FN FxValue fx_info(FxValue v)  { return fx_print('I', 0, v); }
-FX_FN FxValue fx_warn(FxValue v)  { return fx_print('W', 1, v); }
+FX_FN FxValue fx_log(FxValue v) { return fx_print('L', 0, v); }
+FX_FN FxValue fx_info(FxValue v) { return fx_print('I', 0, v); }
+FX_FN FxValue fx_warn(FxValue v) { return fx_print('W', 1, v); }
 FX_FN FxValue fx_error(FxValue v) { return fx_print('E', 1, v); }
 
 FX_FN FxValue fx_input(FxValue prompt) {
@@ -911,8 +1014,8 @@ FX_FN FxValue fx_input(FxValue prompt) {
 FX_FN void fx_abort(FxValue e) __attribute__((noreturn));
 FX_FN void fx_abort(FxValue e) { fx_die("%s", fx_repr(e, 0)); }
 
-FX_FN FxPair fx_run_result(const char *command, char *out, char *err, size_t err_len, int exited,
-                           int code) {
+FX_FN FxPair fx_run_result(const char *command, char *out, char *err,
+                           size_t err_len, int exited, int code) {
   if (exited && code == 0)
     return fx_pair(fx_str(out), fx_null());
   while (err_len > 0 && (err[err_len - 1] == '\n' || err[err_len - 1] == '\r'))
@@ -920,8 +1023,12 @@ FX_FN FxPair fx_run_result(const char *command, char *out, char *err, size_t err
   if (err_len > 0)
     return fx_pair(fx_null(), fx_str(err));
   if (exited)
-    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' terminou com código %d", command, code)));
-  return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' terminou pelo sinal %d", command, code)));
+    return fx_pair(fx_null(),
+                   fx_str(fx_dup_printf("comando '%s' terminou com código %d",
+                                        command, code)));
+  return fx_pair(fx_null(),
+                 fx_str(fx_dup_printf("comando '%s' terminou pelo sinal %d",
+                                      command, code)));
 }
 
 FX_FN void fx_run_room(char **buf, size_t *cap, size_t len, size_t need) {
@@ -937,11 +1044,14 @@ FX_FN void fx_run_room(char **buf, size_t *cap, size_t len, size_t need) {
 
 FX_FN const char *fx_win_message(DWORD code) {
   char buf[256];
-  DWORD n = FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS, NULL, code, 0, buf,
-                           sizeof buf, NULL);
-  while (n > 0 && (buf[n - 1] == '\n' || buf[n - 1] == '\r' || buf[n - 1] == ' '))
+  DWORD n =
+      FormatMessageA(FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
+                     NULL, code, 0, buf, sizeof buf, NULL);
+  while (n > 0 &&
+         (buf[n - 1] == '\n' || buf[n - 1] == '\r' || buf[n - 1] == ' '))
     buf[--n] = '\0';
-  return n > 0 ? fx_dup_printf("%s", buf) : fx_dup_printf("erro %lu do sistema", (unsigned long)code);
+  return n > 0 ? fx_dup_printf("%s", buf)
+               : fx_dup_printf("erro %lu do sistema", (unsigned long)code);
 }
 
 FX_FN const char *fx_win_quote(const char *arg) {
@@ -976,15 +1086,19 @@ FX_FN const char *fx_win_quote(const char *arg) {
   return out;
 }
 
-FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const char *dir) {
+FX_FN FxPair fx_run_process(const char *command, char **argv, int argc,
+                            const char *dir) {
   const char *cmdline = "";
   for (int i = 0; i < argc; i++)
-    cmdline = fx_dup_printf("%s%s%s", cmdline, i ? " " : "", fx_win_quote(argv[i]));
+    cmdline =
+        fx_dup_printf("%s%s%s", cmdline, i ? " " : "", fx_win_quote(argv[i]));
 
   SECURITY_ATTRIBUTES sa = {sizeof sa, NULL, TRUE};
   HANDLE out_r, out_w, err_r, err_w;
-  if (!CreatePipe(&out_r, &out_w, &sa, 0) || !CreatePipe(&err_r, &err_w, &sa, 0))
-    return fx_pair(fx_null(), fx_str("não foi possível criar os pipes do comando"));
+  if (!CreatePipe(&out_r, &out_w, &sa, 0) ||
+      !CreatePipe(&err_r, &err_w, &sa, 0))
+    return fx_pair(fx_null(),
+                   fx_str("não foi possível criar os pipes do comando"));
   SetHandleInformation(out_r, HANDLE_FLAG_INHERIT, 0);
   SetHandleInformation(err_r, HANDLE_FLAG_INHERIT, 0);
 
@@ -1002,15 +1116,17 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
   fflush(stderr);
   char *mutable_line = fx_alloc(strlen(cmdline) + 1);
   strcpy(mutable_line, cmdline);
-  BOOL started = CreateProcessA(NULL, mutable_line, NULL, NULL, TRUE, 0, NULL, dir, &si, &pi);
+  BOOL started = CreateProcessA(NULL, mutable_line, NULL, NULL, TRUE, 0, NULL,
+                                dir, &si, &pi);
   DWORD error = started ? 0 : GetLastError();
   CloseHandle(out_w);
   CloseHandle(err_w);
   if (!started) {
     CloseHandle(out_r);
     CloseHandle(err_r);
-    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' não pôde ser iniciado: %s", command,
-                                                   fx_win_message(error))));
+    return fx_pair(fx_null(), fx_str(fx_dup_printf(
+                                  "comando '%s' não pôde ser iniciado: %s",
+                                  command, fx_win_message(error))));
   }
 
   HANDLE pipes[2] = {out_r, err_r};
@@ -1032,7 +1148,8 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
       if (avail > 0) {
         DWORD want = avail < 4096 ? avail : 4096, got = 0;
         fx_run_room(&bufs[k], &caps[k], lens[k], want);
-        if (ReadFile(pipes[k], bufs[k] + lens[k], want, &got, NULL) && got > 0) {
+        if (ReadFile(pipes[k], bufs[k] + lens[k], want, &got, NULL) &&
+            got > 0) {
           lens[k] += got;
           idle = 0;
         }
@@ -1054,29 +1171,36 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
 
 #else
 
-FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const char *dir) {
+FX_FN FxPair fx_run_process(const char *command, char **argv, int argc,
+                            const char *dir) {
   (void)argc;
   int out_pipe[2], err_pipe[2];
   if (pipe(out_pipe) < 0 || pipe(err_pipe) < 0)
-    return fx_pair(fx_null(), fx_str("não foi possível criar os pipes do comando"));
+    return fx_pair(fx_null(),
+                   fx_str("não foi possível criar os pipes do comando"));
 
   fflush(stdout);
   fflush(stderr);
   pid_t pid = fork();
   if (pid < 0)
-    return fx_pair(fx_null(), fx_str(fx_dup_printf("comando '%s' não pôde ser iniciado: %s", command,
-                                                   strerror(errno))));
+    return fx_pair(fx_null(), fx_str(fx_dup_printf(
+                                  "comando '%s' não pôde ser iniciado: %s",
+                                  command, strerror(errno))));
   if (pid == 0) {
     dup2(out_pipe[1], 1);
     dup2(err_pipe[1], 2);
-    close(out_pipe[0]); close(out_pipe[1]);
-    close(err_pipe[0]); close(err_pipe[1]);
+    close(out_pipe[0]);
+    close(out_pipe[1]);
+    close(err_pipe[0]);
+    close(err_pipe[1]);
     if (dir && chdir(dir) < 0) {
-      fprintf(stderr, "comando '%s' não pôde ser iniciado: %s: %s\n", command, dir, strerror(errno));
+      fprintf(stderr, "comando '%s' não pôde ser iniciado: %s: %s\n", command,
+              dir, strerror(errno));
       _exit(127);
     }
     execvp(argv[0], argv);
-    fprintf(stderr, "comando '%s' não pôde ser iniciado: %s\n", command, strerror(errno));
+    fprintf(stderr, "comando '%s' não pôde ser iniciado: %s\n", command,
+            strerror(errno));
     _exit(127);
   }
   close(out_pipe[1]);
@@ -1110,7 +1234,8 @@ FX_FN FxPair fx_run_process(const char *command, char **argv, int argc, const ch
   while (waitpid(pid, &status, 0) < 0 && errno == EINTR) {
   }
   if (WIFEXITED(status))
-    return fx_run_result(command, bufs[0], bufs[1], lens[1], 1, WEXITSTATUS(status));
+    return fx_run_result(command, bufs[0], bufs[1], lens[1], 1,
+                         WEXITSTATUS(status));
   return fx_run_result(command, bufs[0], bufs[1], lens[1], 0, WTERMSIG(status));
 }
 

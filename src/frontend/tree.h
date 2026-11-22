@@ -3,12 +3,7 @@
 
 #include <stdio.h>
 
-enum NodeKind {
-  NODE_RULE,
-  NODE_TOKEN,
-  NODE_EMPTY,
-  NODE_ERROR
-};
+enum NodeKind { NODE_RULE, NODE_TOKEN, NODE_EMPTY, NODE_ERROR };
 
 typedef struct Node {
   enum NodeKind kind;

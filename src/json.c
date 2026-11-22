@@ -38,7 +38,8 @@ void json_record_token(const char *type, const char *text, int line,
   if (!enabled)
     return;
   tokens = grow(tokens, token_count, &token_cap, sizeof *tokens);
-  tokens[token_count++] = (TokenRec){mem_strdup(type), mem_strdup(text), line, column};
+  tokens[token_count++] =
+      (TokenRec){mem_strdup(type), mem_strdup(text), line, column};
 }
 
 void json_record_error(const char *kind, int line, int column,
@@ -86,10 +87,14 @@ static void put_string(FILE *out, const char *s) {
 
 static const char *kind_name(enum NodeKind kind) {
   switch (kind) {
-  case NODE_RULE:  return "rule";
-  case NODE_TOKEN: return "token";
-  case NODE_EMPTY: return "empty";
-  default:         return "error";
+  case NODE_RULE:
+    return "rule";
+  case NODE_TOKEN:
+    return "token";
+  case NODE_EMPTY:
+    return "empty";
+  default:
+    return "error";
   }
 }
 
@@ -115,8 +120,8 @@ static void put_node(FILE *out, const Node *node) {
 }
 
 void json_print(FILE *out, int accepted, int lines) {
-  fprintf(out, "{\n\"accepted\": %s,\n\"lines\": %d,\n", accepted ? "true" : "false",
-          lines);
+  fprintf(out, "{\n\"accepted\": %s,\n\"lines\": %d,\n",
+          accepted ? "true" : "false", lines);
 
   fputs("\"tokens\": [", out);
   for (int i = 0; i < token_count; i++) {

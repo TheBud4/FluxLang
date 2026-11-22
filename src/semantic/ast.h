@@ -14,9 +14,14 @@ typedef struct {
 } Name;
 
 typedef enum {
-  EX_INT, EX_FLOAT, EX_STRING, EX_BOOL, EX_NULL,
+  EX_INT,
+  EX_FLOAT,
+  EX_STRING,
+  EX_BOOL,
+  EX_NULL,
   EX_IDENT,
-  EX_UNARY, EX_BINARY,
+  EX_UNARY,
+  EX_BINARY,
   EX_INDEX,
   EX_FIELD,
   EX_CALL,
@@ -25,9 +30,21 @@ typedef enum {
 } ExprKind;
 
 typedef enum {
-  OP_OR, OP_AND, OP_EQ, OP_NE, OP_LT, OP_LE, OP_GT, OP_GE,
-  OP_ADD, OP_SUB, OP_MUL, OP_DIV, OP_MOD,
-  OP_NEG, OP_NOT
+  OP_OR,
+  OP_AND,
+  OP_EQ,
+  OP_NE,
+  OP_LT,
+  OP_LE,
+  OP_GT,
+  OP_GE,
+  OP_ADD,
+  OP_SUB,
+  OP_MUL,
+  OP_DIV,
+  OP_MOD,
+  OP_NEG,
+  OP_NOT
 } Op;
 
 typedef struct Expr Expr;
