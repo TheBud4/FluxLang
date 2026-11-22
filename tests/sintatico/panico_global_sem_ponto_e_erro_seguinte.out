@@ -1,0 +1,8 @@
+Erro sintático [linha 1, coluna 1]:
+Token encontrado: identificador 'texto'
+Esperado: 'var', 'const', 'func' ou 'workflow'
+Erro sintático [linha 2, coluna 10]:
+Token encontrado: '{'
+Esperado: ')'
+Programa rejeitado.
+[código 1]

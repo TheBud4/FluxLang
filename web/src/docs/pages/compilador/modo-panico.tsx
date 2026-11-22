@@ -50,7 +50,7 @@ export function ModoPanico() {
       <P>
         Quando o parser encontra um erro de sintaxe, ele não precisa parar: o modo pânico descarta o trecho que não faz sentido,
         volta a um ponto conhecido e segue lendo, para reportar também os erros que vêm depois. Sem ele, o compilador só mostraria
-        o primeiro erro (era assim no Trabalho 1). A recuperação está inteira em {mono('src/frontend/parser.y')}, em cinco
+        o primeiro erro (era assim no Trabalho 1). A recuperação está inteira em {mono('src/frontend/parser.y')}, em seis
         alternativas que usam o token especial {mono('error')} do Bison, mais o que o próprio Bison faz quando a sua pilha tem um
         estado que aceita esse token.
       </P>
@@ -71,7 +71,7 @@ export function ModoPanico() {
         <RecoverySteps />
       </Diagram>
 
-      <H2 title="As cinco regras com error" />
+      <H2 title="As seis regras com error" />
       <Table
         head={['Regra', 'Onde recupera', 'Descarta até', 'Nó criado']}
         rows={[
@@ -79,13 +79,31 @@ export function ModoPanico() {
           [mono('command: error block'), 'O mesmo ponto', <>um {mono('{')}, e lê o bloco {mono('{ ... }')} inteiro</>, <>{mono('command')} com os filhos {mono('error')} e {mono('block')}</>],
           [mono('global_no_func: error SEMICOLON'), 'No nível global, antes da main ou depois dela', <>um {mono(';')}</>, <>{mono('global_no_func')} com {mono('error')} e {mono('SEMICOLON')}</>],
           [mono('global_no_func: error block'), 'O mesmo ponto', <>um {mono('{')} e o bloco inteiro</>, <>{mono('global_no_func')} com {mono('error')} e {mono('block')}</>],
+          [mono('global_no_func: error'), 'O mesmo ponto, quando o erro vem antes de um func, workflow, var, const ou do fim do arquivo', <>nada: o nó é criado já, e o token que falhou é descartado quando o erro se repete nele</>, <>{mono('global_no_func')} com só o filho {mono('error')}</>],
           [mono('after_func: MAIN error block after_main'), <>Dentro do cabeçalho de {mono('func main')} (depois de {mono('main')}), por exemplo {mono('func main (x:int) {')}</>, <>o {mono('{')} do corpo, que é lido como bloco; depois segue {mono('after_main')}</>, <>{mono('after_func')} com {mono('MAIN')}, {mono('error')}, {mono('block')} e {mono('after_main')}</>],
         ]}
       />
       <P>
-        Todas as cinco ações chamam {mono('yyerrok')} depois de montar o nó. Um erro que não está em um desses pontos faz o Bison desempilhar até o mais próximo. Por exemplo, no cabeçalho de uma função comum,{' '}
+        As cinco primeiras ações chamam {mono('yyerrok')} depois de montar o nó; a sexta, {mono('global_no_func: error')}, não chama, de propósito (ver abaixo).
+         Um erro que não está em um desses pontos faz o Bison desempilhar até o mais próximo. Por exemplo, no cabeçalho de uma função comum,{' '}
         {mono('func f(a:) { }')} (erro no {mono(')')}), o Bison desempilha até o nível global, descarta o {mono(')')} e lê o {mono('{ }')} como bloco:
-        a árvore tem um {mono('global_no_func')} com os filhos {mono('error')} (1:1) e {mono('block')}, e o {mono('func main')} seguinte é lido normalmente.
+        a árvore tem um {mono('global_no_func')} só com {mono('error')} (1:1), outro com {mono('error')} (1:10, o {mono(')')} descartado) e {mono('block')}, e o {mono('func main')} seguinte é lido normalmente.
+      </P>
+      <H3 title="A regra global_no_func: error, sem yyerrok" />
+      <P>
+        No nível global, um texto solto sem {mono(';')} e sem {mono('{')} (como {mono('texto solto')} antes de {mono('func main')}) não tem o que as duas primeiras regras
+        aceitam, e elas descartavam tudo até o próximo {mono(';')} ou bloco: engoliam a {mono('func main')} inteira (o corpo é lido como o bloco da regra) e o fim do arquivo virava
+        um segundo erro, sem árvore. A regra {mono('global_no_func: error')} fecha a recuperação sem esperar nenhum token: o Bison reduz com o token que falhou ainda não consumido.
+      </P>
+      <Why>
+        {mono('parser.y')}: a regra não chama {mono('yyerrok')}. Com {mono('yyerrok')} o contador de recuperação volta a 0 e o erro seguinte, no mesmo token, é reportado de novo: o parser nunca avança e
+        pára no teto de 10000 erros (medido com {mono('1 +;')} solto: 10000 mensagens iguais). Sem ele o contador fica em 3, o Bison descarta o token que falhou quando o erro se repete, e o laço termina.
+        O preço é a janela de silêncio: enquanto o contador não volta a 0 (três tokens deslocados com sucesso), um erro real é recuperado mas não reportado. Medido: {mono('texto')} seguido de {mono('func main { }')} dá
+        só a mensagem do {mono('texto')} (a regra antiga dava a mesma, mais um erro de fim do arquivo); {mono('texto')} seguido de {mono('func g ( {')} dá as duas.
+      </Why>
+      <P>
+        O efeito na árvore é um nó {mono('global_no_func')} com só {mono('error')} por token descartado no nível global: {mono('texto solto')} antes da {mono('func main')} deixa três nós {mono('error')} (em 1:1, 1:1 e 1:7), e
+        a árvore sai inteira, com a {mono('func main')}.
       </P>
 
       <H2 title="O que o Bison faz, passo a passo" />
@@ -334,6 +352,29 @@ Programa rejeitado.`}
       <P>
         Um bloco sem o {mono('}')} final tem o mesmo efeito: o {mono('func')} seguinte vira um erro dentro do bloco.
       </P>
+      <H3 title="Segunda medição: 18/11/2026" />
+      <P>
+        Para testar de novo as três hipóteses que sobraram, o corpus foi refeito a partir de {mono('docs/exemplos/valido.flux')}, um programa válido de 598 tokens: esquecer cada token (598 programas),
+        repetir cada token (598) e trocar cada token por uma de duas palavras reservadas (1.188), 2.384 programas ao todo. O número é o total de mensagens de erro, e a árvore conta os programas rejeitados
+        em que o JSON ainda traz a árvore. O {mono('invalido.flux')} mantém os sete erros nas mesmas posições em todas as variantes.
+      </P>
+      <Table
+        head={['Variante', 'Esquecer', 'Repetir', 'Reservada', 'Total de erros', 'Com árvore']}
+        rows={[
+          ['A regra simples (antes)', '744', '701', '1.527', '2.972', '2.135'],
+          [<>{mono('global_no_func: error')}, sem {mono('yyerrok')} (aplicada)</>, '743', '697', '1.527', '2.967', '2.194'],
+          [<>{mono('command: error RBRACE')}, devolvendo o {mono('}')} ao parser</>, '991', '988', '2.047', '4.026', '2.181'],
+          [<>{mono('command: error')}, retomando em qualquer palavra de comando</>, '1.052', '1.039', '2.208', '4.299', '2.181'],
+        ]}
+      />
+      <Why>
+        Só a primeira variante cumpre o critério (não aumentar o total de erros do corpus, manter os sete erros do {mono('invalido.flux')}, melhorar pelo menos um caso) e foi aplicada: 2.967 erros contra 2.972 e 59 árvores a mais.
+        As outras duas resolvem o {mono('x = 1 +')} antes do {mono('}')} (um erro e árvore em vez de dois e nada), mas aumentam em 35% e 45% o total de erros, pelo mesmo motivo de 14/11: um {mono('}')} dentro de um literal de
+        objeto, ou uma palavra no meio de uma expressão, passa a ser tomado como retomada, e o resto vira comandos soltos. Foram descartadas. O caso do {mono('}')} que falta continua com duas mensagens.
+      </Why>
+      <P>
+        O {mono('1 +;')} solto, sem {mono('func main')} no arquivo, continua com duas mensagens e sem árvore, e isso é certo: a segunda é a falta da {mono('main')}, um erro de verdade.
+      </P>
       <Why>
         Foi tentado um refinamento e medido em 14/11/2026: um filtro de tokens entre o lexer e o parser, que entregava um {mono(';')} falso antes do
         token verdadeiro e os {mono('}')} que faltavam ao achar {mono('func')}. Ele resolvia os dois casos acima, mas, em 3.950 programas obtidos por
@@ -345,8 +386,8 @@ Programa rejeitado.`}
       </Why>
       <Callout kind="nota">
         O texto do catálogo de erros (seção 6 de {mono('docs/ERROS.md')}) descreve os pontos de sincronização ideais: retomar em {mono('}')}, nas palavras
-        que iniciam um comando e voltar ao nível global em {mono('func')} e {mono('workflow')}. A versão simples do parser <strong>não faz</strong> isso;
-        o que ela faz é o que está descrito nesta página.
+        que iniciam um comando e voltar ao nível global em {mono('func')} e {mono('workflow')}. A versão simples do parser só faz a última, e só no nível global
+        (a regra {mono('global_no_func: error')}); dentro de um bloco ela <strong>não retoma</strong> em {mono('}')} nem em palavra de comando. O que ela faz é o que está descrito nesta página.
       </Callout>
       <P>
         Para o texto de cada erro, ver <PageLink to="linguagem/erros">Catálogo de erros</PageLink>. O próximo estágio depois de um parse sem erros é a{' '}

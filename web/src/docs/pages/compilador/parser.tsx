@@ -143,7 +143,7 @@ command
           [<>{mono('$1')}, {mono('$2')}...</>, <>Os valores dos símbolos da alternativa: para um token, a folha criada por {mono('RET')}; para um não terminal, o nó que a sua regra montou.</>],
           [mono('empty_node()'), <>Folha ε. Toda alternativa vazia ({mono('%empty')}) tem um nó com um único filho ε.</>],
           [mono('error_node(@k.first_line, @k.first_column)'), <>Folha que marca o trecho descartado pelo modo pânico, no lugar do token {mono('error')}. A posição é a do início do trecho.</>],
-          [mono('yyerrok'), <>Só nas cinco alternativas com {mono('error')}: volta a permitir mensagens de erro.</>],
+          [mono('yyerrok'), <>Nas cinco primeiras alternativas com {mono('error')}: volta a permitir mensagens de erro. A sexta, {mono('global_no_func: error')}, não chama, para o Bison descartar o token que falhou em vez de repetir o erro.</>],
         ]}
       />
       <P>

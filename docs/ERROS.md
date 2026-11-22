@@ -287,7 +287,7 @@ no código feito em sala (`try/catch` + `consumeUntil`):
 
 ```
 command:        error SEMICOLON | error block
-global_no_func: error SEMICOLON | error block
+global_no_func: error SEMICOLON | error block | error   // sem yyerrok
 after_func:     MAIN error block after_main      // main com o cabeçalho quebrado
 ```
 
@@ -298,6 +298,16 @@ o que evita cascata em `else if (...) { }` e em `if x > 5 { }`). O
 só reportaria de novo depois de 3 tokens lidos com sucesso. Um erro léxico
 entra como o token `YYerror`, sem segunda mensagem. O erro S3 só reporta
 (o comando já terminou) e o programa fica rejeitado.
+
+A terceira alternativa do nível global, `error` sozinha (18/11/2026), fecha a
+recuperação sem esperar `;` nem `{`: um texto solto sem `;`, antes ou depois da
+`func main`, deixa de engolir a função (o corpo era lido como o bloco da regra)
+e de produzir o erro extra de fim do arquivo. Ela não chama `yyerrok`: com ele o
+erro se repete no mesmo token e o parser só pára no teto de 10000 erros; sem
+ele o Bison descarta o token que falhou e segue. O preço é que, enquanto o
+contador de recuperação não volta a 0 (três tokens deslocados com sucesso), um
+erro real logo depois não é reportado, e a árvore ganha um nó `global_no_func`
+só com `error` por token descartado.
 
 O que a versão simples **não** faz, em relação ao texto acima: retomar a
 análise em `}` e nas palavras que iniciam comando (ela descarta até o
@@ -317,6 +327,25 @@ chaves, como um literal de objeto (`run { command: "npm", ... }`): o resto
 do objeto passa a ser lido como comandos e o `}` do objeto fecha o bloco
 errado. Restringir a retomada a `}` e `func`/`workflow` não ajudou. A
 versão simples (regras `error` + bloco lido inteiro) foi mantida.
+
+**Segunda medição (18/11/2026).** O corpus foi refeito a partir de
+`docs/exemplos/valido.flux` (598 tokens): esquecer cada token (598 programas),
+repetir cada token (598) e trocar cada token por uma de duas palavras
+reservadas (1.188), 2.384 programas. Total de mensagens de erro e programas
+rejeitados que ainda têm árvore no `--json`:
+
+| Variante | Esquecer | Repetir | Reservada | Total | Com árvore |
+|---|---|---|---|---|---|
+| Regra simples (antes) | 744 | 701 | 1.527 | 2.972 | 2.135 |
+| `global_no_func: error`, sem `yyerrok` (**aplicada**) | 743 | 697 | 1.527 | 2.967 | 2.194 |
+| `command: error RBRACE`, devolvendo o `}` | 991 | 988 | 2.047 | 4.026 | 2.181 |
+| `command: error`, retomando em palavra de comando | 1.052 | 1.039 | 2.208 | 4.299 | 2.181 |
+
+Só a primeira variante não aumenta o total e foi aplicada; as outras duas
+(+35% e +45% de erros) foram descartadas. O `invalido.flux` mantém os sete
+erros nas mesmas posições. O caso do `}` que falta (`x = 1 +` e `}`) continua
+com duas mensagens e sem árvore, e `1 +;` solto, sem `func main` no arquivo,
+também: a segunda mensagem é a falta da `main`.
 
 ## 7. Erros em tempo de execução
 

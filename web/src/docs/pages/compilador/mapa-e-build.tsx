@@ -251,7 +251,7 @@ Programa rejeitado.
         precisa de ferramenta que falta). A última linha é o total, e o script sai com código diferente de zero se
         algum caso falhou:
       </P>
-      <Code lang="text">{`283 passaram, 0 falharam.`}</Code>
+      <Code lang="text">{`288 passaram, 0 falharam.`}</Code>
       <H3 title="As passadas" />
       <P>
         O script percorre quinze passadas, na ordem abaixo. A coluna "Casos" é a quantidade de arquivos {mono('.flux')}{' '}
@@ -261,9 +261,9 @@ Programa rejeitado.
         head={['Passada', 'Pasta', 'Roda', 'O que confere', 'Casos']}
         rows={[
           ['lexico', mono('tests/lexico/'), mono('./flux -t'), 'Os tokens e os erros léxicos L1 a L6, com linha e coluna.', '19'],
-          ['sintatico', mono('tests/sintatico/'), mono('./flux'), 'As mensagens de erro sintático S1 a S3, o modo pânico e o "aceito" ou "rejeitado".', '50'],
-          ['arvore', mono('tests/arvore/'), mono('./flux --tree'), 'A árvore de derivação, mais a linha de aceito ou rejeitado.', '4'],
-          ['json', mono('tests/json/'), mono('./flux --json'), 'O objeto JSON de tokens, erros e árvore.', '3'],
+          ['sintatico', mono('tests/sintatico/'), mono('./flux'), 'As mensagens de erro sintático S1 a S3, o modo pânico e o "aceito" ou "rejeitado".', '53'],
+          ['arvore', mono('tests/arvore/'), mono('./flux --tree'), 'A árvore de derivação, mais a linha de aceito ou rejeitado.', '5'],
+          ['json', mono('tests/json/'), mono('./flux --json'), 'O objeto JSON de tokens, erros e árvore.', '4'],
           ['ast', mono('tests/ast/'), mono('./flux --ast'), 'A AST.', '2'],
           ['semantico', mono('tests/semantico/'), mono('./flux --semantic'), 'Um caso por regra E1 a E25 e casos de borda.', '43'],
           ['exec', mono('tests/exec/'), mono('./flux --run'), 'Programas que rodam: a saída, os erros de execução R1 a R7 e o código de saída.', '39'],
@@ -278,7 +278,7 @@ Programa rejeitado.
         ]}
       />
       <P>
-        A soma é 283 casos: 164 das dez primeiras passadas, mais 39 de {mono('exec_gc')}, 37 de {mono('exec_win')}, 37 de{' '}
+        A soma é 288 casos: 169 das dez primeiras passadas, mais 39 de {mono('exec_gc')}, 37 de {mono('exec_win')}, 37 de{' '}
         {mono('exec_win_gc')}, 1 de {mono('exec_windows')} e 5 de {mono('cli')}. As três passadas que precisam de Windows só rodam se o{' '}
         {mono('x86_64-w64-mingw32-gcc')} e o {mono('wine')} existirem; senão o script imprime{' '}
         {mono('pulado  exec_win (precisa de mingw64-gcc e wine)')} e continua, e o total fica menor.

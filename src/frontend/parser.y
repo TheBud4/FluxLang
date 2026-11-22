@@ -70,6 +70,7 @@ enum { SUFFIX_NONE, SUFFIX_ACCESS, SUFFIX_CALL };
   | workflow { $$ = mknode("global_no_func", 1, $1); }
   | error SEMICOLON { $$ = mknode("global_no_func", 2, error_node(@1.first_line, @1.first_column), $2); yyerrok; }
   | error block { $$ = mknode("global_no_func", 2, error_node(@1.first_line, @1.first_column), $2); yyerrok; }
+  | error { $$ = mknode("global_no_func", 1, error_node(@1.first_line, @1.first_column)); }
   ;
 
   variable_declaration

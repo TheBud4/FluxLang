@@ -99,7 +99,7 @@ as decisões pendentes listadas em "Em aberto" (ver `docs/TAREFAS.md`). O Trabal
 
 ```
 make            # gera ./flux
-make test       # tests/run.sh: 283 casos; leva alguns minutos (passadas do coletor e do Windows)
+make test       # tests/run.sh: 288 casos; leva alguns minutos (passadas do coletor e do Windows)
 make asan       # compilador e programas gerados com ASan + UBSan + LeakSanitizer; restaura o build normal
 make web        # interface em http://127.0.0.1:5173 (Node 20+)
 ```
@@ -186,7 +186,7 @@ escuro (contraste).
 
 | Item | Situação |
 |---|---|
-| Cascata de erros no pânico | Um `{` esquecido, ou função com o bloco aberto, gera erros extras. O refinamento foi medido e **piora**; não repetir. |
+| Cascata de erros no pânico | Um `{` esquecido, ou função com o bloco aberto, gera erros extras. Retomar em `}` ou em palavra de comando foi medido duas vezes (14/11 e 18/11) e **piora** (+35% a +45% de erros); não repetir. Só a retomada no nível global (`global_no_func: error`, sem `yyerrok`) ficou. |
 | `flux` e interface web no Windows | Só via WSL. Só o programa gerado roda no Windows. |
 | macOS | Nunca testado. A biblioteca é POSIX e passou com `clang`, mas não houve execução lá. |
 | Testes automáticos da interface web | Só tipos, build e os gates de acessibilidade; a API foi testada à mão com `curl`. |
