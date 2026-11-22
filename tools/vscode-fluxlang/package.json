@@ -1,8 +1,8 @@
 {
     "name": "fluxlang",
     "displayName": "FluxLang",
-    "description": "Language support for FluxLang",
-    "version": "0.0.1",
+    "description": "Realce de sintaxe, snippets e erros do compilador (fluxc) para a FluxLang (.flux)",
+    "version": "0.1.0",
     "publisher": "fluxlang",
     "engines": {
         "vscode": "^1.90.0"
@@ -30,6 +30,62 @@
                 "scopeName": "source.fluxlang",
                 "path": "./syntaxes/fluxlang.tmLanguage.json"
             }
-        ]
+        ],
+        "snippets": [
+            {
+                "language": "fluxlang",
+                "path": "./snippets/fluxlang.code-snippets"
+            }
+        ],
+        "configuration": {
+            "title": "FluxLang",
+            "properties": {
+                "fluxlang.compilerPath": {
+                    "type": "string",
+                    "default": "",
+                    "scope": "machine-overridable",
+                    "markdownDescription": "Caminho do compilador `flux`. Vazio: usa o `flux` (ou `fluxc`) na raiz do workspace e, se não houver, o do `PATH`."
+                },
+                "fluxlang.diagnostics": {
+                    "type": "string",
+                    "enum": [
+                        "onType",
+                        "onSave",
+                        "off"
+                    ],
+                    "default": "onType",
+                    "enumDescriptions": [
+                        "Confere enquanto você digita.",
+                        "Confere ao abrir e ao salvar.",
+                        "Não mostra erros do compilador."
+                    ],
+                    "description": "Quando mostrar os erros do compilador no editor."
+                }
+            }
+        }
+    },
+    "keywords": [
+        "fluxlang",
+        "flux",
+        "workflow",
+        "syntax",
+        "snippets"
+    ],
+    "main": "./extension.js",
+    "activationEvents": [
+        "onLanguage:fluxlang"
+    ],
+    "capabilities": {
+        "untrustedWorkspaces": {
+            "supported": "limited",
+            "description": "Em workspace não confiável o binário do compilador não é procurado na pasta do projeto, só no PATH.",
+            "restrictedConfigurations": [
+                "fluxlang.compilerPath"
+            ]
+        },
+        "virtualWorkspaces": false
+    },
+    "scripts": {
+        "test": "node --test test/compiler.test.js"
     }
 }

@@ -1,0 +1,92 @@
+{
+    "func main": {
+        "prefix": "main",
+        "body": ["func main () {", "\t$0", "}"],
+        "description": "Função principal (uma só por programa)"
+    },
+    "func": {
+        "prefix": "func",
+        "body": ["func ${1:nome}(${2:param}:${3:int}):${4:int} {", "\t$0", "}"],
+        "description": "Função com parâmetros e tipo de retorno"
+    },
+    "workflow": {
+        "prefix": "workflow",
+        "body": ["workflow ${1:nome}(${2:param}:${3:string}):${4:string} {", "\t$0", "}"],
+        "description": "Workflow (pode usar run e call)"
+    },
+    "run": {
+        "prefix": "run",
+        "body": ["var ${1:saida}, ${2:err} = run {", "\tcommand: \"${3:comando}\",", "\tflags: [${4}],", "};", "stop if ${2:err};"],
+        "description": "Executa um comando externo; devolve (saída, erro)"
+    },
+    "run com workingDir": {
+        "prefix": "runwd",
+        "body": ["var ${1:saida}, ${2:err} = run {", "\tcommand: \"${3:comando}\",", "\tflags: [${4}],", "\tworkingDir: ${5:dir},", "};", "stop if ${2:err};"],
+        "description": "run com diretório de trabalho"
+    },
+    "call": {
+        "prefix": "call",
+        "body": ["var ${1:resultado}, ${2:err} = call ${3:workflow}(${4});", "stop if ${2:err};"],
+        "description": "Chama um workflow; devolve (resultado, erro)"
+    },
+    "if": {
+        "prefix": "if",
+        "body": ["if (${1:condicao}) {", "\t$0", "}"]
+    },
+    "if else": {
+        "prefix": "ifelse",
+        "body": ["if (${1:condicao}) {", "\t$2", "} else {", "\t$0", "}"]
+    },
+    "while": {
+        "prefix": "while",
+        "body": ["while (${1:condicao}) {", "\t$0", "}"]
+    },
+    "for in": {
+        "prefix": "for",
+        "body": ["for ${1:item} in ${2:lista} {", "\t$0", "}"],
+        "description": "Percorre uma lista"
+    },
+    "stop if": {
+        "prefix": "stop",
+        "body": "stop if ${1:err};",
+        "description": "Sai do workflow devolvendo o erro"
+    },
+    "abort if": {
+        "prefix": "abort",
+        "body": "abort if ${1:err};",
+        "description": "Encerra o programa se houver erro"
+    },
+    "proceed if": {
+        "prefix": "proceed",
+        "body": "proceed if ${1:err};",
+        "description": "Ignora o erro e segue"
+    },
+    "var": {
+        "prefix": "var",
+        "body": "var ${1:nome}:${2:int} = ${3:0};"
+    },
+    "const": {
+        "prefix": "const",
+        "body": "const ${1:NOME}:${2:int} = ${3:0};"
+    },
+    "terminal.log": {
+        "prefix": "tlog",
+        "body": "terminal.log(${1});"
+    },
+    "terminal.info": {
+        "prefix": "tinfo",
+        "body": "terminal.info(${1});"
+    },
+    "terminal.warn": {
+        "prefix": "twarn",
+        "body": "terminal.warn(${1});"
+    },
+    "terminal.error": {
+        "prefix": "terror",
+        "body": "terminal.error(${1});"
+    },
+    "terminal.input": {
+        "prefix": "tinput",
+        "body": "var ${1:resposta}:string = terminal.input(${2:\"> \"});"
+    }
+}

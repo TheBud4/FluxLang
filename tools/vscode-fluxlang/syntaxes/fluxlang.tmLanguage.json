@@ -7,6 +7,7 @@
         { "include": "#strings" },
         { "include": "#numbers" },
         { "include": "#declarations" },
+        { "include": "#run-object" },
         { "include": "#error-handlers" },
         { "include": "#keywords" },
         { "include": "#types" },
@@ -112,6 +113,27 @@
                     "name": "storage.modifier.fluxlang",
                     "match": "\\b(var|const)\\b"
                 }
+            ]
+        },
+        "run-object": {
+            "comment": "run { command: ..., flags: [...], workingDir: ... }: só esses três campos são aceitos (sema.c, check_run_object).",
+            "begin": "\\b(run)\\s*(\\{)",
+            "beginCaptures": {
+                "1": { "name": "keyword.control.flow.fluxlang" },
+                "2": { "name": "punctuation.definition.block.begin.fluxlang" }
+            },
+            "end": "\\}",
+            "endCaptures": { "0": { "name": "punctuation.definition.block.end.fluxlang" } },
+            "patterns": [
+                {
+                    "name": "support.type.property-name.run.fluxlang",
+                    "match": "\\b(?:command|flags|workingDir)\\b(?=\\s*:)"
+                },
+                {
+                    "name": "invalid.illegal.property-name.run.fluxlang",
+                    "match": "\\b[A-Za-z_][A-Za-z0-9_]*\\b(?=\\s*:)"
+                },
+                { "include": "$self" }
             ]
         },
         "error-handlers": {

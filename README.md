@@ -449,7 +449,7 @@ sai com código 1 se encontrou algum.
 | `src/backend/codegen_c.c`, `src/backend/runtime/flux_rt.h` | Gerador de código C e a biblioteca de execução que ele embute (os valores, os operadores, `run`, `terminal` e os erros R1 a R7) |
 | `src/util/mem.c`, `src/util/mem.h` | Arena de memória do compilador (tudo é liberado no fim) |
 | `web/` | Interface web: `src/` (React), `server/flux-api.ts` (plugin do Vite que roda `./flux --json`) |
-| `tools/vscode-fluxlang/` | Extensão do VS Code com o realce de sintaxe da FluxLang |
+| `tools/vscode-fluxlang/` | Extensão do VS Code: realce de sintaxe, snippets e os erros do compilador sublinhados no editor |
 | `docs/` | `BNF.txt`, `ERROS.md`, `TAREFAS.md`, `ENUNCIADO.md`, `exemplos/`, `specs/` (desenho da interface) e `entregas/` (artigo e slides) |
 | `tests/` | Casos de teste: cada `X.flux` tem a saída esperada em `X.out`. `tests/run.sh` compara (`tests/lexico/` roda com `-t`, `tests/arvore/` com `--tree`, `tests/json/` com `--json`, `tests/ast/` com `--ast`, `tests/semantico/` com `--semantic`, `tests/exec/` com `--run`: compila para C e confere a saída do programa); `--generate` cria os `.out` que faltam, que devem ser conferidos à mão |
 
