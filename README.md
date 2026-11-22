@@ -585,12 +585,3 @@ Algumas regras não são expressáveis na gramática:
 - os campos de `run` (`command` obrigatório, tipos dos campos, sem
   repetição ou campo desconhecido): análise semântica.
 
-## Escopo da v1
-
-A primeira versão prioriza o núcleo necessário para lexer, parser e
-árvore sintática. Requisições HTTP, formas tipadas de `object` e outros recursos avançados
-ficam para versões posteriores.
-
-## Em aberto
-
-- Forma dos nós da AST (Trabalho 2).
