@@ -92,7 +92,7 @@ Interface e documentação:
 - [ ] A saída impressa antes de um tempo esgotado do `/api/run` se perde (o buffer da saída num cano não é esvaziado antes do SIGKILL)
 - [ ] O CORS padrão do Vite aceita o pré-voo de outra porta em localhost; só a conferência de `Origin` do plugin barra o pedido
 - [x] Um `PageLink` ou endereço com id de página desconhecido abre a Introdução sem aviso (corrigido: a Introdução abre com um aviso que cita o id, e o endereço não é reescrito)
-- [ ] `tests/exec/entrada_com_stdin.flux` falha às vezes na passada wine/estresse (duas vezes neste trabalho; passa ao repetir)
+- [ ] `tests/exec/entrada_com_stdin.flux` falha às vezes na passada wine/estresse (duas vezes no trabalho anterior; passa ao repetir). Em 22/11/2026 não se reproduziu: 30 execuções isoladas (normal e estresse), 32 em paralelo (8 por vez) e 3 rodadas completas da passada `exec_win_gc` (cerca de 110 execuções), todas iguais ao `.out`, e as cinco suítes completas desta rodada passaram. Causa não achada; hipótese sem prova: o `wineserver` encerrando por ociosidade quando um cliente novo começa. Se voltar, guardar a saída da falha antes de repetir
 
 Lacunas do README (o compilador já faz; falta ratificar ou mudar):
 
