@@ -87,8 +87,8 @@ export function InterfaceWeb() {
         head={['Aspecto', 'Como é']}
         rows={[
           ['Quem a abre', <>O usuário, com {mono('make web')}, no endereço {mono('http://127.0.0.1:5173')}.</>],
-          ['Entrada', <>O código digitado ou aberto de um arquivo, a chave &quot;Análise semântica&quot; e, ao executar, o texto do campo &quot;Entrada do programa&quot;.</>],
-          ['Saída', <>Os painéis Código, Tokens, Árvore sintática, Erros e Saída, e a aba Documentação (esta documentação).</>],
+          ['Entrada', <>O código digitado no editor, a chave &quot;Análise semântica&quot; (no menu Opções) e, ao executar, o texto do campo &quot;Entrada do programa&quot;.</>],
+          ['Saída', <>O editor, com o código realçado e os erros sublinhados, e o painel lateral com as abas Saída, Erros, Tokens e Árvore; mais a aba Documentação (esta documentação).</>],
           ['Depende de', <>O binário {mono('./flux')} na raiz do repositório (o servidor avisa se ele não existe), o {mono('gcc')} para executar e o Node 20 ou mais novo com o npm.</>],
           ['O que não faz', <>Não salva arquivos no servidor, não tem login e não é para uso fora do próprio computador. O {mono('flux')} e a interface exigem Linux ou macOS (no Windows, via WSL).</>],
         ]}
@@ -452,6 +452,7 @@ export default defineConfig({
           [mono('semantic'), mono('true'), <>A chave &quot;Análise semântica&quot;: vira {mono('?semantic=1')}.</>],
           [mono('stdin'), 'texto vazio', 'O campo "Entrada do programa".'],
           [mono('expand'), mono('{ key: 0, all: true }'), <>Os botões Expandir e Recolher da árvore: cada clique soma 1 em {mono('key')} e põe {mono('all')}.</>],
+          [mono('sideTab'), mono("'saida'"), <>A aba aberta no painel lateral ({mono('saida')}, {mono('erros')}, {mono('tokens')} ou {mono('arvore')}); o botão Executar a leva de volta para {mono('saida')}.</>],
           [mono('editorFocus'), mono('0'), <>Um contador: cada aumento pede ao editor que receba o foco do teclado com o cursor no início (a propriedade {mono('focusKey')}).</>],
           [<>{mono('focusPending')} (uma {mono('ref')})</>, mono('false'), <>Marca que um &quot;Abrir no editor&quot; está esperando a tela do editor aparecer.</>],
           [<>{mono('result')}, {mono('loading')}, {mono('failure')}</>, <>de {mono('useCompile')}</>, 'O último JSON, se há um pedido em curso e a falha do servidor.'],
@@ -461,74 +462,109 @@ export default defineConfig({
       />
       <P>
         Valores derivados: {mono('usesInput')} testa o código com {mono('/\\bterminal\\s*\\.\\s*input\\b/')} e decide se o campo de entrada aparece (o teste é textual: um {mono('terminal.input')} dentro de um
-        comentário também o mostra); {mono('errorLines')} é o conjunto das linhas dos erros, para o editor realçar.Uma falha do servidor aparece numa faixa com {mono('role="alert"')} acima dos painéis, só na tela do editor.
+        comentário também o mostra); {mono('errorCount')} é o número de erros do último resultado, que vai no rótulo da aba Erros. Uma falha do servidor aparece numa faixa com {mono('role="alert"')} acima da grade, só na tela do editor.
       </P>
       <P>
-        Os painéis ficam numa grade: em telas a partir de {mono('lg')} (64 rem), três colunas (Código, Tokens, Árvore) e uma segunda faixa de altura fixa com Erros (ocupando duas colunas) e Saída; abaixo
-        disso, um painel embaixo do outro, cada um com altura própria. Na documentação, {mono('App')} põe {mono('DocsView')} dentro de {mono('DocsProvider')}, cujo {mono('openInEditor')} troca o código, marca {mono('focusPending')} e volta ao
-        editor (o botão &quot;Abrir no editor&quot; dos exemplos desta documentação). A troca de tela só acontece no evento {mono('hashchange')}, depois do clique, e um {mono('textarea')} dentro do{' '}
+        A tela do editor é uma grade de duas colunas: em telas a partir de {mono('lg')} (64 rem), o editor à esquerda e o {mono('SidePanel')} à direita, na proporção {mono('1.4fr 1fr')}; abaixo
+        disso, o editor em cima (altura fixa de 24 rem) e o painel lateral embaixo. O editor fica numa {mono('section')} com {mono('aria-label="Editor"')} e, colado embaixo dele, o {mono('EditorStatus')}. Na documentação, {mono('App')} põe {mono('DocsView')} dentro de {mono('DocsProvider')}, cujo {mono('openInEditor')} troca o código, marca {mono('focusPending')} e volta ao
+        editor (o botão &quot;Abrir no editor&quot; dos exemplos desta documentação). A troca de tela só acontece no evento {mono('hashchange')}, depois do clique, e um editor dentro do{' '}
         {mono('main')} escondido não recebe foco; por isso um efeito de {mono('App')} espera {mono('view')} virar {mono('editor')} e, se há um pedido pendente, soma 1 em {mono('editorFocus')}. Voltar ao editor
         pela aba ou pelo Voltar do navegador não move o foco.
       </P>
       <Fn name="App" signature="export default function App(): JSX.Element">
-        O componente raiz, montado por {mono('main.tsx')}. Guarda o estado da tabela acima e liga os componentes: {mono('TopBar')}, os cinco {mono('Panel')} e {mono('DocsView')}.
+        O componente raiz, montado por {mono('main.tsx')}. Guarda o estado da tabela acima e liga os componentes: {mono('TopBar')}, o {mono('Editor')} com o {mono('EditorStatus')}, o {mono('SidePanel')} com as quatro abas e {mono('DocsView')}. Os controles da árvore (a contagem de nós, &quot;ocultar *_rest&quot;, Expandir e Recolher) ficam dentro da aba Árvore, acima do {mono('TreeView')}. O {mono('onRun')} passado à barra executa o programa e troca para a aba Saída.
       </Fn>
       <Fn name="goTo (interna a App)" signature="const goTo = (line: number, column: number, length?: number) => void">
         Cria um {mono('Focus')} novo com {mono('nonce: Date.now()')}. É o {mono('onSelect')} de tokens, árvore e erros.
       </Fn>
-      <H3 title="TopBar" />
+      <H3 title="TopBar e OptionsMenu" />
       <P>
-        A barra de topo. Mostra o nome &quot;FluxLang&quot; (um {mono('h1')} no editor; um parágrafo na documentação, que tem o próprio {mono('h1')}), as abas Editor e Documentação e, só no editor, os botões e o
-        resultado. As abas seguem o padrão de abas da ARIA: {mono('role="tablist"')}, {mono('aria-selected')}, só a aba ativa com {mono('tabIndex')} 0, e as setas, {mono('Home')} e {mono('End')} trocam de aba e
-        movem o foco (num {mono('requestAnimationFrame')}, depois de a troca renderizar). O resultado fica numa região {mono('role="status"')} com {mono('aria-live="polite"')}: o selo &quot;Programa aceito&quot; ou
-        &quot;Programa rejeitado&quot; e &quot;N linhas · E erros · T tokens&quot;; antes do primeiro resultado, &quot;Compilando...&quot; (ou &quot;Sem resultado&quot;, se o primeiro pedido falhou).
+        A barra de topo. Mostra o nome &quot;FluxLang&quot; (um {mono('h1')} no editor; um parágrafo na documentação, que tem o próprio {mono('h1')}), as abas Editor e Documentação e, só no editor, o menu Opções e o
+        botão Executar. As abas seguem o padrão de abas da ARIA: {mono('role="tablist"')}, {mono('aria-selected')}, só a aba ativa com {mono('tabIndex')} 0, e as setas, {mono('Home')} e {mono('End')} trocam de aba e
+        movem o foco (num {mono('requestAnimationFrame')}, depois de a troca renderizar); a escolha da aba vem de {mono('nextTabIndex')}. O resultado da compilação não fica mais na barra: está no {mono('EditorStatus')}, embaixo do editor.
       </P>
       <Table
         head={['Propriedade', 'Tipo', 'Uso']}
         rows={[
-          [mono('result'), mono('CompileResult | null'), 'O selo e as contagens.'],
-          [mono('loading'), mono('boolean'), '"Compilando..." quando ainda não há resultado.'],
-          [mono('onCompile'), mono('() => void'), 'O botão Compilar.'],
-          [<>{mono('semantic')}, {mono('onSemantic')}</>, <>{mono('boolean')}, {mono('(on) => void')}</>, 'A caixa "Análise semântica".'],
-          [<>{mono('running')}, {mono('onRun')}</>, <>{mono('boolean')}, {mono('() => void')}</>, 'O botão Executar, desligado e com o texto "Executando..." durante a execução.'],
           [<>{mono('view')}, {mono('onView')}</>, <>{mono("'editor' | 'docs'")}, {mono('(view) => void')}</>, 'As abas.'],
+          [<>{mono('running')}, {mono('onRun')}</>, <>{mono('boolean')}, {mono('() => void')}</>, 'O botão Executar, desligado e com o texto "Executando..." durante a execução.'],
+          [<>{mono('semantic')}, {mono('onSemantic')}</>, <>{mono('boolean')}, {mono('(on) => void')}</>, <>Repassadas ao {mono('OptionsMenu')}, que mostra a caixa "Análise semântica".</>],
         ]}
       />
+      <P>
+        {mono('OptionsMenu')} (propriedades {mono('semantic')} e {mono('onSemantic')}) é o botão Opções com um painel que abre embaixo dele: a caixa &quot;Análise semântica&quot; e a nota &quot;Ctrl+Enter compila agora&quot;. O botão
+        leva {mono('aria-expanded')} e {mono('aria-controls')}. O painel fecha ao clicar de novo no botão, ao apertar o mouse fora dele e com {mono('Esc')} (que devolve o foco ao botão); marcar a caixa não o fecha.
+      </P>
       <Fn name="handleTabKey (interna a TopBar)" signature="function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>): void">
-        Seta para a direita ou para a esquerda (circular), {mono('Home')} e {mono('End')}: escolhe a aba, chama {mono('onView')} e foca o botão {mono('tab-<id>')}. Outras teclas passam.
+        Pede a {mono('nextTabIndex')} o índice da aba para a tecla; se há, chama {mono('onView')} e foca o botão {mono('tab-<id>')}. Outras teclas passam.
+      </Fn>
+      <Fn name="OptionsMenu" signature="export function OptionsMenu({ semantic, onSemantic }: OptionsMenuProps): JSX.Element">
+        O menu descrito acima. Enquanto está aberto, registra no {mono('document')} um {mono('mousedown')} e um {mono('keydown')}, que são removidos ao fechar.
       </Fn>
       <H3 title="Editor" />
       <P>
-        Um {mono('textarea')} sem quebra de linha ({mono('wrap="off"')}, {mono('spellCheck')} desligado) com fundo transparente, sobre uma camada de faixas que pintam as linhas com erro, e uma calha de números à
-        esquerda. A calha e as faixas acompanham a rolagem do {mono('textarea')}: o evento {mono('scroll')} guarda {mono('scrollTop')}, a calha é deslocada com {mono('translateY')} e cada faixa é posicionada em{' '}
-        {mono('PADDING + (linha - 1) * LINE_HEIGHT - scrollTop')}. Os números das linhas com erro saem em negrito, na cor de erro.
+        Um editor CodeMirror 6, criado uma única vez num {mono('div')} (o efeito de montagem tem a lista de dependências vazia e destrói a visão ao desmontar). As extensões são: números de linha, desfazer e refazer
+        ({mono('history')}), seleção desenhada, realce da linha ativa e da sua calha, pares de parênteses, recuo ao digitar, a calha de diagnósticos ({mono('lintGutter')}), as teclas padrão mais {mono('Tab')} para recuar,
+        um ouvinte de mudanças, o realce de código, o rótulo {mono('aria-label="Código FluxLang"')} no conteúdo e um tema.
       </P>
       <Table
         head={['Propriedade', 'Tipo', 'Uso']}
         rows={[
           [mono('value'), mono('string'), 'O código.'],
-          [mono('onChange'), mono('(value: string) => void'), 'Cada tecla.'],
-          [mono('errorLines'), mono('ReadonlySet<number>'), 'As linhas (a partir de 1) a realçar.'],
+          [mono('onChange'), mono('(value: string) => void'), 'Cada mudança do texto, com o texto inteiro.'],
+          [mono('errors'), mono('CompileError[]'), <>Os erros do último resultado, sublinhados no código ({mono('errorDiagnostics')}).</>],
+          [mono('tokens'), mono('Token[]'), <>Os tokens do último resultado; dão o comprimento do trecho sublinhado de cada erro.</>],
           [mono('focus'), mono('Focus | null'), 'O pedido de seleção (ver o efeito abaixo).'],
-          [mono('focusKey'), mono('number (opcional)'), <>Quando muda para um valor diferente de 0, foca o {mono('textarea')}, põe o cursor no início e rola ao topo. Usado pelo &quot;Abrir no editor&quot;.</>],
+          [mono('focusKey'), mono('number (opcional)'), <>Quando muda para um valor diferente de 0, foca o editor, põe o cursor no início e rola ao topo. Usado pelo &quot;Abrir no editor&quot;.</>],
+          [mono('onCompileNow'), mono('() => void'), <>Chamada com Ctrl+Enter (ou Cmd+Enter, {mono('Mod-Enter')}).</>],
         ]}
       />
+      <P>
+        O realce de código é um {mono('ViewPlugin')} que, na criação e a cada mudança do texto, chama {mono('fluxMarks')} e transforma cada faixa numa decoração com a classe de cor de {mono('TOKEN_COLOR')} (a mesma
+        paleta dos exemplos da documentação). Os erros são sublinhados com ondas na cor de erro: um efeito reaplica {mono('setDiagnostics')} com o resultado de {mono('errorDiagnostics')} sempre que {mono('errors')} ou{' '}
+        {mono('tokens')} mudam, e passar o mouse sobre o trecho mostra a mensagem num balão. O tema do CodeMirror usa as variáveis de {mono('index.css')} ({mono('var(--color-panel)')}, {mono('var(--color-ink)')},{' '}
+        {mono('var(--color-bad)')} e as demais), então o tema escuro vale também aqui. O atalho {mono('Mod-Enter')} está num keymap de precedência {mono('Prec.highest')} e chama {mono('onCompileNow')}, que é o {mono('compileNow')} de {mono('useCompile')}.
+      </P>
       <Why>
-        {mono('Editor.tsx')}: um {mono('textarea')} não colore linhas sozinho, então o realce é uma camada à parte, atrás do texto, com a rolagem sincronizada à mão. O editor fica simples (sem biblioteca de editor) e
-        o texto continua sendo um campo de formulário comum, com desfazer, colar e seleção do navegador.
+        {mono('Editor.tsx')}: {mono('onChange')} e {mono('onCompileNow')} ficam em {mono('ref')}s atualizadas a cada renderização, porque a visão é criada uma só vez e as extensões guardariam a primeira função recebida.
+        Recriar o editor a cada renderização perderia o cursor, o histórico de desfazer e a rolagem.
       </Why>
       <Why>
-        {mono('Editor.tsx')}: {mono('LINE_HEIGHT')} (20) e {mono('PADDING')} (8), em pixels, têm de bater com as classes {mono('leading-5')} (1,25 rem) e {mono('p-2')} (0,5 rem) do {mono('textarea')}: a calha e as
-        faixas são posicionadas com esses números. Mudar a fonte ou o espaçamento do editor sem mudar as constantes desalinha o realce.
+        {mono('Editor.tsx')}: o efeito de {mono('value')} só troca o documento quando o texto recebido difere do atual. Sem essa conferência, o texto que o próprio editor acabou de emitir voltaria como propriedade e seria
+        reaplicado, e o cursor pularia. A troca real vem de fora, do &quot;Abrir no editor&quot; da documentação.
       </Why>
       <P>
-        O efeito de foco roda a cada {mono('Focus')} novo (clique num erro, token ou nó): calcula o deslocamento da linha pedida (limitada às linhas existentes); com {mono('length')}, seleciona{' '}
-        {mono('length')} caracteres a partir da coluna; sem ele, seleciona a linha inteira. Depois foca o {mono('textarea')} sem rolar ({mono('preventScroll')}), aplica {mono('setSelectionRange')} e rola para deixar a
-        linha no meio. A coluna do {mono('flux')} conta caracteres (medido: em {mono('var s = "olá"; var x')}, o {mono(';')} depois do texto está na coluna 29, cinco depois da aspa de abertura), e o tamanho dos
-        tokens é contado em pontos de código ({mono('[...text].length')}), então acentos não deslocam a seleção.
+        O efeito de foco roda a cada {mono('Focus')} novo (clique num erro, token ou nó): converte a posição com {mono('offsetAt')} (a linha pedida é limitada às linhas existentes); com {mono('length')}, seleciona{' '}
+        {mono('length')} caracteres a partir da coluna; sem ele, seleciona a linha inteira. Depois rola para deixar o início da seleção no meio ({mono('scrollIntoView')} com {mono("y: 'center'")}) e foca o editor. A coluna do {mono('flux')} conta caracteres (medido: em {mono('var s = "olá"; var x')}, o {mono(';')} depois do texto está na coluna 29, cinco depois da aspa de abertura), e o tamanho dos
+        tokens é contado em pontos de código ({mono('[...text].length')}), então acentos não deslocam a seleção; o CodeMirror conta em unidades UTF-16, e {mono('offsetAt')} faz a conversão.
       </P>
-      <Fn name="Editor" signature="export function Editor({ value, onChange, errorLines, focus, focusKey }: EditorProps): JSX.Element">
-        O componente descrito acima. O número de linhas vem de {mono("value.split('\\n').length")}.
+      <Fn name="Editor" signature="export function Editor({ value, onChange, errors, tokens, focus, focusKey, onCompileNow }: EditorProps): JSX.Element">
+        O componente descrito acima. Devolve só o {mono('div')} que hospeda o editor, com altura de 100% do espaço que o {mono('App')} reserva.
+      </Fn>
+      <Fn name="buildMarks (interna a Editor)" signature="function buildMarks(doc: string): DecorationSet">
+        Chama {mono('fluxMarks(doc)')} e monta o conjunto de decorações, uma por faixa, com a classe de {mono('TOKEN_COLOR[cls]')}.
+      </Fn>
+      <H3 title="lib/editorPositions.ts, lib/fluxMarks.ts e lib/tabKeys.ts" />
+      <P>
+        Três arquivos pequenos e sem React nem CodeMirror, que isolam as contas do editor e das abas:
+      </P>
+      <Fn name="offsetAt" signature="export function offsetAt(doc: string, line: number, column: number): number">
+        Converte uma posição do compilador (linha a partir de 1; coluna a partir de 1, contada em pontos de código) no deslocamento do CodeMirror (unidades UTF-16). Linha menor que 1 dá 0; linha que não existe dá o
+        fim do texto; a coluna é limitada à da linha (uma além do último caractere é permitida).
+      </Fn>
+      <Fn name="EditorDiagnostic" signature="export interface EditorDiagnostic { from: number; to: number; severity: 'error'; message: string }">
+        O formato que {mono('setDiagnostics')} espera, restrito aos erros.
+      </Fn>
+      <Fn name="errorDiagnostics" signature="export function errorDiagnostics(doc: string, errors: CompileError[], tokens: Token[]): EditorDiagnostic[]">
+        Um diagnóstico por erro. O começo vem de {mono('offsetAt')}; o fim, do token que começa na mesma linha e coluna (o tamanho do texto dele), ou, se não há, um caractere, sem passar do fim da linha. Se o começo cai no
+        fim do texto, o trecho recua para o último caractere, para haver o que sublinhar. A mensagem é {mono('[tipo] mensagem')}.
+      </Fn>
+      <Fn name="fluxMarks" signature="export function fluxMarks(code: string): FluxMark[]">
+        As faixas realçadas do código ({mono('from')}, {mono('to')} em UTF-16 e {mono('cls')}), reaproveitando o separador de trechos de {mono('docs/highlight.ts')} (o mesmo da documentação). Só entram os trechos que têm classe de cor.
+      </Fn>
+      <Fn name="nextTabIndex" signature="export function nextTabIndex(key: string, at: number, count: number): number | null">
+        O índice da aba para a tecla: seta para a direita e para a esquerda andam de forma circular, {mono('Home')} vai à primeira e {mono('End')} à última; qualquer outra tecla devolve {mono('null')}. Usada por{' '}
+        {mono('TopBar')} e {mono('SidePanel')}.
       </Fn>
       <H3 title="TokenList e ErrorList" />
       <Table
@@ -567,17 +603,32 @@ export default defineConfig({
       <Fn name="Node (interna)" signature="function Node({ node, depth, expandAll, expandKey, onSelect }: NodeProps): JSX.Element">
         Um nó e, se aberto, os filhos, recursivamente. Guarda {mono('open')} no próprio estado.
       </Fn>
-      <H3 title="Panel e InputBox" />
+      <H3 title="SidePanel, EditorStatus e InputBox" />
       <Table
         head={['Componente', 'Propriedades', 'O que faz']}
         rows={[
-          [mono('Panel'), <>{mono('title')}, {mono('actions?')} (controles à direita do título), {mono('className?')}, {mono('children')}</>, <>A moldura de um painel: um {mono('section')} com o título num {mono('h2')} fixo em cima e um corpo que rola sozinho. O corpo é uma {mono('role="region"')} com {mono('aria-label')} igual ao título e {mono('tabIndex')} 0.</>],
-          [mono('InputBox'), <>{mono('value')}, {mono('onChange')}</>, <>O campo &quot;Entrada do programa (uma linha para cada terminal.input)&quot;: um {mono('textarea')} de três linhas, redimensionável na vertical. Só aparece quando {mono('usesInput')} é verdadeiro.</>],
+          [mono('SidePanel'), <>{mono('tabs: SideTab[]')}, {mono('active')}, {mono('onActive')}</>, <>O painel lateral: uma {mono('section')} com uma lista de abas ({mono('role="tablist"')}, {mono('aria-label="Resultados"')}) e, embaixo, um {mono('role="tabpanel"')} por aba, só o ativo visível ({mono('hidden')} nos outros). Cada {mono('SideTab')} tem {mono('id')}, {mono('label')}, {mono('alert?')} (pinta o rótulo na cor de erro) e {mono('content')}. As abas seguem o padrão da ARIA como as da barra: só a ativa com {mono('tabIndex')} 0, setas, {mono('Home')} e {mono('End')} (por {mono('nextTabIndex')}), e o foco acompanha.</>],
+          [mono('EditorStatus'), <>{mono('result: CompileResult | null')}, {mono('loading: boolean')}</>, <>O rodapé do editor, numa região {mono('role="status"')} com {mono('aria-live="polite"')}: um ponto verde ou vermelho com &quot;aceito&quot; ou &quot;rejeitado&quot; e &quot;N linhas · E erros · T tokens&quot; (com o singular quando é 1). Antes do primeiro resultado, &quot;Compilando...&quot; (ou &quot;Sem resultado&quot;, se o primeiro pedido falhou).</>],
+          [mono('InputBox'), <>{mono('value')}, {mono('onChange')}</>, <>O campo &quot;Entrada do programa (uma linha para cada terminal.input)&quot;: um {mono('textarea')} de três linhas, redimensionável na vertical. Só aparece, no topo da aba Saída, quando {mono('usesInput')} é verdadeiro.</>],
         ]}
       />
+      <P>
+        As quatro abas que {mono('App')} entrega ao {mono('SidePanel')}: {mono('saida')} (o {mono('InputBox')}, se aplicável, e o {mono('OutputPanel')}), {mono('erros')} (rótulo &quot;Erros N&quot;, com {mono('alert')} quando N &gt; 0, e o{' '}
+        {mono('ErrorList')}), {mono('tokens')} (rótulo &quot;Tokens N&quot; e o {mono('TokenList')}) e {mono('arvore')} (os controles da árvore e o {mono('TreeView')}). Os corpos de todas as abas continuam montados, só escondidos,
+        então o estado da árvore (nós abertos) sobrevive à troca de aba.
+      </P>
+      <Fn name="SidePanel" signature="export function SidePanel({ tabs, active, onActive }: SidePanelProps): JSX.Element">
+        O painel descrito acima. {mono('SideTab')} ({mono('export interface')}) é o tipo de cada aba.
+      </Fn>
+      <Fn name="handleKey (interna a SidePanel)" signature="function handleKey(e: React.KeyboardEvent<HTMLButtonElement>): void">
+        Como {mono('handleTabKey')}, para as abas do painel: pede o índice a {mono('nextTabIndex')}, chama {mono('onActive')} e foca o botão {mono('side-tab-<id>')}.
+      </Fn>
+      <Fn name="EditorStatus" signature="export function EditorStatus({ result, loading }: EditorStatusProps): JSX.Element">
+        O rodapé descrito acima.
+      </Fn>
       <Why>
-        {mono('Panel.tsx')}: o corpo do painel rola, então tem de ser alcançável pelo teclado: com {mono('tabIndex')} 0 ele entra na ordem do Tab, e as setas rolam o conteúdo. A {mono('region')} com o título como
-        nome faz o leitor de tela anunciar qual painel recebeu o foco.
+        {mono('SidePanel.tsx')}: cada {mono('tabpanel')} rola sozinho, então tem de ser alcançável pelo teclado: com {mono('tabIndex')} 0 ele entra na ordem do Tab, e as setas rolam o conteúdo. O {mono('aria-labelledby')} liga o painel à
+        aba que o abre, e o leitor de tela anuncia o nome ao receber o foco.
       </Why>
       <Why>
         {mono('InputBox.tsx')}: a página não é um terminal interativo; o programa roda de uma vez com esse texto como entrada padrão, uma linha para cada {mono('terminal.input')}, na ordem. Quando as linhas acabam,
@@ -657,7 +708,7 @@ export default defineConfig({
       <H3 title="lib/useCompile.ts" />
       <Fn name="useCompile" signature="export function useCompile(source: string, semantic: boolean): { result, loading, failure, compileNow }">
         Compila {mono('source')} chamando {mono('POST /api/compile')} (com {mono('?semantic=1')} se pedido), corpo {mono('text/plain')}. A primeira compilação é imediata; depois, cada mudança de {mono('source')} ou{' '}
-        {mono('semantic')} recompila 400 ms depois da última (o temporizador anterior é cancelado). {mono('compileNow')} compila na hora (o botão Compilar). Com sucesso, guarda o resultado e limpa{' '}
+        {mono('semantic')} recompila 400 ms depois da última (o temporizador anterior é cancelado). {mono('compileNow')} compila na hora (o Ctrl+Enter do editor). Com sucesso, guarda o resultado e limpa{' '}
         {mono('failure')}; com erro (resposta não 2xx, rede, JSON inválido), guarda a mensagem em {mono('failure')} e mantém o último resultado. {mono('failure')} é falha do servidor ou do compilador, não erro do
         programa.
       </Fn>
@@ -691,7 +742,7 @@ export default defineConfig({
           [mono('--color-muted'), 'Texto secundário, números de linha, rótulos.'],
           [mono('--color-accent'), 'Destaque: aba ativa, botão Executar, contornos de foco, links, tokens e log.'],
           [mono('--color-ok'), 'Programa aceito, código de saída 0, strings no realce de código.'],
-          [mono('--color-bad'), 'Erros: linhas realçadas, mensagens, nós de erro, error e fatal.'],
+          [mono('--color-bad'), 'Erros: sublinhado no código, mensagens, nós de erro, error e fatal.'],
           [mono('--color-warn'), 'warn e números no realce.'],
           [mono('--color-info'), 'info, tipos no realce e as caixas de nota.'],
           [mono('--color-scrim'), 'O véu atrás do menu e da busca da documentação.'],
@@ -711,13 +762,13 @@ export default defineConfig({
       <Table
         head={['Convenção', 'Onde']}
         rows={[
-          ['Áreas que rolam entram na ordem do Tab', <>O corpo de cada {mono('Panel')} ({mono('tabIndex')} 0, {mono('role="region"')}); na documentação, só quando o conteúdo de fato transborda ({mono('useOverflowFocus')}).</>],
+          ['Áreas que rolam entram na ordem do Tab', <>O corpo de cada aba do {mono('SidePanel')} ({mono('tabIndex')} 0, {mono('role="tabpanel"')}); na documentação, só quando o conteúdo de fato transborda ({mono('useOverflowFocus')}).</>],
           ['Alvos de pelo menos 24 por 24 pixels', <>Botões e caixas com {mono('min-h-6')} ou {mono('size-6')} (1,5 rem): abas, botões pequenos da árvore, linhas de tokens, caixas de marcar.</>],
-          ['Foco visível', <>{mono('focus-visible:outline-2')} na cor de destaque nos botões, links, abas, regiões que rolam e campos. As exceções, hoje: o {mono('textarea')} do editor, que usa {mono('outline-none')} (ali o foco aparece só pelo cursor de texto), as duas caixas de marcar (Análise semântica, na barra de cima, e ocultar *_rest, no painel da árvore em {mono('App.tsx')}; classe {mono('size-6 accent-accent')}), que usam o anel de foco padrão do navegador.</>],
+          ['Foco visível', <>{mono('focus-visible:outline-2')} na cor de destaque nos botões, links, abas, regiões que rolam e campos. As exceções, hoje: o editor CodeMirror, cujo tema tira o contorno ({mono("'&.cm-focused': { outline: 'none' }")}; ali o foco aparece pelo cursor e pela linha ativa), as duas caixas de marcar (Análise semântica, no {mono('OptionsMenu')}, e ocultar *_rest, na aba Árvore em {mono('App.tsx')}; classe {mono('size-6 accent-accent')}), que usam o anel de foco padrão do navegador.</>],
           ['Mudanças anunciadas', <>O resultado da compilação e o da execução em {mono('role="status"')} com {mono('aria-live="polite"')}; a falha do servidor em {mono('role="alert"')}.</>],
-          ['Um só h1 por tela', <>&quot;FluxLang&quot; é {mono('h1')} no editor e parágrafo na documentação, que tem o título da página como {mono('h1')}; os painéis usam {mono('h2')}.</>],
-          ['Cor nunca sozinha', 'O tipo de cada linha de saída é escrito ao lado; erros têm o tipo escrito; o selo diz "aceito" ou "rejeitado".'],
-          ['Teclado em componentes compostos', 'As abas com setas, Home e End; a busca com setas e Enter; os diálogos com Esc e o Tab preso dentro.'],
+          ['Um só h1 por tela', <>&quot;FluxLang&quot; é {mono('h1')} no editor e parágrafo na documentação, que tem o título da página como {mono('h1')}; a tela do editor não tem outros títulos (as abas do painel lateral são botões de {mono('role="tab"')}).</>],
+          ['Cor nunca sozinha', 'O tipo de cada linha de saída é escrito ao lado; erros têm o tipo escrito; o rodapé do editor diz "aceito" ou "rejeitado".'],
+          ['Teclado em componentes compostos', 'As abas (da barra e do painel lateral) com setas, Home e End; o menu Opções com Esc; a busca com setas e Enter; os diálogos com Esc e o Tab preso dentro.'],
           ['Cores só por tokens', <>Para o tema escuro funcionar e o contraste ser conferido num só lugar ({mono('index.css')}).</>],
         ]}
       />
