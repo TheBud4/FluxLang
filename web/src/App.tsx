@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { ErrorList } from './components/ErrorList'
 import { Editor } from './components/Editor'
-import { Panel } from './components/Panel'
+import { EditorStatus } from './components/EditorStatus'
+import { SidePanel } from './components/SidePanel'
 import { TokenList } from './components/TokenList'
 import { TopBar } from './components/TopBar'
 import { TreeView } from './components/TreeView'
@@ -32,6 +33,7 @@ export default function App() {
   const [stdin, setStdin] = useState('')
   const [expand, setExpand] = useState({ key: 0, all: true })
   const [editorFocus, setEditorFocus] = useState(0)
+  const [sideTab, setSideTab] = useState('saida')
   const focusPending = useRef(false)
   const { result, loading, failure, compileNow } = useCompile(source, semantic)
   const { state: runState, run } = useRun()
@@ -45,6 +47,8 @@ export default function App() {
 
   const usesInput = useMemo(() => /\bterminal\s*\.\s*input\b/.test(source), [source])
 
+  const errorCount = result?.errors.length ?? 0
+
   const goTo = (line: number, column: number, length?: number) =>
     setFocus({ line, column, length, nonce: Date.now() })
 
@@ -57,7 +61,10 @@ export default function App() {
         semantic={semantic}
         onSemantic={setSemantic}
         running={runState.phase === 'running'}
-        onRun={() => run(source, stdin)}
+        onRun={() => {
+          run(source, stdin)
+          setSideTab('saida')
+        }}
         view={view}
         onView={(v) => (v === 'docs' ? goDoc(pageId) : goEditor())}
       />
@@ -68,63 +75,88 @@ export default function App() {
         </p>
       )}
 
-      <main hidden={view === 'docs'} className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-2 lg:grid-cols-[1.3fr_0.8fr_1.2fr] lg:grid-rows-[minmax(0,1fr)_11rem]">
-        <Panel title="Código" className="h-96 lg:h-auto">
-          <Editor
-            value={source}
-            onChange={setSource}
-            errors={result?.errors ?? []}
-            tokens={result?.tokens ?? []}
-            focus={focus}
-            focusKey={editorFocus}
-            onCompileNow={compileNow}
-          />
-        </Panel>
-
-        <Panel title={`Tokens (${result?.tokens.length ?? 0})`} className="h-72 lg:h-auto">
-          <TokenList tokens={result?.tokens ?? []} onSelect={goTo} />
-        </Panel>
-
-        <Panel
-          title={`Árvore sintática${result?.tree ? ` (${countNodes(result.tree)} nós)` : ''}`}
-          className="h-96 lg:h-auto"
-          actions={
-            <div className="flex items-center gap-2">
-              <label className="flex items-center gap-1.5 text-xs whitespace-nowrap">
-                <input
-                  type="checkbox"
-                  className={checkbox}
-                  checked={hideRest}
-                  onChange={(e) => setHideRest(e.target.checked)}
-                />
-                ocultar *_rest
-              </label>
-              <button type="button" className={smallButton} onClick={() => setExpand((s) => ({ key: s.key + 1, all: true }))}>
-                Expandir
-              </button>
-              <button type="button" className={smallButton} onClick={() => setExpand((s) => ({ key: s.key + 1, all: false }))}>
-                Recolher
-              </button>
-            </div>
-          }
+      <main
+        hidden={view === 'docs'}
+        className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-2 lg:grid-cols-[1.4fr_1fr]"
+      >
+        <section
+          aria-label="Editor"
+          className="flex h-96 min-h-0 min-w-0 flex-col overflow-hidden rounded-md border border-line bg-panel lg:h-auto"
         >
-          <TreeView
-            root={result?.tree ?? null}
-            hideRest={hideRest}
-            expandKey={expand.key}
-            expandAll={expand.all}
-            onSelect={goTo}
-          />
-        </Panel>
+          <div className="min-h-0 flex-1">
+            <Editor
+              value={source}
+              onChange={setSource}
+              errors={result?.errors ?? []}
+              tokens={result?.tokens ?? []}
+              focus={focus}
+              focusKey={editorFocus}
+              onCompileNow={compileNow}
+            />
+          </div>
+          <EditorStatus result={result} loading={loading} />
+        </section>
 
-        <Panel title={`Erros (${result?.errors.length ?? 0})`} className="lg:col-span-2">
-          <ErrorList errors={result?.errors ?? []} onSelect={goTo} />
-        </Panel>
-
-        <Panel title="Saída">
-          {usesInput && <InputBox value={stdin} onChange={setStdin} />}
-          <OutputPanel state={runState} />
-        </Panel>
+        <SidePanel
+          active={sideTab}
+          onActive={setSideTab}
+          tabs={[
+            {
+              id: 'saida',
+              label: 'Saída',
+              content: (
+                <>
+                  {usesInput && <InputBox value={stdin} onChange={setStdin} />}
+                  <OutputPanel state={runState} />
+                </>
+              ),
+            },
+            {
+              id: 'erros',
+              label: `Erros ${errorCount}`,
+              alert: errorCount > 0,
+              content: <ErrorList errors={result?.errors ?? []} onSelect={goTo} />,
+            },
+            {
+              id: 'tokens',
+              label: `Tokens ${result?.tokens.length ?? 0}`,
+              content: <TokenList tokens={result?.tokens ?? []} onSelect={goTo} />,
+            },
+            {
+              id: 'arvore',
+              label: 'Árvore',
+              content: (
+                <>
+                  <div className="flex flex-wrap items-center gap-2 border-b border-line px-3 py-1.5">
+                    {result?.tree && <span className="text-xs text-muted">{countNodes(result.tree)} nós</span>}
+                    <label className="flex items-center gap-1.5 text-xs whitespace-nowrap">
+                      <input
+                        type="checkbox"
+                        className={checkbox}
+                        checked={hideRest}
+                        onChange={(e) => setHideRest(e.target.checked)}
+                      />
+                      ocultar *_rest
+                    </label>
+                    <button type="button" className={smallButton} onClick={() => setExpand((s) => ({ key: s.key + 1, all: true }))}>
+                      Expandir
+                    </button>
+                    <button type="button" className={smallButton} onClick={() => setExpand((s) => ({ key: s.key + 1, all: false }))}>
+                      Recolher
+                    </button>
+                  </div>
+                  <TreeView
+                    root={result?.tree ?? null}
+                    hideRest={hideRest}
+                    expandKey={expand.key}
+                    expandAll={expand.all}
+                    onSelect={goTo}
+                  />
+                </>
+              ),
+            },
+          ]}
+        />
       </main>
 
       {view === 'docs' && (

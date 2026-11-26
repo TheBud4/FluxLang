@@ -1,4 +1,5 @@
 import type { CompileResult } from '../lib/types'
+import { nextTabIndex } from '../lib/tabKeys'
 
 interface TopBarProps {
   result: CompileResult | null
@@ -32,11 +33,11 @@ export function TopBar({
   onView,
 }: TopBarProps) {
   function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>) {
-    if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return
-    e.preventDefault()
     const at = TABS.findIndex((t) => t.id === view)
-    const step = e.key === 'ArrowRight' ? at + 1 : e.key === 'ArrowLeft' ? at - 1 : e.key === 'Home' ? 0 : TABS.length - 1
-    const next = TABS[(step + TABS.length) % TABS.length]
+    const to = nextTabIndex(e.key, at, TABS.length)
+    if (to === null) return
+    e.preventDefault()
+    const next = TABS[to]
     onView(next.id)
     requestAnimationFrame(() => document.getElementById(`tab-${next.id}`)?.focus())
   }
