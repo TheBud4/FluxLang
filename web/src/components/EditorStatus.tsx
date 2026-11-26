@@ -20,7 +20,7 @@ export function EditorStatus({ result, loading }: EditorStatusProps) {
           </span>
           <span className="text-muted">
             {result.lines} {result.lines === 1 ? 'linha' : 'linhas'} · {result.errors.length}{' '}
-            {result.errors.length === 1 ? 'erro' : 'erros'} · {result.tokens.length} tokens
+            {result.errors.length === 1 ? 'erro' : 'erros'} · {result.tokens.length} {result.tokens.length === 1 ? 'token' : 'tokens'}
           </span>
         </>
       ) : (

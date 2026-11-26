@@ -74,7 +74,7 @@ export default function App() {
 
       <main
         hidden={view === 'docs'}
-        className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-2 lg:grid-cols-[1.4fr_1fr]"
+        className="grid min-h-0 flex-1 grid-cols-1 grid-rows-[auto_1fr] gap-2 overflow-auto p-2 lg:grid-cols-[1.4fr_1fr] lg:grid-rows-1"
       >
         <section
           aria-label="Editor"
