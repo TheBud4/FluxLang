@@ -1,6 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import invalid from '../../docs/exemplos/invalido.flux?raw'
-import valid from '../../docs/exemplos/valido.flux?raw'
 import { ErrorList } from './components/ErrorList'
 import { Editor } from './components/Editor'
 import { Panel } from './components/Panel'
@@ -17,17 +15,17 @@ import { DocsProvider } from './docs/DocsContext'
 import { DocsView } from './docs/DocsView'
 import { useHashRoute } from './docs/useHashRoute'
 
-const SAMPLES = [
-  { label: 'Exemplo válido', text: valid },
-  { label: 'Exemplo inválido', text: invalid },
-]
+const HELLO = `func main () {
+    terminal.log("Hello, world!");
+}
+`
 
 const checkbox = 'size-6 accent-accent'
 const smallButton =
   'min-h-6 rounded border border-line px-2 text-xs hover:bg-bg focus-visible:outline-2 focus-visible:outline-accent'
 
 export default function App() {
-  const [source, setSource] = useState(invalid)
+  const [source, setSource] = useState(HELLO)
   const [focus, setFocus] = useState<Focus | null>(null)
   const [hideRest, setHideRest] = useState(false)
   const [semantic, setSemantic] = useState(true)
@@ -57,10 +55,7 @@ export default function App() {
       <TopBar
         result={result}
         loading={loading}
-        onOpenFile={(_, text) => setSource(text)}
         onCompile={compileNow}
-        samples={SAMPLES}
-        onSample={setSource}
         semantic={semantic}
         onSemantic={setSemantic}
         running={runState.phase === 'running'}

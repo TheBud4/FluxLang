@@ -125,9 +125,8 @@ export default defineConfig({
 })`}
       </Code>
       <Why>
-        {mono('vite.config.ts')}: a interface importa arquivos que moram fora de {mono('web/')}: os exemplos {mono('docs/exemplos/valido.flux')} e {mono('invalido.flux')} (com {mono('?raw')}, como texto, em{' '}
-        {mono('App.tsx')}) e a gramática de realce {mono('fluxlang.tmLanguage.json')}, de {mono('tools/vscode-fluxlang/syntaxes/')} (em {mono('docs/highlight.ts')}). O Vite só serve arquivos da pasta do projeto, então a raiz
-        do repositório tem de estar em {mono('fs.allow')}. Assim os botões de exemplo carregam sempre a versão atual dos arquivos da linguagem, sem cópia.
+        {mono('vite.config.ts')}: a interface importa um arquivo que mora fora de {mono('web/')}: a gramática de realce {mono('fluxlang.tmLanguage.json')}, de {mono('tools/vscode-fluxlang/syntaxes/')} (em {mono('docs/highlight.ts')}). O Vite só serve arquivos da pasta do projeto, então a raiz
+        do repositório tem de estar em {mono('fs.allow')}. Assim o realce usa sempre a versão atual da gramática, sem cópia.
       </Why>
       <H3 title="index.html, main.tsx e tsconfig.json" />
       <P>
@@ -447,7 +446,7 @@ export default defineConfig({
       <Table
         head={['Estado', 'Começa com', 'Para quê']}
         rows={[
-          [mono('source'), <>o texto de {mono('invalido.flux')}</>, 'O código no editor.'],
+          [mono('source'), mono('HELLO'), <>O código no editor; começa com um programa mínimo que escreve {mono('Hello, world!')}.</>],
           [mono('focus'), mono('null'), <>O último pedido de &quot;ir até&quot; ({mono('Focus')}) para o editor.</>],
           [mono('hideRest'), mono('false'), <>A caixa &quot;ocultar *_rest&quot; da árvore.</>],
           [mono('semantic'), mono('true'), <>A chave &quot;Análise semântica&quot;: vira {mono('?semantic=1')}.</>],
@@ -462,8 +461,7 @@ export default defineConfig({
       />
       <P>
         Valores derivados: {mono('usesInput')} testa o código com {mono('/\\bterminal\\s*\\.\\s*input\\b/')} e decide se o campo de entrada aparece (o teste é textual: um {mono('terminal.input')} dentro de um
-        comentário também o mostra); {mono('errorLines')} é o conjunto das linhas dos erros, para o editor realçar. {mono('SAMPLES')} são os dois exemplos, com os rótulos &quot;Exemplo válido&quot; e
-        &quot;Exemplo inválido&quot;. Uma falha do servidor aparece numa faixa com {mono('role="alert"')} acima dos painéis, só na tela do editor.
+        comentário também o mostra); {mono('errorLines')} é o conjunto das linhas dos erros, para o editor realçar.Uma falha do servidor aparece numa faixa com {mono('role="alert"')} acima dos painéis, só na tela do editor.
       </P>
       <P>
         Os painéis ficam numa grade: em telas a partir de {mono('lg')} (64 rem), três colunas (Código, Tokens, Árvore) e uma segunda faixa de altura fixa com Erros (ocupando duas colunas) e Saída; abaixo
@@ -490,22 +488,12 @@ export default defineConfig({
         rows={[
           [mono('result'), mono('CompileResult | null'), 'O selo e as contagens.'],
           [mono('loading'), mono('boolean'), '"Compilando..." quando ainda não há resultado.'],
-          [mono('onOpenFile'), mono('(name: string, text: string) => void'), 'Chamada com o arquivo escolhido em "Abrir arquivo".'],
           [mono('onCompile'), mono('() => void'), 'O botão Compilar.'],
-          [<>{mono('samples')}, {mono('onSample')}</>, <>{mono('{ label, text }[]')}, {mono('(text) => void')}</>, 'Um botão por exemplo.'],
           [<>{mono('semantic')}, {mono('onSemantic')}</>, <>{mono('boolean')}, {mono('(on) => void')}</>, 'A caixa "Análise semântica".'],
           [<>{mono('running')}, {mono('onRun')}</>, <>{mono('boolean')}, {mono('() => void')}</>, 'O botão Executar, desligado e com o texto "Executando..." durante a execução.'],
           [<>{mono('view')}, {mono('onView')}</>, <>{mono("'editor' | 'docs'")}, {mono('(view) => void')}</>, 'As abas.'],
         ]}
       />
-      <Fn name="handleFile (interna a TopBar)" signature="async function handleFile(file: File | undefined): Promise<void>">
-        Lê o arquivo com {mono('file.text()')}, chama {mono('onOpenFile')} e limpa o valor do {mono('input')} de arquivo. O {mono('input')} aceita {mono('.flux')}, {mono('.txt')} e {mono('text/plain')} e fica
-        escondido ({mono('sr-only')}); o rótulo &quot;Abrir arquivo&quot; é que parece um botão.
-      </Fn>
-      <Why>
-        {mono('TopBar.tsx')}: o valor do {mono('input')} de arquivo é limpo depois de cada leitura porque o navegador só dispara {mono('change')} se o arquivo escolhido mudar. Sem isso, abrir de novo o mesmo arquivo
-        (depois de editá-lo fora) não faria nada.
-      </Why>
       <Fn name="handleTabKey (interna a TopBar)" signature="function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>): void">
         Seta para a direita ou para a esquerda (circular), {mono('Home')} e {mono('End')}: escolhe a aba, chama {mono('onView')} e foca o botão {mono('tab-<id>')}. Outras teclas passam.
       </Fn>
@@ -725,7 +713,7 @@ export default defineConfig({
         rows={[
           ['Áreas que rolam entram na ordem do Tab', <>O corpo de cada {mono('Panel')} ({mono('tabIndex')} 0, {mono('role="region"')}); na documentação, só quando o conteúdo de fato transborda ({mono('useOverflowFocus')}).</>],
           ['Alvos de pelo menos 24 por 24 pixels', <>Botões e caixas com {mono('min-h-6')} ou {mono('size-6')} (1,5 rem): abas, botões pequenos da árvore, linhas de tokens, caixas de marcar.</>],
-          ['Foco visível', <>{mono('focus-visible:outline-2')} na cor de destaque nos botões, links, abas, regiões que rolam e campos. As exceções, hoje: o {mono('textarea')} do editor, que usa {mono('outline-none')} (ali o foco aparece só pelo cursor de texto), as duas caixas de marcar (Análise semântica, na barra de cima, e ocultar *_rest, no painel da árvore em {mono('App.tsx')}; classe {mono('size-6 accent-accent')}), que usam o anel de foco padrão do navegador; e Abrir arquivo, em {mono('TopBar.tsx')}: quem recebe o foco do Tab é o {mono('input type="file"')} escondido com {mono('sr-only')}, enquanto as classes {mono('focus-visible:outline-*')} estão no {mono('label')}, que nunca recebe foco. Hoje, quem navega pelo teclado não vê indicação de foco nesse controle.</>],
+          ['Foco visível', <>{mono('focus-visible:outline-2')} na cor de destaque nos botões, links, abas, regiões que rolam e campos. As exceções, hoje: o {mono('textarea')} do editor, que usa {mono('outline-none')} (ali o foco aparece só pelo cursor de texto), as duas caixas de marcar (Análise semântica, na barra de cima, e ocultar *_rest, no painel da árvore em {mono('App.tsx')}; classe {mono('size-6 accent-accent')}), que usam o anel de foco padrão do navegador.</>],
           ['Mudanças anunciadas', <>O resultado da compilação e o da execução em {mono('role="status"')} com {mono('aria-live="polite"')}; a falha do servidor em {mono('role="alert"')}.</>],
           ['Um só h1 por tela', <>&quot;FluxLang&quot; é {mono('h1')} no editor e parágrafo na documentação, que tem o título da página como {mono('h1')}; os painéis usam {mono('h2')}.</>],
           ['Cor nunca sozinha', 'O tipo de cada linha de saída é escrito ao lado; erros têm o tipo escrito; o selo diz "aceito" ou "rejeitado".'],

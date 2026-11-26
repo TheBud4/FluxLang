@@ -473,9 +473,8 @@ reconhecidos, a árvore sintática, o resultado (`Programa aceito` ou
 Clicar num erro, token ou nó da árvore seleciona o trecho no código. A
 árvore é a de derivação, fiel à gramática LL(1); a opção "ocultar `*_rest`"
 remove os nós criados na fatoração e sobe os filhos deles para o pai. O
-código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E25, o botão **Executar** compila o programa para C e o roda (se o programa usa `terminal.input`, aparece o campo "Entrada do programa": uma linha para cada `terminal.input`, na ordem, e a resposta aparece ao lado do prompt;a saída aparece no painel "Saída", em ordem e colorida pelo tipo: `log` em azul, `info` em ciano, `warn` em amarelo, `error` e os erros de execução em vermelho, cada linha com o nome do tipo ao lado; o painel mostra também o código de saída; um programa que passa de 10 segundos é interrompido e a saída é cortada em 1 MB), e há botões
-para abrir um arquivo e carregar `docs/exemplos/valido.flux` e
-`invalido.flux`.
+código recompila sozinho 400 ms depois de parar de digitar, a chave "Análise semântica" liga os erros E1 a E25, o botão **Executar** compila o programa para C e o roda (se o programa usa `terminal.input`, aparece o campo "Entrada do programa": uma linha para cada `terminal.input`, na ordem, e a resposta aparece ao lado do prompt;a saída aparece no painel "Saída", em ordem e colorida pelo tipo: `log` em azul, `info` em ciano, `warn` em amarelo, `error` e os erros de execução em vermelho, cada linha com o nome do tipo ao lado; o painel mostra também o código de saída; um programa que passa de 10 segundos é interrompido e a saída é cortada em 1 MB), e o editor
+começa com um programa mínimo que escreve `Hello, world!`.
 
 **Documentação.** A aba **Documentação** da interface (endereço `#/doc`; cada
 página fica em `#/doc/<seção>/<página>`, como `#/doc/linguagem/tipos`) traz o

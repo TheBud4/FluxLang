@@ -1,13 +1,9 @@
-import { useRef } from 'react'
 import type { CompileResult } from '../lib/types'
 
 interface TopBarProps {
   result: CompileResult | null
   loading: boolean
-  onOpenFile: (name: string, text: string) => void
   onCompile: () => void
-  samples: { label: string; text: string }[]
-  onSample: (text: string) => void
   semantic: boolean
   onSemantic: (on: boolean) => void
   running: boolean
@@ -27,10 +23,7 @@ const button =
 export function TopBar({
   result,
   loading,
-  onOpenFile,
   onCompile,
-  samples,
-  onSample,
   semantic,
   onSemantic,
   running,
@@ -38,14 +31,6 @@ export function TopBar({
   view,
   onView,
 }: TopBarProps) {
-  const fileInput = useRef<HTMLInputElement>(null)
-
-  async function handleFile(file: File | undefined) {
-    if (!file) return
-    onOpenFile(file.name, await file.text())
-    if (fileInput.current) fileInput.current.value = ''
-  }
-
   function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>) {
     if (!['ArrowRight', 'ArrowLeft', 'Home', 'End'].includes(e.key)) return
     e.preventDefault()
@@ -90,17 +75,6 @@ export function TopBar({
       {view === 'editor' && (
         <>
           <div className="flex items-center gap-2">
-            <input
-              ref={fileInput}
-              type="file"
-              accept=".flux,.txt,text/plain"
-              className="sr-only"
-              id="open-file"
-              onChange={(e) => handleFile(e.target.files?.[0])}
-            />
-            <label htmlFor="open-file" className={`${button} cursor-pointer`}>
-              Abrir arquivo
-            </label>
             <button type="button" className={button} onClick={onCompile}>
               Compilar
             </button>
@@ -112,11 +86,6 @@ export function TopBar({
             >
               {running ? 'Executando...' : 'Executar'}
             </button>
-            {samples.map((s) => (
-              <button key={s.label} type="button" className={button} onClick={() => onSample(s.text)}>
-                {s.label}
-              </button>
-            ))}
             <label className="flex min-h-6 items-center gap-1.5 text-sm whitespace-nowrap">
               <input
                 type="checkbox"

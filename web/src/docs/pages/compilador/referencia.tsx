@@ -861,7 +861,6 @@ const webApp: Area = {
       page: 'interface-web',
       role: <>O componente raiz: o estado da tela, os cinco painéis do editor e a troca entre editor e documentação.</>,
       items: [
-        { name: 'SAMPLES', kind: 'constante', page: 'interface-web', what: <>Os dois exemplos de {mono('docs/exemplos/')} dos botões da barra.</> },
         { name: 'checkbox', kind: 'constante', what: <>As classes da caixa de marcar ocultar *_rest.</> },
         { name: 'smallButton', kind: 'constante', what: <>As classes dos botões Expandir e Recolher do painel da árvore.</> },
         { name: 'App', kind: 'componente (exportação padrão)', page: 'interface-web', what: <>Guarda código, foco, opções e entrada, e liga {mono('useCompile')}, {mono('useRun')} e {mono('useHashRoute')} aos componentes.</> },
