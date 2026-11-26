@@ -45,8 +45,6 @@ export default function App() {
 
   const usesInput = useMemo(() => /\bterminal\s*\.\s*input\b/.test(source), [source])
 
-  const errorLines = useMemo(() => new Set(result?.errors.map((e) => e.line) ?? []), [result])
-
   const goTo = (line: number, column: number, length?: number) =>
     setFocus({ line, column, length, nonce: Date.now() })
 
@@ -72,7 +70,15 @@ export default function App() {
 
       <main hidden={view === 'docs'} className="grid min-h-0 flex-1 grid-cols-1 gap-2 overflow-auto p-2 lg:grid-cols-[1.3fr_0.8fr_1.2fr] lg:grid-rows-[minmax(0,1fr)_11rem]">
         <Panel title="Código" className="h-96 lg:h-auto">
-          <Editor value={source} onChange={setSource} errorLines={errorLines} focus={focus} focusKey={editorFocus} />
+          <Editor
+            value={source}
+            onChange={setSource}
+            errors={result?.errors ?? []}
+            tokens={result?.tokens ?? []}
+            focus={focus}
+            focusKey={editorFocus}
+            onCompileNow={compileNow}
+          />
         </Panel>
 
         <Panel title={`Tokens (${result?.tokens.length ?? 0})`} className="h-72 lg:h-auto">

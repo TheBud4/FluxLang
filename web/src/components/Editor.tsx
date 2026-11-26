@@ -1,77 +1,181 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import type { Focus } from '../lib/types'
-
-const LINE_HEIGHT = 20
-const PADDING = 8
+import { useEffect, useRef } from 'react'
+import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
+import { bracketMatching, indentOnInput } from '@codemirror/language'
+import { lintGutter, setDiagnostics } from '@codemirror/lint'
+import { EditorState, Prec, type Extension, type Range } from '@codemirror/state'
+import {
+  Decoration,
+  type DecorationSet,
+  drawSelection,
+  EditorView,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+  keymap,
+  lineNumbers,
+  ViewPlugin,
+  type ViewUpdate,
+} from '@codemirror/view'
+import { TOKEN_COLOR } from '../docs/highlight'
+import { errorDiagnostics, offsetAt } from '../lib/editorPositions'
+import { fluxMarks } from '../lib/fluxMarks'
+import type { CompileError, Focus, Token } from '../lib/types'
 
 interface EditorProps {
   value: string
   onChange: (value: string) => void
-  errorLines: ReadonlySet<number>
+  errors: CompileError[]
+  tokens: Token[]
   focus: Focus | null
   focusKey?: number
+  onCompileNow: () => void
 }
 
-export function Editor({ value, onChange, errorLines, focus, focusKey }: EditorProps) {
-  const textarea = useRef<HTMLTextAreaElement>(null)
-  const [scrollTop, setScrollTop] = useState(0)
-  const lineCount = useMemo(() => value.split('\n').length, [value])
+function buildMarks(doc: string): DecorationSet {
+  const ranges: Range<Decoration>[] = fluxMarks(doc).map((m) =>
+    Decoration.mark({ class: TOKEN_COLOR[m.cls] }).range(m.from, m.to),
+  )
+  return Decoration.set(ranges)
+}
+
+const fluxHighlight = ViewPlugin.fromClass(
+  class {
+    decorations: DecorationSet
+    constructor(view: EditorView) {
+      this.decorations = buildMarks(view.state.doc.toString())
+    }
+    update(update: ViewUpdate) {
+      if (update.docChanged) this.decorations = buildMarks(update.state.doc.toString())
+    }
+  },
+  { decorations: (plugin) => plugin.decorations },
+)
+
+const theme = EditorView.theme({
+  '&': {
+    height: '100%',
+    fontSize: '14px',
+    backgroundColor: 'var(--color-panel)',
+    color: 'var(--color-ink)',
+  },
+  '&.cm-focused': { outline: 'none' },
+  '.cm-scroller': { overflow: 'auto', fontFamily: 'var(--font-mono)' },
+  '.cm-content': { caretColor: 'var(--color-ink)' },
+  '.cm-cursor, .cm-dropCursor': { borderLeftColor: 'var(--color-ink)' },
+  '.cm-gutters': {
+    backgroundColor: 'var(--color-bg)',
+    color: 'var(--color-muted)',
+    borderRight: '1px solid var(--color-line)',
+  },
+  '.cm-activeLine': { backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)' },
+  '.cm-activeLineGutter': {
+    backgroundColor: 'color-mix(in srgb, var(--color-accent) 8%, transparent)',
+    color: 'var(--color-ink)',
+  },
+  '&.cm-focused > .cm-scroller > .cm-selectionLayer .cm-selectionBackground, .cm-selectionBackground, ::selection':
+    { backgroundColor: 'color-mix(in srgb, var(--color-accent) 25%, transparent)' },
+  '.cm-lintRange-error': {
+    backgroundImage: 'none',
+    textDecoration: 'underline wavy var(--color-bad)',
+    textUnderlineOffset: '3px',
+  },
+  '.cm-tooltip': {
+    backgroundColor: 'var(--color-panel)',
+    color: 'var(--color-ink)',
+    border: '1px solid var(--color-line)',
+  },
+  '.cm-tooltip-lint .cm-diagnostic-error': { borderLeft: '4px solid var(--color-bad)' },
+  '.cm-diagnostic': { color: 'var(--color-ink)' },
+})
+
+export function Editor({ value, onChange, errors, tokens, focus, focusKey, onCompileNow }: EditorProps) {
+  const host = useRef<HTMLDivElement>(null)
+  const view = useRef<EditorView | null>(null)
+  const onChangeRef = useRef(onChange)
+  const onCompileNowRef = useRef(onCompileNow)
+  onChangeRef.current = onChange
+  onCompileNowRef.current = onCompileNow
 
   useEffect(() => {
-    const el = textarea.current
-    if (!focus || !el) return
-    const lines = el.value.split('\n')
-    const lineIndex = Math.min(Math.max(focus.line - 1, 0), lines.length - 1)
-    const lineStart = lines.slice(0, lineIndex).reduce((sum, l) => sum + l.length + 1, 0)
-    const start = focus.length ? lineStart + Math.max(focus.column - 1, 0) : lineStart
-    const end = focus.length ? start + focus.length : lineStart + lines[lineIndex].length
-    el.focus({ preventScroll: true })
-    el.setSelectionRange(start, end)
-    el.scrollTop = Math.max(0, PADDING + lineIndex * LINE_HEIGHT - el.clientHeight / 2)
+    const extensions: Extension[] = [
+      lineNumbers(),
+      history(),
+      drawSelection(),
+      highlightActiveLine(),
+      highlightActiveLineGutter(),
+      bracketMatching(),
+      indentOnInput(),
+      lintGutter(),
+      keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
+      Prec.highest(
+        keymap.of([
+          {
+            key: 'Mod-Enter',
+            run: () => {
+              onCompileNowRef.current()
+              return true
+            },
+          },
+        ]),
+      ),
+      EditorView.updateListener.of((update) => {
+        if (update.docChanged) onChangeRef.current(update.state.doc.toString())
+      }),
+      fluxHighlight,
+      EditorView.contentAttributes.of({ 'aria-label': 'Código FluxLang' }),
+      theme,
+    ]
+    const created = new EditorView({
+      parent: host.current!,
+      state: EditorState.create({ doc: value, extensions }),
+    })
+    view.current = created
+    return () => {
+      created.destroy()
+      view.current = null
+    }
+    // The view is created once; later values are synced by the effects below.
+  }, [])
+
+  useEffect(() => {
+    const v = view.current
+    if (!v) return
+    const current = v.state.doc.toString()
+    if (value !== current) v.dispatch({ changes: { from: 0, to: current.length, insert: value } })
+  }, [value])
+
+  useEffect(() => {
+    const v = view.current
+    if (!v) return
+    v.dispatch(setDiagnostics(v.state, errorDiagnostics(v.state.doc.toString(), errors, tokens)))
+  }, [errors, tokens])
+
+  useEffect(() => {
+    const v = view.current
+    if (!focus || !v) return
+    const doc = v.state.doc.toString()
+    let from: number
+    let to: number
+    if (focus.length) {
+      from = offsetAt(doc, focus.line, focus.column)
+      to = offsetAt(doc, focus.line, focus.column + focus.length)
+    } else {
+      from = offsetAt(doc, focus.line, 1)
+      const lineNo = Math.min(Math.max(v.state.doc.lineAt(from).number, 1), v.state.doc.lines)
+      to = v.state.doc.line(lineNo).to
+    }
+    v.dispatch({
+      selection: { anchor: from, head: to },
+      effects: EditorView.scrollIntoView(from, { y: 'center' }),
+    })
+    v.focus()
   }, [focus])
 
   useEffect(() => {
-    const el = textarea.current
-    if (!focusKey || !el) return
-    el.focus({ preventScroll: true })
-    el.setSelectionRange(0, 0)
-    el.scrollTop = 0
+    const v = view.current
+    if (!focusKey || !v) return
+    v.dispatch({ selection: { anchor: 0 }, effects: EditorView.scrollIntoView(0, { y: 'start' }) })
+    v.focus()
   }, [focusKey])
 
-  return (
-    <div className="flex h-full min-h-0 font-mono text-sm leading-5">
-      <div
-        aria-hidden
-        className="w-12 shrink-0 overflow-hidden border-r border-line bg-bg text-right text-muted select-none"
-      >
-        <div className="pr-2" style={{ transform: `translateY(${PADDING - scrollTop}px)` }}>
-          {Array.from({ length: lineCount }, (_, i) => (
-            <div key={i} className={errorLines.has(i + 1) ? 'font-bold text-bad' : ''}>
-              {i + 1}
-            </div>
-          ))}
-        </div>
-      </div>
-      <div className="relative min-w-0 flex-1">
-        {[...errorLines].map((line) => (
-          <div
-            key={line}
-            aria-hidden
-            className="pointer-events-none absolute inset-x-0 h-5 bg-bad/15"
-            style={{ top: PADDING + (line - 1) * LINE_HEIGHT - scrollTop }}
-          />
-        ))}
-        <textarea
-          ref={textarea}
-          aria-label="Código FluxLang"
-          value={value}
-          spellCheck={false}
-          wrap="off"
-          onChange={(e) => onChange(e.target.value)}
-          onScroll={(e) => setScrollTop(e.currentTarget.scrollTop)}
-          className="absolute inset-0 resize-none overflow-auto bg-transparent p-2 whitespace-pre text-ink outline-none"
-        />
-      </div>
-    </div>
-  )
+  return <div ref={host} className="h-full min-h-0" />
 }
