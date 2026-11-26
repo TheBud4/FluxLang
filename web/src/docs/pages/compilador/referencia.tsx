@@ -852,7 +852,7 @@ const webApp: Area = {
       path: 'web/src/index.css',
       lines: 50,
       page: 'interface-web',
-      role: <>Os tokens de cor e de fonte ({mono('--color-bg')}, {mono('--color-ink')}, {mono('--color-accent')} e os demais), com os valores do tema escuro em {mono('prefers-color-scheme: dark')}.</>,
+      role: <>Os tokens de cor e de fonte ({mono('--color-bg')}, {mono('--color-ink')}, {mono('--color-accent')} e os demais), num tema escuro só (fundo quase preto e destaque roxo).</>,
       items: [],
     },
     {

@@ -523,7 +523,7 @@ export default defineConfig({
         O realce de código é um {mono('ViewPlugin')} que, na criação e a cada mudança do texto, chama {mono('fluxMarks')} e transforma cada faixa numa decoração com a classe de cor de {mono('TOKEN_COLOR')} (a mesma
         paleta dos exemplos da documentação). Os erros são sublinhados com ondas na cor de erro: um efeito reaplica {mono('setDiagnostics')} com o resultado de {mono('errorDiagnostics')} sempre que {mono('errors')} ou{' '}
         {mono('tokens')} mudam, e passar o mouse sobre o trecho mostra a mensagem num balão. O tema do CodeMirror usa as variáveis de {mono('index.css')} ({mono('var(--color-panel)')}, {mono('var(--color-ink)')},{' '}
-        {mono('var(--color-bad)')} e as demais), então o tema escuro vale também aqui. O atalho {mono('Mod-Enter')} está num keymap de precedência {mono('Prec.highest')} e chama {mono('onCompileNow')}, que é o {mono('compileNow')} de {mono('useCompile')}.
+        {mono('var(--color-bad)')} e as demais), então a paleta vale também aqui. O atalho {mono('Mod-Enter')} está num keymap de precedência {mono('Prec.highest')} e chama {mono('onCompileNow')}, que é o {mono('compileNow')} de {mono('useCompile')}.
       </P>
       <Why>
         {mono('Editor.tsx')}: {mono('onChange')} e {mono('onCompileNow')} ficam em {mono('ref')}s atualizadas a cada renderização, porque a visão é criada uma só vez e as extensões guardariam a primeira função recebida.
@@ -728,8 +728,8 @@ export default defineConfig({
       <H2 title="Aparência: os tokens de index.css" />
       <P>
         {mono('web/src/index.css')} importa o Tailwind e define as cores num bloco {mono('@theme')}. Cada {mono('--color-x')} vira as classes {mono('bg-x')}, {mono('text-x')}, {mono('border-x')} e as demais do
-        Tailwind, e os componentes usam só essas classes: nenhum valor de cor solto. O tema escuro redefine as mesmas variáveis em {mono(':root')} dentro de {mono('@media (prefers-color-scheme: dark)')}, então segue
-        o sistema operacional, sem botão. {mono('html')} declara {mono('color-scheme: light dark')} (barras de rolagem e campos nativos acompanham) e {mono('body')} usa {mono('--color-bg')}, {mono('--color-ink')} e a fonte
+        Tailwind, e os componentes usam só essas classes: nenhum valor de cor solto. A interface tem um tema só, escuro: fundo quase preto e neutro ({mono('#111114')}, painéis {mono('#18181c')}) com destaque roxo
+        ({mono('#9f6bff')}). {mono('html')} declara {mono('color-scheme: dark')} (barras de rolagem e campos nativos acompanham) e {mono('body')} usa {mono('--color-bg')}, {mono('--color-ink')} e a fonte
         sem serifa.
       </P>
       <Table
@@ -750,8 +750,8 @@ export default defineConfig({
         ]}
       />
       <Why>
-        {mono('index.css')}: os componentes só usam as classes dos tokens ({mono('bg-panel')}, {mono('text-ink')}, {mono('border-line')}, {mono('text-bad')}...), então o tema escuro é só trocar os valores das
-        variáveis, sem tocar em nenhum componente.
+        {mono('index.css')}: os componentes só usam as classes dos tokens ({mono('bg-panel')}, {mono('text-ink')}, {mono('border-line')}, {mono('text-bad')}...), então mudar a paleta é só trocar os valores das
+        variáveis, sem tocar em nenhum componente. Todos os pares de texto sobre {mono('--color-bg')} e {mono('--color-panel')}, e o texto do botão Executar sobre {mono('--color-accent')}, passam de 4,5:1 (WCAG AA).
       </Why>
       <Why>
         {mono('index.css')}: a classe {mono('.font-mono')} desliga as ligaduras ({mono('font-variant-ligatures: none')}). O código tem de aparecer como foi digitado: uma fonte com ligaduras desenharia{' '}
@@ -769,7 +769,7 @@ export default defineConfig({
           ['Um só h1 por tela', <>&quot;FluxLang&quot; é {mono('h1')} no editor e parágrafo na documentação, que tem o título da página como {mono('h1')}; a tela do editor não tem outros títulos (as abas do painel lateral são botões de {mono('role="tab"')}).</>],
           ['Cor nunca sozinha', 'O tipo de cada linha de saída é escrito ao lado; erros têm o tipo escrito; o rodapé do editor diz "aceito" ou "rejeitado".'],
           ['Teclado em componentes compostos', 'As abas (da barra e do painel lateral) com setas, Home e End; o menu Opções com Esc; a busca com setas e Enter; os diálogos com Esc e o Tab preso dentro.'],
-          ['Cores só por tokens', <>Para o tema escuro funcionar e o contraste ser conferido num só lugar ({mono('index.css')}).</>],
+          ['Cores só por tokens', <>Para a paleta mudar e o contraste ser conferido num só lugar ({mono('index.css')}).</>],
         ]}
       />
       <P>
