@@ -703,7 +703,7 @@ export default defineConfig({
         nó removido pode virar vários irmãos (ou nenhum). Não altera a árvore original: cria nós novos.
       </Fn>
       <Fn name="countNodes" signature="export function countNodes(node: TreeNode): number">
-        Conta os nós, recursivamente, para o título &quot;Árvore sintática (N nós)&quot;. Conta a árvore fiel, mesmo com {mono('hideRest')}.
+        Conta os nós, recursivamente, para o contador &quot;N nós&quot; da aba Árvore. Conta a árvore fiel, mesmo com {mono('hideRest')}.
       </Fn>
       <H3 title="lib/useCompile.ts" />
       <Fn name="useCompile" signature="export function useCompile(source: string, semantic: boolean): { result, loading, failure, compileNow }">
