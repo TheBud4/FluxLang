@@ -1,16 +1,13 @@
-import type { CompileResult } from '../lib/types'
 import { nextTabIndex } from '../lib/tabKeys'
+import { OptionsMenu } from './OptionsMenu'
 
 interface TopBarProps {
-  result: CompileResult | null
-  loading: boolean
-  onCompile: () => void
-  semantic: boolean
-  onSemantic: (on: boolean) => void
-  running: boolean
-  onRun: () => void
   view: 'editor' | 'docs'
   onView: (view: 'editor' | 'docs') => void
+  running: boolean
+  onRun: () => void
+  semantic: boolean
+  onSemantic: (on: boolean) => void
 }
 
 const TABS = [
@@ -18,20 +15,7 @@ const TABS = [
   { id: 'docs', label: 'Documentação' },
 ] as const
 
-const button =
-  'rounded-md border border-line bg-panel px-3 py-1 text-sm hover:bg-bg focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent'
-
-export function TopBar({
-  result,
-  loading,
-  onCompile,
-  semantic,
-  onSemantic,
-  running,
-  onRun,
-  view,
-  onView,
-}: TopBarProps) {
+export function TopBar({ view, onView, running, onRun, semantic, onSemantic }: TopBarProps) {
   function handleTabKey(e: React.KeyboardEvent<HTMLButtonElement>) {
     const at = TABS.findIndex((t) => t.id === view)
     const to = nextTabIndex(e.key, at, TABS.length)
@@ -74,48 +58,17 @@ export function TopBar({
       </div>
 
       {view === 'editor' && (
-        <>
-          <div className="flex items-center gap-2">
-            <button type="button" className={button} onClick={onCompile}>
-              Compilar
-            </button>
-            <button
-              type="button"
-              className="rounded-md border border-accent bg-accent px-3 py-1 text-sm font-semibold text-panel hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
-              onClick={onRun}
-              disabled={running}
-            >
-              {running ? 'Executando...' : 'Executar'}
-            </button>
-            <label className="flex min-h-6 items-center gap-1.5 text-sm whitespace-nowrap">
-              <input
-                type="checkbox"
-                className="size-6 accent-accent"
-                checked={semantic}
-                onChange={(e) => onSemantic(e.target.checked)}
-              />
-              Análise semântica
-            </label>
-          </div>
-
-          <div className="ml-auto flex items-center gap-3 text-sm" role="status" aria-live="polite">
-            {result ? (
-              <>
-                <span
-                  className={`rounded-full px-3 py-0.5 font-semibold text-panel ${result.accepted ? 'bg-ok' : 'bg-bad'}`}
-                >
-                  {result.accepted ? 'Programa aceito' : 'Programa rejeitado'}
-                </span>
-                <span className="text-muted">
-                  {result.lines} {result.lines === 1 ? 'linha' : 'linhas'} · {result.errors.length}{' '}
-                  {result.errors.length === 1 ? 'erro' : 'erros'} · {result.tokens.length} tokens
-                </span>
-              </>
-            ) : (
-              <span className="text-muted">{loading ? 'Compilando...' : 'Sem resultado'}</span>
-            )}
-          </div>
-        </>
+        <div className="ml-auto flex items-center gap-2">
+          <OptionsMenu semantic={semantic} onSemantic={onSemantic} />
+          <button
+            type="button"
+            className="rounded-md border border-accent bg-accent px-3 py-1 text-sm font-semibold text-panel hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent disabled:opacity-60"
+            onClick={onRun}
+            disabled={running}
+          >
+            {running ? 'Executando...' : 'Executar'}
+          </button>
+        </div>
       )}
     </header>
   )

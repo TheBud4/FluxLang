@@ -55,9 +55,6 @@ export default function App() {
   return (
     <div className="flex h-dvh flex-col">
       <TopBar
-        result={result}
-        loading={loading}
-        onCompile={compileNow}
         semantic={semantic}
         onSemantic={setSemantic}
         running={runState.phase === 'running'}
